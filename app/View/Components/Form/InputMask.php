@@ -1,0 +1,32 @@
+<?php
+
+namespace App\View\Components\Form;
+
+use Closure;
+use Illuminate\Contracts\View\View;
+use Illuminate\View\Component;
+
+class InputMask extends Component
+{
+    public $label, $old, $optional, $info, $mask;
+
+    /**
+     * Create a new component instance.
+     */
+    public function __construct($mask, $label = false, $old = '', $optional = false, $info = '')
+    {
+        $this->label = $label;
+        $this->old = $old;
+        $this->optional = $optional;
+        $this->info = $info;
+        $this->mask = $mask;
+    }
+
+    /**
+     * Get the view / contents that represent the component.
+     */
+    public function render(): View|Closure|string
+    {
+        return view('components.form.input-mask');
+    }
+}

@@ -1,0 +1,42 @@
+.page {
+    padding-bottom: 1.5rem;
+}
+
+.navbar-bottom {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1030;
+    background: #ffffff;
+    border-radius: 0;
+    padding: 0.4rem 0.5rem;
+    box-shadow: 0px -5px 16px -8px rgba(0, 0, 0, 0.22);
+}
+
+.navbar-bottom .nav-item .nav-link {
+    color: #787f8d;
+    font-size: 13px;
+}
+.navbar-bottom .nav-item .nav-link i {
+    color: #959ca8;
+    font-size: 28px;
+}
+.navbar-bottom .nav-item .nav-link.active {
+    color: rgb(var(--primary-rgb));
+}
+.navbar-bottom .nav-item .nav-link.active i {
+    color: rgb(var(--primary-rgb));
+}
+
+.card-tab .tab {
+    background: rgb(var(--light-rgb));
+    padding: 0.5rem;
+    text-align: center;
+    border-bottom: 3px solid #d8dde7;
+    color: #666c79;
+}
+.card-tab .tab.active {
+    border-bottom: 3px solid rgb(var(--primary-rgb));
+    font-weight: bold;
+}
