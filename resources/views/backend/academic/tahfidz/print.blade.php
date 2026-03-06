@@ -21,7 +21,7 @@
         <div class="laporan">
 
             <div class="top">
-                <h6 style="color: green">Ponpes Ibnu Abbas Sragen</h6>
+                <h6 style="color: green">Si-Alka (Sistem Informasi Al Karimah)</h6>
                 <h6 class="tanggal">Tanggal Print : {{ date('d-m-Y H:i') }}</h6>
             </div>
 
@@ -216,7 +216,7 @@
     </div>
 
     <footer>
-        <h2>Ponpes Ibnu Abbas Sragen</h2>
+        <h2>Si-Alka (Sistem Informasi Al Karimah)</h2>
     </footer>
 </body>
 

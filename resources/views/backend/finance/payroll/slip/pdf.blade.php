@@ -1,67 +1,75 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>{{ __('label.bill_progress') }}</title>
 
     <style>
-    @page { margin: 0; }
-    body{
-        font-family: 'Helvetica';
-        font-size: 14px;
-        color: rgb(67, 72, 78);
-    }
+        @page {
+            margin: 0;
+        }
 
-    .text-primary {
-        color: rgb(252, 171, 21);
-    }
+        body {
+            font-family: 'Helvetica';
+            font-size: 14px;
+            color: rgb(67, 72, 78);
+        }
 
-    .table {
-        border-collapse:collapse;
-    }
-    .table th{
-        text-align: left;
-        border: 1px solid #b0bbc7;
-        padding: 7px;
-    }
-    .table td {
-        word-wrap:break-word;
-        width: 20%;
-        vertical-align: middle;
-        padding: 7px;
-        border: 0;
-        border-bottom: 1px dashed #cad4df;
-    }
-    .table-padding td {
-        padding: 3px 5px;
-        padding-left: 0;
-        vertical-align: top;
-    }
-    .table-padding .divide {
-        width: 21px;
-        text-align: center;
-    }
+        .text-primary {
+            color: rgb(252, 171, 21);
+        }
 
-    .section {
-        padding-left: 35px;
-    }
-    .text-center {
-        text-align: center;
-    }
-    .text-right {
-        text-align: right;
-    }
+        .table {
+            border-collapse: collapse;
+        }
+
+        .table th {
+            text-align: left;
+            border: 1px solid #b0bbc7;
+            padding: 7px;
+        }
+
+        .table td {
+            word-wrap: break-word;
+            width: 20%;
+            vertical-align: middle;
+            padding: 7px;
+            border: 0;
+            border-bottom: 1px dashed #cad4df;
+        }
+
+        .table-padding td {
+            padding: 3px 5px;
+            padding-left: 0;
+            vertical-align: top;
+        }
+
+        .table-padding .divide {
+            width: 21px;
+            text-align: center;
+        }
+
+        .section {
+            padding-left: 35px;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-right {
+            text-align: right;
+        }
     </style>
 </head>
+
 <body>
-    <x-section-pdf
-        :label="__('label.payroll')"
-        orientation="portrait"
-    />
+    <x-section-pdf :label="__('label.payroll')" orientation="portrait" />
 
     <div class="section">
         <h3 class="text-center">
             RINCIAN MUKAFAAH PEGAWAI<br />
-            PESANTREN IBNU ABBAS AS SALAFY
+            PESANTREN AL-KARIMAH
         </h3>
 
         <table class="table-padding">
@@ -73,7 +81,7 @@
             <tr>
                 <td>{{ __('label.nip') }}</td>
                 <td class="divide">:</td>
-                <td>{{ (empty($payroll->employee->nip)) ? '-' : $payroll->employee->nip }}</td>
+                <td>{{ empty($payroll->employee->nip) ? '-' : $payroll->employee->nip }}</td>
             </tr>
             <tr>
                 <td>{{ __('label.month') }}</td>
@@ -83,12 +91,13 @@
             <tr>
                 <td>{{ __('label.status') . ' / ' . __('label.education') }}</td>
                 <td class="divide">:</td>
-                <td>{{ $payroll->employee->status_employment_name . ' / ' }}{{ (empty($payroll->employee->education)) ? '-' : $payroll->employee->education }}</td>
+                <td>{{ $payroll->employee->status_employment_name . ' / ' }}{{ empty($payroll->employee->education) ? '-' : $payroll->employee->education }}
+                </td>
             </tr>
             <tr>
                 <td>{{ __('label.position') }}</td>
                 <td class="divide">:</td>
-                <td>{{ (empty($payroll->employee->id_position)) ? '-' : $payroll->employee->position->name }}</td>
+                <td>{{ empty($payroll->employee->id_position) ? '-' : $payroll->employee->position->name }}</td>
             </tr>
         </table>
 
@@ -148,9 +157,13 @@
             @endif
 
             <tr>
-                <td style="border-top: 1px solid #b0bbc7;border-bottom: 2px solid #5d636b;padding-top: 15px;"><b>{{ __('label.total') }}</b></td>
-                <td style="border-top: 1px solid #b0bbc7;border-bottom: 2px solid rgb(253, 152, 0);padding-top: 15px;color:rgb(253, 152, 0)"><b>Rp.</b></td>
-                <td style="border-top: 1px solid #b0bbc7;border-bottom: 2px solid rgb(253, 152, 0);padding-top: 15px;color:rgb(253, 152, 0)" class="text-right"><b>{{ number_format($payroll->total, 0, '', '.') }}</b></td>
+                <td style="border-top: 1px solid #b0bbc7;border-bottom: 2px solid #5d636b;padding-top: 15px;">
+                    <b>{{ __('label.total') }}</b></td>
+                <td
+                    style="border-top: 1px solid #b0bbc7;border-bottom: 2px solid rgb(253, 152, 0);padding-top: 15px;color:rgb(253, 152, 0)">
+                    <b>Rp.</b></td>
+                <td style="border-top: 1px solid #b0bbc7;border-bottom: 2px solid rgb(253, 152, 0);padding-top: 15px;color:rgb(253, 152, 0)"
+                    class="text-right"><b>{{ number_format($payroll->total, 0, '', '.') }}</b></td>
             </tr>
         </table>
 
@@ -199,4 +212,5 @@
         </table>
     </div>
 </body>
+
 </html>

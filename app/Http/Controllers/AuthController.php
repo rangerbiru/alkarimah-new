@@ -129,7 +129,7 @@ class AuthController extends Controller
             $parent->save();
 
             $message = "*Pondok Pesantren*\n";
-            $message .= "*Ibnu Abbas As-Salafy*\n\n";
+            $message .= "*Al-Karimah*\n\n";
             $message .= "Berikut ini adalah Kode Verifikasi Anda : *" . $parent->token . "*\n\n";
             $message .= "Kode ini hanya berlaku 10 menit. JANGAN BAGIKAN kode verifikasi ini kepada siapapun.\n\n";
             $message .= "```apps.ppiasragen.org```";
@@ -158,7 +158,7 @@ class AuthController extends Controller
             $parent->save();
 
             $message = "*Pondok Pesantren*\n";
-            $message .= "*Ibnu Abbas As-Salafy*\n\n";
+            $message .= "*Al-Karimah*\n\n";
             $message .= "Berikut ini adalah Kode Verifikasi Anda : *" . $parent->token . "*\n\n";
             $message .= "Kode ini hanya berlaku 10 menit. JANGAN BAGIKAN kode verifikasi ini kepada siapapun.\n\n";
             $message .= "```apps.ppiasragen.org```";
@@ -210,7 +210,7 @@ class AuthController extends Controller
             $user->save();
 
             $message = "*Pondok Pesantren*\n";
-            $message .= "*Ibnu Abbas As-Salafy*\n\n";
+            $message .= "*Al-Karimah*\n\n";
             $message .= "Berikut ini adalah Kode Verifikasi Anda : *" . $user->token . "*\n\n";
             $message .= "Kode ini hanya berlaku 10 menit. JANGAN BAGIKAN kode verifikasi ini kepada siapapun.\n\n";
             $message .= "```apps.ppiasragen.org```";
@@ -239,7 +239,7 @@ class AuthController extends Controller
             $user->save();
 
             $message = "*Pondok Pesantren*\n";
-            $message .= "*Ibnu Abbas As-Salafy*\n\n";
+            $message .= "*Al-Karimah*\n\n";
             $message .= "Berikut ini adalah Kode Verifikasi Anda : *" . $user->token . "*\n\n";
             $message .= "Kode ini hanya berlaku 10 menit. JANGAN BAGIKAN kode verifikasi ini kepada siapapun.\n\n";
             $message .= "```apps.ppiasragen.org```";

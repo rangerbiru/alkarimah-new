@@ -43,10 +43,9 @@
 
                     @php
                         $locations = [
-                            'ma ibnu abbas putra' => 'MA Ibnu Abbas Putra',
-                            'ma ibnu abbas putri' => 'MA Ibnu Abbas Putri',
-                            'ponpes ibnu abbas' => 'Ponpes Ibnu Abbas As-salafy',
-                            'ponpes taman surga' => 'Ponpes Taman Surga',
+                            'ma al-karimah putra' => 'MA Al-Karimah Putra',
+                            'ma al-karimah putri' => 'MA Al-Karimah Putri',
+                            'ponpes al-karimah' => 'Ponpes Al-Karimah',
                         ];
                     @endphp
 

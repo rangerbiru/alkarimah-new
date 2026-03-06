@@ -6,7 +6,7 @@
     <meta charset="UTF-8" />
     <meta name='viewport' content='width=device-width, initial-scale=1.0' />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="Author" content="Ponpes Ibnu Abbas As-Salafy Sragen" />
+    <meta name="Author" content="Si-Alka (Sistem Informasi Al Karimah)" />
     <meta name="robots" content="noindex,nofollow" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
@@ -139,7 +139,8 @@
 
         <footer class="footer mt-auto py-3 bg-white">
             <div class="container">
-                <span class="text-muted">Copyright &copy; {{ date('Y') }} </span><b>Ponpes Ibnu Abbas As Salafy</b>
+                <span class="text-muted">Copyright &copy; {{ date('Y') }} </span><b>Si-Alka (Sistem Informasi Al
+                    Karimah)</b>
             </div>
         </footer>
     </div>

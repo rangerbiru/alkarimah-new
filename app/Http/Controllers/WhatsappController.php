@@ -19,9 +19,9 @@ class WhatsappController extends Controller
             ->first();
 
         $message = "Bismillah\n";
-        $message .= "_Assalamu'alaikum Warohmatullah Wabarokaatuh_\n\n";
+        $message .= "Assalamu'alaikum Warohmatullah Wabarokaatuh\n\n";
         $message .= "Kepada Yth,\n";
-        $message .= "*Bapak/Ibu selaku Orangtua/walisantri Pesantren Ibnu Abbas As Salafy Sragen* yang semoga senantiasa dimuliakan Allah Ta'ala,\n\n";
+        $message .= "*Bapak/Ibu selaku Orangtua/walisantri Pesantren Al-Karimah* yang semoga senantiasa dimuliakan Allah Ta'ala,\n\n";
         $message .= "Berikut kami informasikan Data Tagihan Ananda : *" . $student->name . "*\n";
 
         $total = 0;

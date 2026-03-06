@@ -66,7 +66,7 @@ class MootaController extends Controller
             Log::channel('payment')->alert('Moota/notification Failed');
             Log::channel('payment')->alert('Headers : ' . json_encode($header));
             Log::channel('payment')->alert('Data : ' . $data);
-            Log::channel('payment')->alert('Signature (Ibnu Abbas) : ' . $signature);
+            Log::channel('payment')->alert('Signature (Al-Karimah) : ' . $signature);
             Log::channel('payment')->alert('Response : Invalid Signature');
 
             return response()->json([
@@ -90,7 +90,7 @@ class MootaController extends Controller
             if (empty($transaction))
                 continue;
 
-            DB::transaction(function() use($transaction, $m) {
+            DB::transaction(function () use ($transaction, $m) {
                 MootaLog::create([
                     'id_transaction' => $transaction->id,
                     'id_branch' => $transaction->branch_id,

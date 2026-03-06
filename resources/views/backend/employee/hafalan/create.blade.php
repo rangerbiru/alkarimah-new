@@ -34,7 +34,7 @@
                         </div>
                         <div class="row">
                             <div class="col-md-10">
-                                <x-form.input-text name="nama_lembaga" id="nama_lembaga" :label="__('label.lembaga_name')" :old="'Ponpes Ibnu Abbas'"
+                                <x-form.input-text name="nama_lembaga" id="nama_lembaga" :label="__('label.lembaga_name')" :old="'Ponpes Al-Karimah'"
                                     readonly />
                             </div>
                         </div>

@@ -17,9 +17,9 @@
 
                         <div class="row">
                             <div class="col-md-4">
-                                <x-form.input-text name="nama_lembaga_display" :label="__('label.lembaga_name')" :old="'Ponpes Ibnu Abbas'" readonly
+                                <x-form.input-text name="nama_lembaga_display" :label="__('label.lembaga_name')" :old="'Ponpes Al-Karimah'" readonly
                                     disabled />
-                                <input type="hidden" name="nama_lembaga" value="Ponpes Ibnu Abbas">
+                                <input type="hidden" name="nama_lembaga" value="Ponpes Al-Karimah">
                             </div>
                         </div>
                         <div class="row">

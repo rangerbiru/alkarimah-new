@@ -17,11 +17,27 @@ class UserSuperAdminSeeder extends Seeder
     public function run(): void
     {
         User::create([
-            'name' => 'Ibnu Abbas',
-            'email' => 'office@binabbas.org',
+            'name' => 'Al-Karimah',
+            'email' => 'office@alkarimah.org',
             'phone' => '085212223424',
-            'password' => '12345678',
+            'password' => bcrypt('12345678'),
             'role' => EnumsUserRole::SuperAdmin,
+        ]);
+
+        User::create([
+            'name' => 'Admin Al-Karimah',
+            'email' => 'admin@alkarimah.org',
+            'phone' => '085212223424',
+            'password' => bcrypt('12345678'),
+            'role' => EnumsUserRole::Admin,
+        ]);
+
+        User::create([
+            'name' => 'Ponpes Al-Karimah',
+            'email' => 'alkarimahponpes@gmail.com',
+            'phone' => '085212223424',
+            'password' => bcrypt('12345678'),
+            'role' => EnumsUserRole::Admin,
         ]);
     }
 }
