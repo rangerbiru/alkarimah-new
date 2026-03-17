@@ -251,6 +251,11 @@ class PaymentController extends Controller
             $redirect = route('finance.balance.index');
         }
 
+        Log::channel('payment')->info('-----');
+        Log::channel('payment')->info('Moota/check');
+        Log::channel('payment')->info('Headers : ' . json_encode($transaction->toArray()));
+        Log::channel('payment')->info('-----');
+
         if ($transaction->status->value == TransactionStatus::Paid->value) {
             $response = [
                 'status' => true,
@@ -314,7 +319,7 @@ class PaymentController extends Controller
         if (empty($pending)) {
             $transbill = TransactionBill::select('id', 'id_bill', 'semester', 'months', 'years', 'total')
                 ->with([
-                    'bill' => function($query) {
+                    'bill' => function ($query) {
                         $query->select('id', 'id_type', 'name')
                             ->with([
                                 'type' => fn($qt) => $qt->select('id', 'period')
@@ -442,14 +447,14 @@ class PaymentController extends Controller
 
         $transaction = Transaction::select('id', 'id_student', 'number', 'payment_method', 'paid_at', 'total', 'created_at', 'status')
             ->with(['student' => fn($query) => $query->select('id')])
-            ->whereHas('student', function($query) use($parent) {
+            ->whereHas('student', function ($query) use ($parent) {
                 $query->whereIdParent($parent);
             })
             ->tagihan();
 
         if (!empty($request->search)) {
             $search = $request->search;
-            $transaction = $transaction->where(function($query) use($search) {
+            $transaction = $transaction->where(function ($query) use ($search) {
                 $query->where('number', 'like', '%' . $search . '%')
                     ->orWhere('paid_at', 'like', '%' . $search . '%')
                     ->orWhere('created_at', 'like', '%' . $search . '%');

@@ -22,6 +22,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Validator;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class StudentController extends Controller
 {
@@ -306,8 +308,16 @@ class StudentController extends Controller
         $limit = $request->input('length');
         $start = $request->input('start');
 
-        $history = StudentDisplacementHistory::select('id', 'id_student', 'before_class_id', 'before_nis', 'after_class_id', 'after_nis',
-                'created_at', 'created_by')
+        $history = StudentDisplacementHistory::select(
+            'id',
+            'id_student',
+            'before_class_id',
+            'before_nis',
+            'after_class_id',
+            'after_nis',
+            'created_at',
+            'created_by'
+        )
             ->with([
                 'classBefore' => fn($query) => $query->select('id', 'name'),
                 'classAfter' => fn($query) => $query->select('id', 'name'),
@@ -322,8 +332,8 @@ class StudentController extends Controller
         else {
             $history_filter = $history->where(function ($query) use ($search) {
                 $query->whereHas('classBefore', function ($q) use ($search) {
-                        $q->where('name', 'like', '%' . $search . '%');
-                    })
+                    $q->where('name', 'like', '%' . $search . '%');
+                })
                     ->orWhereHas('classAfter', function ($q) use ($search) {
                         $q->where('name', 'like', '%' . $search . '%');
                     });
@@ -515,7 +525,7 @@ class StudentController extends Controller
         }
 
         if ($error == false) {
-            DB::transaction(function() use($student, $nis, $class) {
+            DB::transaction(function () use ($student, $nis, $class) {
                 foreach ($student as $index => $s) {
                     $student = Student::select('id', 'id_class', 'nis')->whereId($s)->first();
 
@@ -593,7 +603,8 @@ class StudentController extends Controller
         ]);
     }
 
-    public function update(StudentRequest $request, Student $student) {
+    public function update(StudentRequest $request, Student $student)
+    {
         $filename_hashed = '';
         $extension = '';
         $attachment_old = Attachment::find($student->file);
@@ -630,7 +641,7 @@ class StudentController extends Controller
                 $attachment_old->delete();
         }
 
-        return Redirect::route('academic.student.index')->with('success',__('message.update_success', ['label' => __($this->title)]));
+        return Redirect::route('academic.student.index')->with('success', __('message.update_success', ['label' => __($this->title)]));
     }
 
     public function updateParent(StudentParentRequest $request, Student $student)
@@ -677,5 +688,156 @@ class StudentController extends Controller
         }
 
         return response()->json($students);
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,csv'
+        ]);
+
+        $file = $request->file('file');
+
+        $spreadsheet = IOFactory::load($file);
+        $sheet = $spreadsheet->getActiveSheet()->toArray();
+
+        $headerRow = 7;
+
+        if (!isset($sheet[$headerRow])) {
+            return back()->with('error', 'Format file tidak valid (header tidak ditemukan)');
+        }
+
+        $header = array_map(fn($h) => strtolower(trim($h)), $sheet[$headerRow]);
+
+        $requiredHeaders = ['nis', 'nama', 'jenis_kelamin', 'agama', 'kartu_siswa', 'tanggal_masuk'];
+
+        $missingHeaders = array_diff($requiredHeaders, $header);
+
+        if (!empty($missingHeaders)) {
+            return back()->with('error', 'Kolom tidak lengkap: ' . implode(', ', $missingHeaders));
+        }
+
+        $dataRows = array_slice($sheet, $headerRow + 1);
+
+        $success = 0;
+        $errors = [];
+
+        $existingNis = Student::pluck('nis')->toArray();
+        $existingNisn = Student::pluck('nisn')->filter()->toArray();
+        $existingNik = Student::pluck('nik')->filter()->toArray();
+
+        foreach ($dataRows as $index => $row) {
+
+            if (empty(array_filter($row))) {
+                continue;
+            }
+
+            $row = array_map(fn($item) => trim($item), $row);
+
+            if (count($header) != count($row)) {
+                $errors[] = [
+                    'row' => $index + $headerRow + 2,
+                    'name' => '-',
+                    'error' => 'Jumlah kolom tidak sesuai dengan header'
+                ];
+                continue;
+            }
+
+            $data = array_combine($header, $row);
+
+            $validator = Validator::make($data, [
+                'nis' => 'required|max:50',
+                'nama' => 'required|max:150',
+                'jenis_kelamin' => 'required',
+                'agama' => 'required',
+                'kartu_siswa' => 'required|max:50',
+                'tanggal_masuk' => 'required|date',
+                'spp' => 'nullable|numeric',
+            ]);
+
+            if ($validator->fails()) {
+                $errors[] = [
+                    'row' => $index + $headerRow + 2,
+                    'name' => $data['nama'] ?? '-',
+                    'error' => $validator->errors()->first()
+                ];
+                continue;
+            }
+
+            $data = array_map(fn($v) => $v === '' ? null : $v, $data);
+
+            if (
+                in_array($data['nis'], $existingNis) ||
+                (!empty($data['nisn']) && in_array($data['nisn'], $existingNisn)) ||
+                (!empty($data['nik']) && in_array($data['nik'], $existingNik))
+            ) {
+                $errors[] = [
+                    'row' => $index + $headerRow + 2,
+                    'name' => $data['nama'],
+                    'error' => 'Data sudah ada (NIS / NISN / NIK)'
+                ];
+                continue;
+            }
+
+            try {
+
+                Student::create([
+                    'nis' => $data['nis'],
+                    'nis_local' => $data['nis_lokal'] ?? null,
+                    'nisn' => $data['nisn'] ?? null,
+                    'nik' => $data['nik'] ?? null,
+                    'name' => $data['nama'],
+                    'gender' => $data['jenis_kelamin'],
+                    'id_parent' => 1,
+                    'religion' => $data['agama'],
+                    'birthplace' => $data['tempat_lahir'] ?? null,
+                    'birthdate' => $data['tanggal_lahir'] ?? null,
+                    'card_number' => $data['kartu_siswa'] ?? null,
+                    'id_asrama' =>  1,
+                    'id_halaqah' => 1,
+                    'id_class' => 1,
+                    'school_from' => $data['asal_sekolah'] ?? null,
+                    'entry_date' => $data['tanggal_masuk'] ?? null,
+                    'spp' => $data['spp'] ?? 0,
+                    'address' => $data['alamat'] ?? null,
+                    'status' => 1
+                ]);
+
+                $existingNis[] = $data['nis'];
+                if (!empty($data['nisn'])) $existingNisn[] = $data['nisn'];
+                if (!empty($data['nik'])) $existingNik[] = $data['nik'];
+
+                $success++;
+            } catch (\Exception $e) {
+
+                $errors[] = [
+                    'row' => $index + $headerRow + 2,
+                    'name' => $data['nama'] ?? '-',
+                    'error' => $e->getMessage()
+                ];
+            }
+        }
+
+        /*
+    =====================
+    RESPONSE
+    =====================
+    */
+        if ($success > 0 && count($errors) == 0) {
+
+            return back()->with('success', "$success data berhasil diimport");
+        } elseif ($success > 0 && count($errors) > 0) {
+
+            return back()->with([
+                'warning' => "$success data berhasil diimport, tetapi ada beberapa error",
+                'errors_import' => $errors
+            ]);
+        } else {
+
+            return back()->with([
+                'error' => "Import gagal. Tidak ada data yang berhasil diimport.",
+                'errors_import' => $errors
+            ]);
+        }
     }
 }

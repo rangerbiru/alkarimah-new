@@ -112,6 +112,9 @@ Route::prefix('student')->group(function () {
     Route::post('change', [AcademicStudentController::class, 'storeChange'])->name('academic.student.store.change')->middleware('role:admin');
 
     Route::put('parent/{student}', [AcademicStudentController::class, 'updateParent'])->name('academic.student.update.parent')->middleware('role:orang-tua');
+
+    Route::post('/import', [AcademicStudentController::class, 'import'])
+        ->name('student.import');
 });
 
 Route::resource('student-permit', AcademicStudentPermitController::class, ['as' => 'academic'])->except(['show']);

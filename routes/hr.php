@@ -29,6 +29,9 @@ Route::prefix('employee')->group(function () {
 
     Route::post('datatable', [HrEmployeeController::class, 'datatable'])->name('hr.employee.datatable')->middleware('role:admin');
     Route::post('rights/{employee}', [HrEmployeeController::class, 'storeRights'])->name('hr.employee.store.rights')->middleware('role:admin');
+
+    Route::post('/import', [HrEmployeeController::class, 'import'])
+        ->name('employee.import');
 });
 Route::resource('employee', HrEmployeeController::class, ['as' => 'hr'])->except(['show'])->middleware('role:admin');
 

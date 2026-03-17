@@ -97,7 +97,7 @@ class BalanceController extends Controller
                 'total' => $nominal + $request->unique_code,
             ]);
 
-            DB::transaction(function() use($request, &$transaction) {
+            DB::transaction(function () use ($request, &$transaction) {
                 $transaction = Transaction::create($request->all());
                 TransactionPaymentCode::whereCode($request->unique_code)->update(['status' => PaymentCodeStatus::Used->value]);
             });
@@ -148,12 +148,12 @@ class BalanceController extends Controller
 
         if (!empty($request->search)) {
             $search = $request->search;
-            $transaction = $transaction->where(function($query) use($search) {
-                $query->whereHas('transaction', function($qt) use($search) {
-                        $qt->where('number', 'like', '%' . $search . '%')
-                            ->orWhere('paid_at', 'like', '%' . $search . '%')
-                            ->orWhere('created_at', 'like', '%' . $search . '%');
-                    });
+            $transaction = $transaction->where(function ($query) use ($search) {
+                $query->whereHas('transaction', function ($qt) use ($search) {
+                    $qt->where('number', 'like', '%' . $search . '%')
+                        ->orWhere('paid_at', 'like', '%' . $search . '%')
+                        ->orWhere('created_at', 'like', '%' . $search . '%');
+                });
             });
         }
 

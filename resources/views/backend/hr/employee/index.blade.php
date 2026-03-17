@@ -8,7 +8,58 @@
 @section('content')
     <div class="card">
         <div class="card-body">
-            <x-section-page-action :label="$title" :icon="$icon" :count="$count" :create-route="route('hr.employee.create')" />
+            <div class="row mb-3">
+                <div class="col-sm-7 col-md-3">
+                    <div class="alert alert-outline-info">
+                        <div class="clearfix">
+                            <div class="float-end"><i class="{{ $icon }}" style="font-size: 16px;"></i></div>
+
+                            <b>{{ number_format($count, 0, '', '.') }}</b> {{ $title }}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-5 col-md-9">
+                    <div class="d-block d-sm-none mt-3"></div>
+
+                    <a href="{{ route('hr.employee.create') }}" class="btn btn-primary label-btn">
+                        <i class="bx bxs-plus-circle label-btn-icon me-2"></i>
+                        {{ __('label.create') }}
+                    </a>
+                    <button class="btn btn-success label-btn" data-bs-toggle="modal" data-bs-target="#importEmployeeModal">
+                        <i class="fas fa-upload label-btn-icon me-2 fs-10"></i>
+                        {{ __('label.upload') }}
+                    </button>
+                </div>
+            </div>
+
+            @if (session('success'))
+                <div class="alert alert-success">
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            @if (session('warning'))
+                <div class="alert alert-warning">
+                    {{ session('warning') }}
+                </div>
+            @endif
+
+            @if (session('error'))
+                <div class="alert alert-danger">
+                    {{ session('error') }}
+                </div>
+            @endif
+
+            @if (session('errors_import'))
+                <div class="alert alert-danger">
+                    <b>Data yang gagal diimport:</b>
+                    <ul>
+                        @foreach (session('errors_import') as $error)
+                            <li>Baris ke-{{ $error['row'] }} : {{ $error['error'] }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
             <div class="table-responsive">
                 <table class="table" id="table-employee">
@@ -27,6 +78,59 @@
                     <tbody></tbody>
                 </table>
             </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="importEmployeeModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <form action="{{ route('employee.import') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Import Data Pegawai</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="modal-body">
+
+                        <div class="alert alert-info">
+                            <b>Ketentuan Import:</b>
+
+                            <ul class="mb-0 mt-2">
+                                <li>File harus format <b>Excel (.xlsx)</b> atau <b>CSV</b></li>
+                                <li>Baris pertama harus berisi <b>nama kolom</b></li>
+                                <li><b>Kolom wajib diisi:</b>
+                                    <ul>
+                                        <li>nip</li>
+                                        <li>nik</li>
+                                        <li>nama_lengkap</li>
+                                        <li>email</li>
+                                        <li>password</li>
+                                        <li>jenis_kelamin</li>
+                                        <li>telepon</li>
+                                        <li>alamat</li>
+                                        <li>pendidikan</li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Upload File</label>
+                            <input type="file" name="file" class="form-control" required>
+                        </div>
+
+                    </div>
+
+                    <div class="modal-footer">
+                        <button class="btn btn-primary">
+                            Import Data
+                        </button>
+                    </div>
+                </div>
+
+            </form>
         </div>
     </div>
 @endsection
