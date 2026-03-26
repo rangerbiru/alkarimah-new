@@ -618,4 +618,91 @@ return [
     'jumat' => 'Jumat',
     'sabtu' => 'Sabtu',
     'minggu' => 'Minggu',
+
+
+    // Data Diri Siswa
+    'nickname' => 'Nama Panggilan',
+    'weight' => 'Berat Badan (Kg)',
+    'height' => 'Tinggi Badan (Cm)',
+    'blood_type' => 'Golongan Darah',
+    'home_language' => 'Bahasa yang Digunakan di Rumah',
+    'living_with_parents' => 'Tinggal Bersama',
+    'personality' => 'Kepribadian',
+
+    // Kesehatan
+    'medical_history' => 'Riwayat Penyakit',
+    'physical_disabilities' => 'Kelainan Jasmani',
+    'daily_habits' => 'Kebiasaan Harian',
+
+    // Data Ayah
+    'father_name' => 'Nama Ayah',
+    'father_id_number' => 'NIK Ayah',
+    'father_status' => 'Status Ayah',
+    'father_education' => 'Pendidikan Ayah',
+    'father_occupation' => 'Pekerjaan Ayah',
+    'father_phone' => 'No. HP Ayah',
+
+    // Data Ibu
+    'mother_name' => 'Nama Ibu',
+    'mother_id_number' => 'NIK Ibu',
+    'mother_status' => 'Status Ibu',
+    'mother_education' => 'Pendidikan Ibu',
+    'mother_occupation' => 'Pekerjaan Ibu',
+    'mother_phone' => 'No. HP Ibu',
+
+    // Data Wali
+    'guardian_name' => 'Nama Wali',
+    'guardian_id_number' => 'NIK Wali',
+    'guardian_occupation' => 'Pekerjaan Wali',
+    'guardian_email' => 'Email Wali',
+    'guardian_phone' => 'No. HP Wali',
+    'guardian_income' => 'Penghasilan Wali',
+
+    // Data Keluarga
+    'family_card_number' => 'Nomor Kartu Keluarga',
+    'family_income' => 'Penghasilan Keluarga',
+    'siblings_count' => 'Jumlah Saudara',
+    'step_siblings_count' => 'Jumlah Saudara Tiri',
+    'adopted_siblings_count' => 'Jumlah Saudara Angkat',
+    'family_members_count' => 'Jumlah Jiwa dalam KK',
+    'orphan_status' => 'Status Yatim',
+    'guardian_notes' => 'Catatan Wali',
+    'approval_status' => 'Persetujuan',
+
+    // Alamat
+    'home_address' => 'Alamat Rumah',
+    'home_district' => 'Kecamatan (Rumah)',
+    'home_regency' => 'Kabupaten/Kota (Rumah)',
+    'home_province' => 'Provinsi (Rumah)',
+    'postal_code' => 'Kode Pos',
+    'previous_school_address' => 'Alamat Sekolah Asal',
+    'previous_school_district' => 'Kecamatan (Sekolah)',
+    'previous_school_regency' => 'Kabupaten/Kota (Sekolah)',
+    'previous_school_province' => 'Provinsi (Sekolah)',
+    'distance_to_school' => 'Jarak Rumah ke Sekolah',
+
+    // Akademik
+    'previous_school_name' => 'Asal Sekolah',
+    'previous_school_npsn' => 'NPSN Sekolah Asal',
+    'previous_school_status' => 'Status Sekolah Asal',
+    'registration_number' => 'No. Pendaftaran',
+    'session_id' => 'ID Session/Angkatan',
+    'entry_date' => 'Tanggal Masuk',
+    'payment_status' => 'Status Pembayaran',
+    'has_scholarship' => 'Penerima Beasiswa',
+    'scholarship_name' => 'Nama Beasiswa',
+    'achievements' => 'Prestasi',
+    'recommendation_status' => 'Status Rekomendasi',
+    'graduation_status' => 'Status Kelulusan',
+    'notes' => 'Keterangan',
+    'nationality' => 'Kewarganegaraan',
+    'foreign_origin' => 'Asal Negara (Jika WNA)',
+
+    // Lainnya
+    'student_card_number' => 'Nomor Kartu Siswa',
+    'spp' => 'SPP',
+    'location' => 'Lokasi',
+    'parent_data' => 'Data Orang Tua & Wali',
+    'address_data' => 'Data Alamat',
+    'other_data' => 'Data Lainnya',
 ];

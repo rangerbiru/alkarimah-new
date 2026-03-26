@@ -21,6 +21,7 @@ use App\Models\StudentDisplacementHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Validator;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -644,12 +645,187 @@ class StudentController extends Controller
         return Redirect::route('academic.student.index')->with('success', __('message.update_success', ['label' => __($this->title)]));
     }
 
+
     public function updateParent(StudentParentRequest $request, Student $student)
     {
-        $request->merge(['birthdate' => date('Y-m-d', strtotime($request->birthdate))]);
-        $student->update($request->all());
+        try {
+            DB::beginTransaction();
 
-        return Redirect::route('academic.student.show', $student->encrypted_id)->with('success', __('message.update_success', ['label' => __($this->title)]));
+            // 1. Update Tabel Students (Data Inti)
+            $studentData = $request->only([
+                'nik',
+                'name',
+                'gender',
+                'birthdate',
+                'birthplace',
+                'child',
+                'card_number',
+                'spp',
+                'location',
+                'id_class',
+            ]);
+
+            // Format tanggal jika ada
+            if ($request->filled('birthdate')) {
+                $studentData['birthdate'] = date('Y-m-d', strtotime($request->birthdate));
+            }
+
+            if ($request->filled('spp')) {
+                $clean = str_replace('.', '', $request->spp);
+                $clean = str_replace(',', '.', $clean);
+                $studentData['spp'] = floatval($clean);
+            }
+
+            if ($request->filled('child')) {
+                $studentData['child'] = intval(str_replace(',', '', $request->child));
+            }
+
+            $student->update($studentData);
+
+            // 2. Update/Create Tabel Student Profiles
+            $profileData = $request->only([
+                'nickname',
+                'religion',
+                'blood_type',
+                'weight',
+                'height',
+                'home_language',
+                'personality',
+                'medical_history',
+                'physical_disabilities',
+                'daily_habits',
+                'living_with_parents',
+            ]);
+
+            // Handle upload foto jika ada
+            if ($request->hasFile('photo')) {
+                $photoPath = $request->file('photo')->store('students', 'public');
+                $profileData['photo_path'] = $photoPath;
+            }
+
+            // Format angka
+            if ($request->filled('weight')) {
+                $profileData['weight'] = floatval(str_replace(',', '', $request->weight));
+            }
+            if ($request->filled('height')) {
+                $profileData['height'] = floatval(str_replace(',', '', $request->height));
+            }
+
+            $student->profile()->updateOrCreate(
+                ['student_id' => $student->id],
+                $profileData
+            );
+
+            // 3. Update/Create Tabel Student Parents
+            $parentData = $request->only([
+                'father_name',
+                'father_id_number',
+                'father_status',
+                'father_education',
+                'father_occupation',
+                'father_phone',
+                'mother_name',
+                'mother_id_number',
+                'mother_status',
+                'mother_education',
+                'mother_occupation',
+                'mother_phone',
+                'guardian_name',
+                'guardian_id_number',
+                'guardian_occupation',
+                'guardian_email',
+                'guardian_phone',
+                'guardian_income',
+                'family_card_number',
+                'family_income',
+                'child_order',
+                'siblings_count',
+                'step_siblings_count',
+                'adopted_siblings_count',
+                'family_members_count',
+                'orphan_status',
+                'guardian_notes',
+                'approval_status',
+            ]);
+
+            // Format integer fields
+            $integerFields = ['child_order', 'siblings_count', 'step_siblings_count', 'adopted_siblings_count', 'family_members_count'];
+            foreach ($integerFields as $field) {
+                if (isset($parentData[$field]) && $parentData[$field] !== '') {
+                    $parentData[$field] = intval(str_replace(',', '', $parentData[$field]));
+                } else {
+                    $parentData[$field] = null;
+                }
+            }
+
+            $student->studentParent()->updateOrCreate(
+                ['student_id' => $student->id],
+                $parentData
+            );
+
+            // 4. Update/Create Tabel Student Addresses
+            $addressData = $request->only([
+                'home_address',
+                'home_district',
+                'home_regency',
+                'home_province',
+                'postal_code',
+                'previous_school_address',
+                'previous_school_district',
+                'previous_school_regency',
+                'previous_school_province',
+                'distance_to_school',
+            ]);
+
+            $student->address()->updateOrCreate(
+                ['student_id' => $student->id],
+                $addressData
+            );
+
+            // 5. Update/Create Tabel Student Academics
+            $academicData = $request->only([
+                'previous_school_name',
+                'previous_school_npsn',
+                'previous_school_status',
+                'registration_number',
+                'session_id',
+                'entry_date',
+                'payment_status',
+                'has_scholarship',
+                'scholarship_name',
+                'achievements',
+                'recommendation_status',
+                'graduation_status',
+                'notes',
+                'nationality',
+                'foreign_origin',
+            ]);
+
+            // Format tanggal
+            if ($request->filled('entry_date')) {
+                $academicData['entry_date'] = date('Y-m-d', strtotime($request->entry_date));
+            }
+
+            // Format boolean
+            $academicData['has_scholarship'] = $request->has('has_scholarship') ? 1 : 0;
+
+            $student->academic()->updateOrCreate(
+                ['student_id' => $student->id],
+                $academicData
+            );
+
+            DB::commit();
+
+            return Redirect::route('academic.student.show', $student->encrypted_id)
+                ->with('success', __('message.update_success', ['label' => __($this->title)]));
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Student Update Error: ' . $e->getMessage());
+
+            return Redirect::back()
+                ->withInput()
+                ->with('error', __('message.update_failed', ['label' => __($this->title)]));
+        }
     }
 
     public function destroy(Student $student)
@@ -818,11 +994,7 @@ class StudentController extends Controller
             }
         }
 
-        /*
-    =====================
-    RESPONSE
-    =====================
-    */
+
         if ($success > 0 && count($errors) == 0) {
 
             return back()->with('success', "$success data berhasil diimport");

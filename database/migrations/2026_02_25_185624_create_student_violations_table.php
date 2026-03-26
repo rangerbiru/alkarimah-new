@@ -11,22 +11,24 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('student_violations', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('student_id');
-            $table->foreign('student_id')->references('id')->on('students')->onDelete('cascade');
-            $table->unsignedBigInteger('violation_id');
-            $table->foreign('violation_id')->references('id')->on('violation_types')->onDelete('cascade');
-            $table->unsignedBigInteger('employee_id');
-            $table->foreign('employee_id')->references('id')->on('employees')->onDelete('cascade');
-            $table->date('date');
-            $table->time('time');
-            $table->string('location');
-            $table->string('notes')->nullable();
-            $table->string('proof')->nullable();
-            $table->enum('status', ['draft', 'tabayyun', 'disahkan'])->default('draft');
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('student_violations')) {
+            Schema::create('student_violations', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('student_id');
+                $table->foreign('student_id')->references('id')->on('students')->onDelete('cascade');
+                $table->unsignedBigInteger('violation_id');
+                $table->foreign('violation_id')->references('id')->on('violation_types')->onDelete('cascade');
+                $table->unsignedBigInteger('employee_id');
+                $table->foreign('employee_id')->references('id')->on('employees')->onDelete('cascade');
+                $table->date('date');
+                $table->time('time');
+                $table->string('location');
+                $table->string('notes')->nullable();
+                $table->string('proof')->nullable();
+                $table->enum('status', ['draft', 'tabayyun', 'disahkan'])->default('draft');
+                $table->timestamps();
+            });
+        }
     }
 
     /**

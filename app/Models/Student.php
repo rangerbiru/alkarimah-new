@@ -79,7 +79,7 @@ class Student extends Model
     protected function exculList(): Attribute
     {
         return Attribute::make(
-            get: function() {
+            get: function () {
                 $list = [];
 
                 foreach ($this->exculs as $e) {
@@ -99,7 +99,7 @@ class Student extends Model
     protected function photoUrl(): Attribute
     {
         return Attribute::make(
-            get: function() {
+            get: function () {
                 if (empty($this->file_photo))
                     $url = ($this->gender == Gender::Male) ? asset('images/avatar-male.png') : asset('images/avatar-female.png');
                 else
@@ -114,6 +114,16 @@ class Student extends Model
     {
         parent::boot();
         static::addGlobalScope(new BranchScope);
+
+        static::created(function ($student) {
+            $student->profile()->create();
+            $student->studentParent()->create();
+            $student->address()->create();
+            $student->academic()->create([
+                'nationality' => 'Indonesia',
+                'recommendation_status' => 'Recommended',
+            ]);
+        });
 
         self::creating(function ($model) {
             $model->branch_id = Auth::user()->branch_id;
@@ -145,10 +155,31 @@ class Student extends Model
         return LogOptions::defaults()
             ->setDescriptionForEvent(fn(string $eventName) => "This model has been {$eventName}")
             ->logOnly([
-                'id_parent', 'id_class', 'id_asrama', 'id_halaqah', 'nis', 'nis_local', 'name', 'gender',
-                'nisn', 'nik', 'birthdate', 'religion', 'address', 'school_from', 'child', 'card_number',
-                'entry_date', 'spp', 'location', 'file_photo', 'bills', 'balance_savings', 'beasiswa',
-                'status', 'branch_id',
+                'id_parent',
+                'id_class',
+                'id_asrama',
+                'id_halaqah',
+                'nis',
+                'nis_local',
+                'name',
+                'gender',
+                'nisn',
+                'nik',
+                'birthdate',
+                'religion',
+                'address',
+                'school_from',
+                'child',
+                'card_number',
+                'entry_date',
+                'spp',
+                'location',
+                'file_photo',
+                'bills',
+                'balance_savings',
+                'beasiswa',
+                'status',
+                'branch_id',
             ]);
     }
 
@@ -180,5 +211,25 @@ class Student extends Model
     public function scopeActive($query)
     {
         return $query->whereStatus(true);
+    }
+
+    public function profile()
+    {
+        return $this->hasOne(StudentProfiles::class);
+    }
+
+    public function studentParent()
+    {
+        return $this->hasOne(StudentParents::class);
+    }
+
+    public function address()
+    {
+        return $this->hasOne(StudentAddresses::class);
+    }
+
+    public function academic()
+    {
+        return $this->hasOne(StudentAcademics::class);
     }
 }
