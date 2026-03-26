@@ -51,7 +51,7 @@ return new class extends Migration
 
             // Notes
             $table->text('guardian_notes')->nullable();
-            $table->string('approval_status', 10)->default('off');
+            $table->string('approval_status', 10)->default('off')->nullable();
 
             $table->timestamps();
             $table->softDeletes();
