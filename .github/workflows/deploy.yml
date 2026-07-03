@@ -3,7 +3,7 @@ name: Deploy Laravel to VPS
 on:
   push:
     branches:
-      - main # Ganti dengan 'master' jika branch utama Anda bernama master
+      - main
 
 jobs:
   deploy:
