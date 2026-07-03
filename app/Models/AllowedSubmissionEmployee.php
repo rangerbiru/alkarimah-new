@@ -14,4 +14,29 @@ class AllowedSubmissionEmployee extends Model
     {
         return $this->belongsTo(Employee::class);
     }
+
+    public function isMudir(): bool
+    {
+        return str_contains(strtolower($this->position), 'mudir');
+    }
+
+    public function isWadir(): bool
+    {
+        return str_contains(strtolower($this->position), 'wadir');
+    }
+
+    public function isLogistik(): bool
+    {
+        return str_contains(strtolower($this->position), 'logistik');
+    }
+
+    public function isBendahara(): bool
+    {
+        return str_contains(strtolower($this->position), 'bendahara');
+    }
+
+    public function canApprovePermit(): bool
+    {
+        return $this->isMudir() || $this->isWadir();
+    }
 }

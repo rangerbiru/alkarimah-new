@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Academic;
 
+use App\Enums\Gender;
+use App\Enums\Religion;
 use App\Enums\UserRole;
 use App\Helpers\Common;
 use App\Helpers\Upload;
@@ -15,31 +17,39 @@ use App\Models\Asrama;
 use App\Models\Attachment;
 use App\Models\Excul;
 use App\Models\Halaqah;
-use App\Models\Student;
 use App\Models\Parents;
+use App\Models\Student;
+use App\Models\StudentAcademic;
+use App\Models\StudentDetail;
 use App\Models\StudentDisplacementHistory;
+use App\Models\StudentPreviousSchool;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redirect;
-use Illuminate\Support\Facades\Validator;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
 
 class StudentController extends Controller
 {
     private $title = 'label.student';
+
     private $icon = 'bx bx bx-user';
+
     private $path = 'backend.academic.student.';
 
     public function index()
     {
-        if (Auth::user()->role == UserRole::OrangTua)
+        if (Auth::user()->role == UserRole::OrangTua) {
             return $this->indexParent();
+        }
 
         $count = Student::count();
 
-        return view($this->path . 'index', [
+        return view($this->path.'index', [
             'title' => __($this->title),
             'icon' => $this->icon,
             'count' => $count,
@@ -50,26 +60,26 @@ class StudentController extends Controller
     {
         $students = Student::select('id', 'id_class', 'nis', 'name', 'gender', 'file_photo')
             ->with([
-                'class' => fn($query) => $query->select('id', 'name'),
-                'photo' => fn($query) => $query->select('id'),
+                'class' => fn ($query) => $query->select('id', 'name'),
+                'photo' => fn ($query) => $query->select('id'),
             ])
             ->whereIdParent(Auth::user()->parent->id)
             ->orderBy('name')
             ->get();
 
-        return view($this->path . 'index-parent', [
+        return view($this->path.'index-parent', [
             'title' => __($this->title),
             'icon' => $this->icon,
-            'students' => $students
+            'students' => $students,
         ]);
     }
 
     public function show(Student $student)
     {
-        return view($this->path . 'show', [
+        return view($this->path.'show', [
             'title' => __($this->title),
             'icon' => $this->icon,
-            'student' => $student
+            'student' => $student,
         ]);
     }
 
@@ -77,7 +87,7 @@ class StudentController extends Controller
     {
         $count = StudentDisplacementHistory::whereIdStudent($student->id)->count();
 
-        return view($this->path . 'history-displacement', [
+        return view($this->path.'history-displacement', [
             'title' => __('label.move_history'),
             'icon' => 'ti ti-history-toggle',
             'student' => $student,
@@ -93,23 +103,23 @@ class StudentController extends Controller
 
         $student = Student::select('id', 'id_parent', 'id_class', 'nis', 'name', 'gender', 'status')
             ->with([
-                'parent' => fn($query) => $query->select('id', 'name'),
-                'class' => fn($query) => $query->select('id', 'name')
+                'parent' => fn ($query) => $query->select('id', 'name'),
+                'class' => fn ($query) => $query->select('id', 'name'),
             ]);
 
         $student_count = $student->count();
 
-        if (empty($search))
+        if (empty($search)) {
             $student_filter = $student;
-        else {
+        } else {
             $student_filter = $student->where(function ($query) use ($search) {
-                $query->where('name', 'like', '%' . $search . '%')
-                    ->orWhere('nis', 'like', '%' . $search . '%')
+                $query->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('nis', 'like', '%'.$search.'%')
                     ->orWhereHas('class', function ($q) use ($search) {
-                        $q->where('name', 'like', '%' . $search . '%');
+                        $q->where('name', 'like', '%'.$search.'%');
                     })
                     ->orWhereHas('parent', function ($q) use ($search) {
-                        $q->where('name', 'like', '%' . $search . '%');
+                        $q->where('name', 'like', '%'.$search.'%');
                     });
             });
         }
@@ -135,7 +145,7 @@ class StudentController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $student_count,
             'recordsFiltered' => $student_count_filter,
-            'data' => $student_arr
+            'data' => $student_arr,
         ];
 
         return response()->json($response);
@@ -143,63 +153,69 @@ class StudentController extends Controller
 
     public function datatableSet(Request $request)
     {
-        $search = $request->input('search')['value'];
+        $search = $request->input('search')['value'] ?? '';
         $limit = $request->input('length');
         $start = $request->input('start');
         $selected = (empty($request->selected)) ? [] : $request->selected;
 
+        $level_education = $request->input('level_education');
+        $id_class = $request->input('id_class');
+
         $student = Student::select('id', 'id_class', 'id_asrama', 'id_halaqah', 'nis', 'name', 'status')
             ->with([
-                'class' => fn($query) => $query->select('id', 'name'),
-                'asrama' => fn($query) => $query->select('id', 'name'),
-                'halaqah' => fn($query) => $query->select('id', 'name'),
+                'class' => fn ($query) => $query->select('id', 'name'),
+                'asrama' => fn ($query) => $query->select('id', 'name'),
+                'halaqah' => fn ($query) => $query->select('id', 'name'),
             ]);
+
+        if (! empty($id_class)) {
+            $student->where('id_class', $id_class);
+        } elseif (! empty($level_education)) {
+            $student->whereHas('class', function ($q) use ($level_education) {
+                $q->where('level_education', $level_education);
+            });
+        }
 
         $student_count = $student->count();
 
-        if (empty($search))
-            $student_filter = $student;
-        else {
-            $student_filter = $student->where(function ($query) use ($search) {
-                $query->where('name', 'like', '%' . $search . '%')
-                    ->orWhere('nis', 'like', '%' . $search . '%')
+        if (! empty($search)) {
+            $student->where(function ($query) use ($search) {
+                $query->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('nis', 'like', '%'.$search.'%')
                     ->orWhereHas('class', function ($q) use ($search) {
-                        $q->where('name', 'like', '%' . $search . '%');
+                        $q->where('name', 'like', '%'.$search.'%');
                     })
                     ->orWhereHas('asrama', function ($q) use ($search) {
-                        $q->where('name', 'like', '%' . $search . '%');
+                        $q->where('name', 'like', '%'.$search.'%');
                     })
                     ->orWhereHas('halaqah', function ($q) use ($search) {
-                        $q->where('name', 'like', '%' . $search . '%');
+                        $q->where('name', 'like', '%'.$search.'%');
                     });
             });
         }
 
-        $student_count_filter = $student_filter->count();
-        $student_data = $student_filter->limit($limit)
+        $student_count_filter = $student->count();
+
+        $student_data = $student->limit($limit)
             ->offset($start)
             ->orderBy('created_at', 'desc')
             ->get();
 
         $student_arr = [];
-
         foreach ($student_data as $s) {
             $push = $s->toArray();
             $push['encrypted_id'] = $s->encrypted_id;
             $push['status_badge'] = $s->status_badge;
             $push['checked'] = (in_array($s->id, $selected)) ? ' checked' : '';
-
             array_push($student_arr, $push);
         }
 
-        $response = [
+        return response()->json([
             'draw' => $request->input('draw'),
             'recordsTotal' => $student_count,
             'recordsFiltered' => $student_count_filter,
-            'data' => $student_arr
-        ];
-
-        return response()->json($response);
+            'data' => $student_arr,
+        ]);
     }
 
     public function datatableSetExcul(Request $request)
@@ -213,12 +229,12 @@ class StudentController extends Controller
 
         $student_count = $student->count();
 
-        if (empty($search))
+        if (empty($search)) {
             $student_filter = $student;
-        else {
+        } else {
             $student_filter = $student->where(function ($query) use ($search) {
-                $query->where('name', 'like', '%' . $search . '%')
-                    ->orWhere('nis', 'like', '%' . $search . '%');
+                $query->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('nis', 'like', '%'.$search.'%');
             });
         }
 
@@ -243,7 +259,7 @@ class StudentController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $student_count,
             'recordsFiltered' => $student_count_filter,
-            'data' => $student_arr
+            'data' => $student_arr,
         ];
 
         return response()->json($response);
@@ -257,21 +273,21 @@ class StudentController extends Controller
 
         $student = Student::select('id', 'id_parent', 'id_class', 'nis', 'name', 'gender', 'status')
             ->with([
-                'parent' => fn($query) => $query->select('id', 'name'),
-                'class' => fn($query) => $query->select('id', 'name')
+                'parent' => fn ($query) => $query->select('id', 'name'),
+                'class' => fn ($query) => $query->select('id', 'name'),
             ])
             ->whereIdClass($request->class);
 
         $student_count = $student->count();
 
-        if (empty($search))
+        if (empty($search)) {
             $student_filter = $student;
-        else {
+        } else {
             $student_filter = $student->where(function ($query) use ($search) {
-                $query->where('name', 'like', '%' . $search . '%')
-                    ->orWhere('nis', 'like', '%' . $search . '%')
+                $query->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('nis', 'like', '%'.$search.'%')
                     ->orWhereHas('class', function ($q) use ($search) {
-                        $q->where('name', 'like', '%' . $search . '%');
+                        $q->where('name', 'like', '%'.$search.'%');
                     });
             });
         }
@@ -297,7 +313,7 @@ class StudentController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $student_count,
             'recordsFiltered' => $student_count_filter,
-            'data' => $student_arr
+            'data' => $student_arr,
         ];
 
         return response()->json($response);
@@ -309,34 +325,26 @@ class StudentController extends Controller
         $limit = $request->input('length');
         $start = $request->input('start');
 
-        $history = StudentDisplacementHistory::select(
-            'id',
-            'id_student',
-            'before_class_id',
-            'before_nis',
-            'after_class_id',
-            'after_nis',
-            'created_at',
-            'created_by'
-        )
+        $history = StudentDisplacementHistory::select('id', 'id_student', 'before_class_id', 'before_nis', 'after_class_id', 'after_nis',
+            'created_at', 'created_by')
             ->with([
-                'classBefore' => fn($query) => $query->select('id', 'name'),
-                'classAfter' => fn($query) => $query->select('id', 'name'),
-                'creator' => fn($query) => $query->select('id', 'name'),
+                'classBefore' => fn ($query) => $query->select('id', 'name'),
+                'classAfter' => fn ($query) => $query->select('id', 'name'),
+                'creator' => fn ($query) => $query->select('id', 'name'),
             ])
             ->whereIdStudent($request->student);
 
         $history_count = $history->count();
 
-        if (empty($search))
+        if (empty($search)) {
             $history_filter = $history;
-        else {
+        } else {
             $history_filter = $history->where(function ($query) use ($search) {
                 $query->whereHas('classBefore', function ($q) use ($search) {
-                    $q->where('name', 'like', '%' . $search . '%');
+                    $q->where('name', 'like', '%'.$search.'%');
                 })
                     ->orWhereHas('classAfter', function ($q) use ($search) {
-                        $q->where('name', 'like', '%' . $search . '%');
+                        $q->where('name', 'like', '%'.$search.'%');
                     });
             });
         }
@@ -351,7 +359,7 @@ class StudentController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $history_count,
             'recordsFiltered' => $history_count_filter,
-            'data' => $history_data
+            'data' => $history_data,
         ];
 
         return response()->json($response);
@@ -369,7 +377,7 @@ class StudentController extends Controller
         $halaqahs = Halaqah::select('id', 'name')->orderBy('name')->pluck('name', 'id');
         $exculs = Excul::select('id', 'name')->orderBy('name')->pluck('name', 'id');
 
-        return view($this->path . 'create', [
+        return view($this->path.'create', [
             'title' => __($this->title),
             'icon' => $this->icon,
             'educations' => $educations,
@@ -390,7 +398,7 @@ class StudentController extends Controller
         $asramas = Asrama::select('id', 'name')->orderBy('name')->pluck('name', 'id');
         $halaqahs = Halaqah::select('id', 'name')->orderBy('name')->pluck('name', 'id');
 
-        return view($this->path . 'set', [
+        return view($this->path.'set', [
             'title' => __($this->title),
             'icon' => $this->icon,
             'educations' => $educations,
@@ -404,7 +412,7 @@ class StudentController extends Controller
         $educations = Common::option('education_level');
         $exculs = Excul::select('id', 'name')->orderBy('name')->pluck('name', 'id');
 
-        return view($this->path . 'set-excul', [
+        return view($this->path.'set-excul', [
             'title' => __($this->title),
             'icon' => $this->icon,
             'educations' => $educations,
@@ -416,7 +424,7 @@ class StudentController extends Controller
     {
         $educations = Common::option('education_level');
 
-        return view($this->path . 'change', [
+        return view($this->path.'change', [
             'title' => __($this->title),
             'icon' => $this->icon,
             'educations' => $educations,
@@ -430,12 +438,12 @@ class StudentController extends Controller
 
         DB::transaction(function () use ($request, &$filename_hashed, &$extension) {
             $merge = [
-                'spp' => (empty($request->spp)) ? null : $request->spp
+                'spp' => (empty($request->spp)) ? null : $request->spp,
             ];
 
-            if (!empty($request->file('photo'))) {
+            if (! empty($request->file('photo'))) {
                 $extension = $request->file('photo')->extension();
-                $filename = 'student-' . date("YmdHis") . '.' . $extension;
+                $filename = 'student-'.date('YmdHis').'.'.$extension;
                 $filename_hashed = Upload::generateFilename();
 
                 $attachment = Attachment::create([
@@ -443,7 +451,7 @@ class StudentController extends Controller
                     'filename_hashed' => $filename_hashed,
                     'type' => $request->file('photo')->getClientMimeType(),
                     'extension' => $extension,
-                    'path' => Upload::getPath()
+                    'path' => Upload::getPath(),
                 ]);
 
                 $merge['file_photo'] = $attachment->id;
@@ -453,8 +461,9 @@ class StudentController extends Controller
             Student::create($request->all());
         });
 
-        if (!empty($filename_hashed))
+        if (! empty($filename_hashed)) {
             Upload::image($request->file('photo'), $filename_hashed);
+        }
 
         return Redirect::route('academic.student.index')->with('success', __('message.create_success', ['label' => __($this->title)]));
     }
@@ -464,26 +473,30 @@ class StudentController extends Controller
         $student = $request->student;
 
         foreach ($student as $s) {
-            if (empty($s))
+            if (empty($s)) {
                 continue;
+            }
 
             $update = [];
 
-            if (!empty($request->class))
+            if (! empty($request->class)) {
                 $update['id_class'] = $request->class;
+            }
 
-            if (!empty($request->asrama))
+            if (! empty($request->asrama)) {
                 $update['id_asrama'] = $request->asrama;
+            }
 
-            if (!empty($request->halaqah))
+            if (! empty($request->halaqah)) {
                 $update['id_halaqah'] = $request->halaqah;
+            }
 
             Student::whereId($s)->update($update);
         }
 
         $response = [
             'status' => true,
-            'message' => __('message.update_success', ['label' => __($this->title)])
+            'message' => __('message.update_success', ['label' => __($this->title)]),
         ];
 
         return response()->json($response);
@@ -495,8 +508,9 @@ class StudentController extends Controller
         $exculs = $request->exculs;
 
         foreach ($student as $s) {
-            if (empty($s))
+            if (empty($s)) {
                 continue;
+            }
 
             Student::whereId($s)->update([
                 'exculs' => $exculs,
@@ -505,7 +519,7 @@ class StudentController extends Controller
 
         $response = [
             'status' => true,
-            'message' => __('message.update_success', ['label' => __($this->title)])
+            'message' => __('message.update_success', ['label' => __($this->title)]),
         ];
 
         return response()->json($response);
@@ -547,12 +561,12 @@ class StudentController extends Controller
 
             $response = [
                 'status' => true,
-                'message' => __('message.update_success', ['label' => __($this->title)])
+                'message' => __('message.update_success', ['label' => __($this->title)]),
             ];
         } else {
             $response = [
                 'status' => false,
-                'message' => $error
+                'message' => $error,
             ];
         }
 
@@ -561,8 +575,9 @@ class StudentController extends Controller
 
     public function edit(Student $student)
     {
-        if (Auth::user()->role == UserRole::OrangTua)
+        if (Auth::user()->role == UserRole::OrangTua) {
             return $this->editParent($student);
+        }
 
         $educations = Common::option('education_level');
         $religions = Common::option('religion');
@@ -574,7 +589,7 @@ class StudentController extends Controller
         $halaqahs = Halaqah::select('id', 'name')->orderBy('name')->pluck('name', 'id');
         $exculs = Excul::select('id', 'name')->orderBy('name')->pluck('name', 'id');
 
-        return view($this->path . 'edit', [
+        return view($this->path.'edit', [
             'title' => __($this->title),
             'icon' => $this->icon,
             'student' => $student,
@@ -595,7 +610,7 @@ class StudentController extends Controller
         $religions = Common::option('religion');
         $genders = Common::option('gender');
 
-        return view($this->path . 'edit-parent', [
+        return view($this->path.'edit-parent', [
             'title' => __($this->title),
             'icon' => $this->icon,
             'student' => $student,
@@ -612,12 +627,12 @@ class StudentController extends Controller
 
         DB::transaction(function () use ($request, $student, &$filename_hashed, &$extension) {
             $merge = [
-                'spp' => (empty($request->spp)) ? null : $request->spp
+                'spp' => (empty($request->spp)) ? null : $request->spp,
             ];
 
-            if (!empty($request->file('photo'))) {
+            if (! empty($request->file('photo'))) {
                 $extension = $request->file('photo')->extension();
-                $filename = 'student-' . date("YmdHis") . '.' . $extension;
+                $filename = 'student-'.date('YmdHis').'.'.$extension;
                 $filename_hashed = Upload::generateFilename();
 
                 $attachment = Attachment::create([
@@ -625,7 +640,7 @@ class StudentController extends Controller
                     'filename_hashed' => $filename_hashed,
                     'type' => $request->file('photo')->getClientMimeType(),
                     'extension' => $extension,
-                    'path' => Upload::getPath()
+                    'path' => Upload::getPath(),
                 ]);
 
                 $merge['file_photo'] = $attachment->id;
@@ -635,197 +650,23 @@ class StudentController extends Controller
             $student->update($request->all());
         });
 
-        if (!empty($filename_hashed)) {
+        if (! empty($filename_hashed)) {
             Upload::image($request->file('photo'), $filename_hashed);
 
-            if (!empty($attachment_old))
+            if (! empty($attachment_old)) {
                 $attachment_old->delete();
+            }
         }
 
         return Redirect::route('academic.student.index')->with('success', __('message.update_success', ['label' => __($this->title)]));
     }
 
-
     public function updateParent(StudentParentRequest $request, Student $student)
     {
-        try {
-            DB::beginTransaction();
+        $request->merge(['birthdate' => date('Y-m-d', strtotime($request->birthdate))]);
+        $student->update($request->all());
 
-            // 1. Update Tabel Students (Data Inti)
-            $studentData = $request->only([
-                'nik',
-                'name',
-                'gender',
-                'birthdate',
-                'birthplace',
-                'child',
-                'card_number',
-                'spp',
-                'location',
-                'id_class',
-            ]);
-
-            // Format tanggal jika ada
-            if ($request->filled('birthdate')) {
-                $studentData['birthdate'] = date('Y-m-d', strtotime($request->birthdate));
-            }
-
-            if ($request->filled('spp')) {
-                $clean = str_replace('.', '', $request->spp);
-                $clean = str_replace(',', '.', $clean);
-                $studentData['spp'] = floatval($clean);
-            }
-
-            if ($request->filled('child')) {
-                $studentData['child'] = intval(str_replace(',', '', $request->child));
-            }
-
-            $student->update($studentData);
-
-            // 2. Update/Create Tabel Student Profiles
-            $profileData = $request->only([
-                'nickname',
-                'religion',
-                'blood_type',
-                'weight',
-                'height',
-                'home_language',
-                'personality',
-                'medical_history',
-                'physical_disabilities',
-                'daily_habits',
-                'living_with_parents',
-            ]);
-
-            // Handle upload foto jika ada
-            if ($request->hasFile('photo')) {
-                $photoPath = $request->file('photo')->store('students', 'public');
-                $profileData['photo_path'] = $photoPath;
-            }
-
-            // Format angka
-            if ($request->filled('weight')) {
-                $profileData['weight'] = floatval(str_replace(',', '', $request->weight));
-            }
-            if ($request->filled('height')) {
-                $profileData['height'] = floatval(str_replace(',', '', $request->height));
-            }
-
-            $student->profile()->updateOrCreate(
-                ['student_id' => $student->id],
-                $profileData
-            );
-
-            // 3. Update/Create Tabel Student Parents
-            $parentData = $request->only([
-                'father_name',
-                'father_id_number',
-                'father_status',
-                'father_education',
-                'father_occupation',
-                'father_phone',
-                'mother_name',
-                'mother_id_number',
-                'mother_status',
-                'mother_education',
-                'mother_occupation',
-                'mother_phone',
-                'guardian_name',
-                'guardian_id_number',
-                'guardian_occupation',
-                'guardian_email',
-                'guardian_phone',
-                'guardian_income',
-                'family_card_number',
-                'family_income',
-                'child_order',
-                'siblings_count',
-                'step_siblings_count',
-                'adopted_siblings_count',
-                'family_members_count',
-                'orphan_status',
-                'guardian_notes',
-                'approval_status',
-            ]);
-
-            // Format integer fields
-            $integerFields = ['child_order', 'siblings_count', 'step_siblings_count', 'adopted_siblings_count', 'family_members_count'];
-            foreach ($integerFields as $field) {
-                if (isset($parentData[$field]) && $parentData[$field] !== '') {
-                    $parentData[$field] = intval(str_replace(',', '', $parentData[$field]));
-                } else {
-                    $parentData[$field] = null;
-                }
-            }
-
-            $student->studentParent()->updateOrCreate(
-                ['student_id' => $student->id],
-                $parentData
-            );
-
-            // 4. Update/Create Tabel Student Addresses
-            $addressData = $request->only([
-                'home_address',
-                'home_district',
-                'home_regency',
-                'home_province',
-                'postal_code',
-                'previous_school_address',
-                'previous_school_district',
-                'previous_school_regency',
-                'previous_school_province',
-                'distance_to_school',
-            ]);
-
-            $student->address()->updateOrCreate(
-                ['student_id' => $student->id],
-                $addressData
-            );
-
-            // 5. Update/Create Tabel Student Academics
-            $academicData = $request->only([
-                'previous_school_name',
-                'previous_school_npsn',
-                'previous_school_status',
-                'registration_number',
-                'session_id',
-                'entry_date',
-                'payment_status',
-                'has_scholarship',
-                'scholarship_name',
-                'achievements',
-                'recommendation_status',
-                'graduation_status',
-                'notes',
-                'nationality',
-                'foreign_origin',
-            ]);
-
-            // Format tanggal
-            if ($request->filled('entry_date')) {
-                $academicData['entry_date'] = date('Y-m-d', strtotime($request->entry_date));
-            }
-
-            // Format boolean
-            $academicData['has_scholarship'] = $request->has('has_scholarship') ? 1 : 0;
-
-            $student->academic()->updateOrCreate(
-                ['student_id' => $student->id],
-                $academicData
-            );
-
-            DB::commit();
-
-            return Redirect::route('academic.student.show', $student->encrypted_id)
-                ->with('success', __('message.update_success', ['label' => __($this->title)]));
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Student Update Error: ' . $e->getMessage());
-
-            return Redirect::back()
-                ->withInput()
-                ->with('error', __('message.update_failed', ['label' => __($this->title)]));
-        }
+        return Redirect::route('academic.student.show', $student->encrypted_id)->with('success', __('message.update_success', ['label' => __($this->title)]));
     }
 
     public function destroy(Student $student)
@@ -834,7 +675,7 @@ class StudentController extends Controller
 
         $response = [
             'status' => true,
-            'message' => __('message.delete_success', ['label' => __($this->title)])
+            'message' => __('message.delete_success', ['label' => __($this->title)]),
         ];
 
         return response()->json($response);
@@ -848,9 +689,9 @@ class StudentController extends Controller
     {
         $students = [];
         $student = Student::select('id', 'id_class', 'nis', 'name')
-            ->with(['class' => fn($query) => $query->select('id', 'name')])
-            ->where('nis', 'like', '%' . $request->term . '%')
-            ->orWhere('name', 'like', '%' . $request->term . '%')
+            ->with(['class' => fn ($query) => $query->select('id', 'name')])
+            ->where('nis', 'like', '%'.$request->term.'%')
+            ->orWhere('name', 'like', '%'.$request->term.'%')
             ->orderBy('name')
             ->limit(50)
             ->get();
@@ -858,8 +699,8 @@ class StudentController extends Controller
         foreach ($student as $s) {
             array_push($students, [
                 'id' => $s->id,
-                'label' => $s->nis . ' - ' . $s->name . ' - ' . __('label.class') . ' ' . $s->class->name,
-                'value' => $s->nis . ' - ' . $s->name
+                'label' => $s->nis.' - '.$s->name.' - '.__('label.class').' '.$s->class->name,
+                'value' => $s->nis.' - '.$s->name,
             ]);
         }
 
@@ -869,147 +710,246 @@ class StudentController extends Controller
     public function import(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:xlsx,csv'
+            'file' => 'required|mimes:xlsx,xls,csv|max:5120',
         ]);
 
-        $file = $request->file('file');
+        try {
+            $file = $request->file('file');
+            $spreadsheet = IOFactory::load($file->getPathname());
+            $sheet = $spreadsheet->getActiveSheet();
+            $data = $sheet->toArray(null, true, false, false);
 
-        $spreadsheet = IOFactory::load($file);
-        $sheet = $spreadsheet->getActiveSheet()->toArray();
+            $startRowIndex = 4;
 
-        $headerRow = 7;
+            DB::beginTransaction();
 
-        if (!isset($sheet[$headerRow])) {
-            return back()->with('error', 'Format file tidak valid (header tidak ditemukan)');
-        }
+            for ($i = $startRowIndex; $i < count($data); $i++) {
+                $row = $data[$i];
 
-        $header = array_map(fn($h) => strtolower(trim($h)), $sheet[$headerRow]);
+                if (empty($row[0]) || empty($row[1])) {
+                    continue;
+                }
 
-        $requiredHeaders = ['nis', 'nama', 'jenis_kelamin', 'agama', 'kartu_siswa', 'tanggal_masuk'];
+                // ==========================================================
+                // 1. MAPPING DATA DASAR
+                // ==========================================================
+                $nis = trim($row[0] ?? '');
+                $name = trim($row[1] ?? '');
+                $nisLocal = trim($row[2] ?? '');
+                $tanggalMasuk = $row[3] ?? null;
+                $nisn = trim($row[6] ?? '');
+                $nik = trim($row[7] ?? '');
+                $tempatLahir = trim($row[8] ?? '');
+                $tanggalLahir = $row[9] ?? null;
+                $jenisKelamin = $row[11] ?? null;
+                $asalSekolah = trim($row[18] ?? '');
+                $anakKe = $row[21] ?? null;
 
-        $missingHeaders = array_diff($requiredHeaders, $header);
+                $birthdate = $this->parseExcelDate($tanggalLahir);
+                $entryDate = $this->parseExcelDate($tanggalMasuk);
 
-        if (!empty($missingHeaders)) {
-            return back()->with('error', 'Kolom tidak lengkap: ' . implode(', ', $missingHeaders));
-        }
+                $gender = Gender::Male;
+                if (strtolower(trim($jenisKelamin)) == 'perempuan' || strtolower(trim($jenisKelamin)) == 'p') {
+                    $gender = Gender::Female;
+                }
 
-        $dataRows = array_slice($sheet, $headerRow + 1);
+                // Penggabungan Alamat
+                $jalan = trim($row[29] ?? '');
+                $prov = trim($row[30] ?? '');
+                $kab = trim($row[31] ?? '');
+                $kec = trim($row[32] ?? '');
+                $desa = trim($row[33] ?? '');
 
-        $success = 0;
-        $errors = [];
+                $addressParts = array_filter([$jalan, $desa, $kec, $kab, $prov]);
+                $fullAddress = implode(', ', $addressParts);
 
-        $existingNis = Student::pluck('nis')->toArray();
-        $existingNisn = Student::pluck('nisn')->filter()->toArray();
-        $existingNik = Student::pluck('nik')->filter()->toArray();
+                // ==========================================================
+                // 2. LOGIKA PRIORITAS ORANG TUA
+                // ==========================================================
+                $jarak = trim($row[35] ?? '');
+                $transport = trim($row[36] ?? '');
+                $kk_number = trim($row[37] ?? '');
 
-        foreach ($dataRows as $index => $row) {
+                $namaAyah = trim($row[38] ?? '');
+                $kerjaAyah = trim($row[41] ?? '');
+                $statusAyah = trim($row[42] ?? 'hidup');
+                $hpAyah = trim($row[43] ?? '');
 
-            if (empty(array_filter($row))) {
-                continue;
-            }
+                $namaIbu = trim($row[44] ?? '');
+                $kerjaIbu = trim($row[47] ?? '');
+                $statusIbu = trim($row[48] ?? 'hidup');
+                $hpIbu = trim($row[49] ?? '');
 
-            $row = array_map(fn($item) => trim($item), $row);
+                $namaWali = trim($row[50] ?? '');
+                $kerjaWali = trim($row[53] ?? '');
+                $hpWali = trim($row[55] ?? '');
 
-            if (count($header) != count($row)) {
-                $errors[] = [
-                    'row' => $index + $headerRow + 2,
-                    'name' => '-',
-                    'error' => 'Jumlah kolom tidak sesuai dengan header'
-                ];
-                continue;
-            }
+                $ayahMeninggal = str_contains(strtolower($statusAyah), 'meninggal');
+                $ibuMeninggal = str_contains(strtolower($statusIbu), 'meninggal');
 
-            $data = array_combine($header, $row);
+                $parentName = '';
+                $parentPhone = '';
+                $parentWork = '';
+                $parentGender = 'male';
 
-            $validator = Validator::make($data, [
-                'nis' => 'required|max:50',
-                'nama' => 'required|max:150',
-                'jenis_kelamin' => 'required',
-                'agama' => 'required',
-                'kartu_siswa' => 'required|max:50',
-                'tanggal_masuk' => 'required|date',
-                'spp' => 'nullable|numeric',
-            ]);
+                if (! empty($namaAyah) && ! $ayahMeninggal) {
+                    $parentName = $namaAyah;
+                    $parentPhone = $hpAyah;
+                    $parentWork = $kerjaAyah;
+                    $parentGender = 'male';
+                } elseif (! empty($namaIbu) && ! $ibuMeninggal) {
+                    $parentName = $namaIbu;
+                    $parentPhone = $hpIbu;
+                    $parentWork = $kerjaIbu;
+                    $parentGender = 'female';
+                } elseif (! empty($namaWali)) {
+                    $parentName = $namaWali;
+                    $parentPhone = $hpWali;
+                    $parentWork = $kerjaWali;
+                    $parentGender = 'male';
+                } else {
+                    $parentName = $namaAyah ?: ($namaIbu ?: 'Hamba Allah');
+                    $parentGender = $namaAyah ? 'male' : 'female';
+                }
 
-            if ($validator->fails()) {
-                $errors[] = [
-                    'row' => $index + $headerRow + 2,
-                    'name' => $data['nama'] ?? '-',
-                    'error' => $validator->errors()->first()
-                ];
-                continue;
-            }
+                $parentPhone = (trim($parentPhone) === '') ? null : trim($parentPhone);
 
-            $data = array_map(fn($v) => $v === '' ? null : $v, $data);
+                // --- MODIFIKASI: CEK DAN BUAT USER UNTUK ORANG TUA BARU ---
 
-            if (
-                in_array($data['nis'], $existingNis) ||
-                (!empty($data['nisn']) && in_array($data['nisn'], $existingNisn)) ||
-                (!empty($data['nik']) && in_array($data['nik'], $existingNik))
-            ) {
-                $errors[] = [
-                    'row' => $index + $headerRow + 2,
-                    'name' => $data['nama'],
-                    'error' => 'Data sudah ada (NIS / NISN / NIK)'
-                ];
-                continue;
-            }
+                // Cari apakah orang tua sudah ada di database berdasarkan nama & HP
+                $parent = Parents::where('name', $parentName)
+                    ->where('phone', $parentPhone)
+                    ->first();
 
-            try {
+                // Jika orang tua belum ada, kita buatkan akun User lalu data Parent-nya
+                if (! $parent) {
+                    $branchId = Auth::user()->branch_id ?? 1;
 
-                Student::create([
-                    'nis' => $data['nis'],
-                    'nis_local' => $data['nis_lokal'] ?? null,
-                    'nisn' => $data['nisn'] ?? null,
-                    'nik' => $data['nik'] ?? null,
-                    'name' => $data['nama'],
-                    'gender' => $data['jenis_kelamin'],
-                    'id_parent' => 1,
-                    'religion' => $data['agama'],
-                    'birthplace' => $data['tempat_lahir'] ?? null,
-                    'birthdate' => $data['tanggal_lahir'] ?? null,
-                    'card_number' => $data['kartu_siswa'] ?? null,
-                    'id_asrama' =>  1,
-                    'id_halaqah' => 1,
-                    'id_class' => 1,
-                    'school_from' => $data['asal_sekolah'] ?? null,
-                    'entry_date' => $data['tanggal_masuk'] ?? null,
-                    'spp' => $data['spp'] ?? 0,
-                    'address' => $data['alamat'] ?? null,
-                    'status' => 1
+                    // Buat Akun User
+                    $user = User::create([
+                        'name' => $parentName,
+                        'email' => null,
+                        'password' => Hash::make('12345678'),
+                        'role' => UserRole::OrangTua, // Sesuaikan dengan Enum Anda
+                        'phone' => $parentPhone ?? '-',
+                        'gender' => $parentGender,
+                        'branch_id' => $branchId,
+                    ]);
+
+                    // Buat Data Parent dengan id_user yang baru dibuat
+                    $parent = Parents::create([
+                        'id_user' => $user->id,
+                        'name' => $parentName,
+                        'phone' => $parentPhone,
+                        'work' => $parentWork,
+                        'gender' => $parentGender,
+                        'branch_id' => $branchId,
+                    ]);
+                }
+
+                $idClass = 1;
+
+                // ==========================================================
+                // 3. INSERT TABEL UTAMA (STUDENT)
+                // ==========================================================
+                $student = Student::create([
+                    'id_parent' => $parent->id, // ID parent (baik yang baru dibuat maupun yang sudah ada)
+                    'id_class' => $idClass,
+                    'nis' => $nis,
+                    'name' => $name,
+                    'gender' => $gender->value,
+                    'religion' => Religion::Islam->value,
+                    'status' => 1,
+                    'balance_savings' => 0,
+                    'beasiswa' => 0,
+                    'nis_local' => $nisLocal,
+                    'nisn' => $nisn,
+                    'nik' => $nik,
+                    'birthdate' => $birthdate,
+                    'birthplace' => $tempatLahir,
+                    'address' => $fullAddress,
+                    'school_from' => $asalSekolah,
+                    'child' => is_numeric($anakKe) ? $anakKe : null,
+                    'entry_date' => $entryDate,
                 ]);
 
-                $existingNis[] = $data['nis'];
-                if (!empty($data['nisn'])) $existingNisn[] = $data['nisn'];
-                if (!empty($data['nik'])) $existingNik[] = $data['nik'];
+                // ==========================================================
+                // 4. INSERT TABEL EKSTENSI (DETAIL, SEKOLAH ASAL, AKADEMIK)
+                // ==========================================================
+                StudentDetail::create([
+                    'student_id' => $student->id,
+                    'phone' => trim($row[23] ?? ''),
+                    'hobby' => trim($row[19] ?? ''),
+                    'ambition' => trim($row[20] ?? ''),
+                    'sibling_count' => is_numeric($row[22] ?? null) ? $row[22] : null,
+                    'financing_by' => trim($row[24] ?? ''),
+                    'province' => $prov,
+                    'city' => $kab,
+                    'district' => $kec,
+                    'village' => $desa,
+                    'postal_code' => trim($row[34] ?? ''),
+                    'kk_number' => $kk_number,
+                    'distance_to_school' => $jarak,
+                    'transportation' => $transport,
+                    'is_kk_submitted' => ! empty(trim($row[69] ?? '')),
+                    'is_akta_submitted' => ! empty(trim($row[70] ?? '')),
+                ]);
 
-                $success++;
-            } catch (\Exception $e) {
+                StudentAcademic::create([
+                    'student_id' => $student->id,
+                    'entry_year' => trim($row[5] ?? ''),
+                    'entry_class' => trim($row[4] ?? ''),
+                    'attendance_number' => is_numeric($row[15] ?? null) ? $row[15] : null,
+                    'class_rank' => is_numeric($row[16] ?? null) ? $row[16] : null,
+                    'major' => trim($row[13] ?? ''),
+                    'parallel_class' => trim($row[14] ?? ''),
+                ]);
 
-                $errors[] = [
-                    'row' => $index + $headerRow + 2,
-                    'name' => $data['nama'] ?? '-',
-                    'error' => $e->getMessage()
-                ];
+                StudentPreviousSchool::create([
+                    'student_id' => $student->id,
+                    'school_name' => $asalSekolah,
+                    'school_type' => trim($row[25] ?? ''),
+                    'school_status' => trim($row[26] ?? ''),
+                    'school_city' => trim($row[27] ?? ''),
+                    'un_participant_number' => trim($row[28] ?? ''),
+                    'skhu_number' => trim($row[62] ?? ''),
+                    'ijazah_number' => trim($row[63] ?? ''),
+                    'skhu_date' => $this->parseExcelDate($row[64] ?? null),
+                    'npsn' => trim($row[65] ?? ''),
+                ]);
             }
+
+            DB::commit();
+
+            return redirect()->back()->with('success', 'Data santri berhasil diimpor beserta akun user orang tua!');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error Import Student: '.$e->getMessage());
+
+            return redirect()->back()->with('error', 'Gagal mengimpor data. Error: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Helper Method untuk menangani format tanggal dari Excel
+     */
+    private function parseExcelDate($excelDate)
+    {
+        if (empty($excelDate)) {
+            return null;
         }
 
+        // Jika Excel menyimpannya sebagai serial number angka (misal: 41629)
+        if (is_numeric($excelDate)) {
+            return Date::excelToDateTimeObject($excelDate)->format('Y-m-d');
+        }
 
-        if ($success > 0 && count($errors) == 0) {
-
-            return back()->with('success', "$success data berhasil diimport");
-        } elseif ($success > 0 && count($errors) > 0) {
-
-            return back()->with([
-                'warning' => "$success data berhasil diimport, tetapi ada beberapa error",
-                'errors_import' => $errors
-            ]);
-        } else {
-
-            return back()->with([
-                'error' => "Import gagal. Tidak ada data yang berhasil diimport.",
-                'errors_import' => $errors
-            ]);
+        // Jika Excel menyimpannya sebagai string teks (misal: "21/12/2013" atau "2013-12-21")
+        try {
+            return date('Y-m-d', strtotime(str_replace('/', '-', $excelDate)));
+        } catch (\Exception $e) {
+            return null;
         }
     }
 }

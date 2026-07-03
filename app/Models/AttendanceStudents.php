@@ -20,4 +20,9 @@ class AttendanceStudents extends Model
     {
         return $this->belongsTo(ClassHourDetail::class, 'id_class_hour_details');
     }
+
+    public function student()
+    {
+        return $this->belongsTo(Student::class, 'id_student');
+    }
 }

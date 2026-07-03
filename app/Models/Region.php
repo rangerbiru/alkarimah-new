@@ -10,7 +10,7 @@ class Region extends Model
     use HasFactory;
 
     protected $table = 'region';
-    protected $fillable = ['id', 'id_parent', 'code', 'name', 'flag'];
+    protected $fillable = ['id', 'id_parent', 'employee_id',  'code', 'name', 'flag'];
 
     public function parent()
     {

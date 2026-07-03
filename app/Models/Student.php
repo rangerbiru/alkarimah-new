@@ -115,16 +115,6 @@ class Student extends Model
         parent::boot();
         static::addGlobalScope(new BranchScope);
 
-        static::created(function ($student) {
-            $student->profile()->create();
-            $student->studentParent()->create();
-            $student->address()->create();
-            $student->academic()->create([
-                'nationality' => 'Indonesia',
-                'recommendation_status' => 'Recommended',
-            ]);
-        });
-
         self::creating(function ($model) {
             $model->branch_id = Auth::user()->branch_id;
             $model->created_by = Auth::id();
@@ -213,23 +203,8 @@ class Student extends Model
         return $query->whereStatus(true);
     }
 
-    public function profile()
+    public function attendanceStudents()
     {
-        return $this->hasOne(StudentProfiles::class);
-    }
-
-    public function studentParent()
-    {
-        return $this->hasOne(StudentParents::class);
-    }
-
-    public function address()
-    {
-        return $this->hasOne(StudentAddresses::class);
-    }
-
-    public function academic()
-    {
-        return $this->hasOne(StudentAcademics::class);
+        return $this->hasMany(AttendanceStudents::class, 'id_student');
     }
 }

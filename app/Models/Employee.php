@@ -146,6 +146,23 @@ class Employee extends Model
                 'status_employment',
                 'status_teacher',
                 'branch_id',
+                'birth_date',
+                'birth_place',
+                'religion',
+                'ethnicity',
+                'nationality',
+                'rt',
+                'rw',
+                'village',
+                'district',
+                'city',
+                'province',
+                'postal_code',
+                'home_phone',
+                'identity_number',
+                'npwp_number',
+                'bpjs_work_number',
+                'bpjs_health_number'
             ]);
     }
 
@@ -167,5 +184,85 @@ class Employee extends Model
     public function member()
     {
         return $this->belongsTo(AttendanceGroupMembers::class, 'id');
+    }
+
+    public function familyMembers()
+    {
+        return $this->hasMany(EmployeeFamily::class);
+    }
+
+    public function emergencyContacts()
+    {
+        return $this->hasMany(EmployeeEmergencyContact::class);
+    }
+
+    public function educations()
+    {
+        return $this->hasMany(EmployeeEducation::class);
+    }
+
+    public function nonFormalEducations()
+    {
+        return $this->hasMany(EmployeeNonFormalEducation::class);
+    }
+
+    public function workExperiences()
+    {
+        return $this->hasMany(EmployeeWorkExperience::class);
+    }
+
+    public function organizations()
+    {
+        return $this->hasMany(EmployeeOrganization::class);
+    }
+
+    public function awards()
+    {
+        return $this->hasMany(EmployeeAward::class);
+    }
+
+    public function languages()
+    {
+        return $this->hasMany(EmployeeLanguage::class);
+    }
+
+    public function computerSkills()
+    {
+        return $this->hasMany(EmployeeComputerSkill::class);
+    }
+
+    public function healthRecords()
+    {
+        return $this->hasMany(EmployeeHealthRecord::class);
+    }
+
+    public function previousCompanies()
+    {
+        return $this->hasMany(EmployeePreviousCompany::class);
+    }
+
+    public function additionalSkills()
+    {
+        return $this->hasMany(EmployeeAdditionalSkill::class);
+    }
+
+    public function provinceData()
+    {
+        return $this->belongsTo(Region::class, 'province', 'id');
+    }
+
+    public function cityData()
+    {
+        return $this->belongsTo(Region::class, 'city', 'id');
+    }
+
+    public function districtData()
+    {
+        return $this->belongsTo(Region::class, 'district', 'id');
+    }
+
+    public function villageData()
+    {
+        return $this->belongsTo(Region::class, 'village', 'id');
     }
 }

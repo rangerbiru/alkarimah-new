@@ -206,4 +206,11 @@ class User extends Authenticatable
     {
         return $this->hasMany(StudentPermit::class, 'approved_by');
     }
+
+    public function hasModuleAccess($moduleId)
+    {
+        return ModuleRights::where('id_user', $this->id)
+            ->where('id_module', $moduleId)
+            ->exists();
+    }
 }
