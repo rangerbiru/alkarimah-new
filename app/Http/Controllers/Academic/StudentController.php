@@ -763,9 +763,6 @@ class StudentController extends Controller
                 $addressParts = array_filter([$jalan, $desa, $kec, $kab, $prov]);
                 $fullAddress = implode(', ', $addressParts);
 
-                // ==========================================================
-                // 2. LOGIKA PRIORITAS ORANG TUA
-                // ==========================================================
                 $jarak = trim($row[35] ?? '');
                 $transport = trim($row[36] ?? '');
                 $kk_number = trim($row[37] ?? '');
@@ -788,23 +785,20 @@ class StudentController extends Controller
                 $ibuMeninggal = str_contains(strtolower($statusIbu), 'meninggal');
 
                 $parentName = '';
-                $parentPhone = '';
+                $parentPhone = trim($row[23] ?? '');
                 $parentWork = '';
                 $parentGender = 'male';
 
                 if (! empty($namaAyah) && ! $ayahMeninggal) {
                     $parentName = $namaAyah;
-                    $parentPhone = $hpAyah;
                     $parentWork = $kerjaAyah;
                     $parentGender = 'male';
                 } elseif (! empty($namaIbu) && ! $ibuMeninggal) {
                     $parentName = $namaIbu;
-                    $parentPhone = $hpIbu;
                     $parentWork = $kerjaIbu;
                     $parentGender = 'female';
                 } elseif (! empty($namaWali)) {
                     $parentName = $namaWali;
-                    $parentPhone = $hpWali;
                     $parentWork = $kerjaWali;
                     $parentGender = 'male';
                 } else {
@@ -812,7 +806,7 @@ class StudentController extends Controller
                     $parentGender = $namaAyah ? 'male' : 'female';
                 }
 
-                $parentPhone = (trim($parentPhone) === '') ? null : trim($parentPhone);
+                // $parentPhone = (trim($parentPhone) === '') ? null : trim($parentPhone);
 
                 // --- MODIFIKASI: CEK DAN BUAT USER UNTUK ORANG TUA BARU ---
 
@@ -847,7 +841,9 @@ class StudentController extends Controller
                     ]);
                 }
 
-                $idClass = 1;
+                $excelClassId = trim($row[71] ?? '');
+
+                $idClass = ! empty($excelClassId) ? $excelClassId : '-';
 
                 // ==========================================================
                 // 3. INSERT TABEL UTAMA (STUDENT)
