@@ -730,9 +730,6 @@ class StudentController extends Controller
                     continue;
                 }
 
-                // ==========================================================
-                // 1. MAPPING DATA DASAR
-                // ==========================================================
                 $nis = trim($row[0] ?? '');
                 $name = trim($row[1] ?? '');
                 $nisLocal = trim($row[2] ?? '');
@@ -806,16 +803,10 @@ class StudentController extends Controller
                     $parentGender = $namaAyah ? 'male' : 'female';
                 }
 
-                // $parentPhone = (trim($parentPhone) === '') ? null : trim($parentPhone);
-
-                // --- MODIFIKASI: CEK DAN BUAT USER UNTUK ORANG TUA BARU ---
-
-                // Cari apakah orang tua sudah ada di database berdasarkan nama & HP
                 $parent = Parents::where('name', $parentName)
                     ->where('phone', $parentPhone)
                     ->first();
 
-                // Jika orang tua belum ada, kita buatkan akun User lalu data Parent-nya
                 if (! $parent) {
                     $branchId = Auth::user()->branch_id ?? 1;
 
@@ -824,13 +815,12 @@ class StudentController extends Controller
                         'name' => $parentName,
                         'email' => null,
                         'password' => Hash::make('12345678'),
-                        'role' => UserRole::OrangTua, // Sesuaikan dengan Enum Anda
+                        'role' => UserRole::OrangTua,
                         'phone' => $parentPhone ?? '-',
                         'gender' => $parentGender,
                         'branch_id' => $branchId,
                     ]);
 
-                    // Buat Data Parent dengan id_user yang baru dibuat
                     $parent = Parents::create([
                         'id_user' => $user->id,
                         'name' => $parentName,
@@ -845,11 +835,8 @@ class StudentController extends Controller
 
                 $idClass = ! empty($excelClassId) ? $excelClassId : '-';
 
-                // ==========================================================
-                // 3. INSERT TABEL UTAMA (STUDENT)
-                // ==========================================================
                 $student = Student::create([
-                    'id_parent' => $parent->id, // ID parent (baik yang baru dibuat maupun yang sudah ada)
+                    'id_parent' => $parent->id,
                     'id_class' => $idClass,
                     'nis' => $nis,
                     'name' => $name,
@@ -869,9 +856,6 @@ class StudentController extends Controller
                     'entry_date' => $entryDate,
                 ]);
 
-                // ==========================================================
-                // 4. INSERT TABEL EKSTENSI (DETAIL, SEKOLAH ASAL, AKADEMIK)
-                // ==========================================================
                 StudentDetail::create([
                     'student_id' => $student->id,
                     'phone' => trim($row[23] ?? ''),
