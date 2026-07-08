@@ -1,6 +1,6 @@
 @extends('layouts.backend.index')
-
 @section('title', $title)
+
 @section('header')
     <x-section-page :label="$title" :icon="$icon" breadcrumb="academic/student/set" />
 @endsection
@@ -17,6 +17,7 @@
                             :old="old('id_asrama')" />
                     </div>
                 </div>
+
                 <div class="row">
                     <div class="col-sm-6 col-md-3">
                         <x-form.select id="halaqah" name="id_halaqah" :label="__('label.halaqah')" :option="$halaqahs"
@@ -67,7 +68,6 @@
     <script src="{{ asset('vendors/datatables/datatables.min.js') }}" type="text/javascript"></script>
     <script src="{{ asset('vendors/datatables/DataTables-1.13.6/js/dataTables.bootstrap5.min.js') }}"
         type="text/javascript"></script>
-
     <script>
         const error =
             "@isset($errors->all()[0]) {{ $errors->all()[0] }} @endisset"
@@ -78,60 +78,58 @@
         window.LaravelDataTables = window.LaravelDataTables || {}
 
         $(document).ready(function() {
-            if (error != "")
-                setNotifInfo(error)
+            if (error != "") setNotifInfo(error)
 
             optionClass()
             datatableStudent()
-
             $($.fn.dataTable.tables(true)).css('width', '100%')
 
+            // Menghapus ajax.reload dari event change, hanya untuk meload daftar class
             $("#education-level").change(function() {
                 education_level = $(this).val()
                 optionClass()
-                if (window.LaravelDataTables["table-student"]) {
-                    window.LaravelDataTables["table-student"].ajax.reload(null, false)
-                }
-            })
-
-            $("#class").change(function() {
-                if (window.LaravelDataTables["table-student"]) {
-                    window.LaravelDataTables["table-student"].ajax.reload(null, false)
-                }
             })
 
             $("#check-all").click(function() {
                 if ($(this).is(":checked")) {
                     $("#table-student .cb-student").prop("checked", true)
                     $("#table-student .cb-student").each(function() {
-                        student.push($(this).val())
+                        if (!student.includes($(this).val())) {
+                            student.push($(this).val())
+                        }
                     })
                 } else {
                     $("#table-student .cb-student").prop("checked", false)
                     $("#table-student .cb-student").each(function() {
                         const index = student.indexOf($(this).val())
-                        delete student[index]
+                        if (index !== -1) {
+                            student.splice(index,
+                                1) // Memperbaiki cara hapus array (sebelumnya pakai delete)
+                        }
                     })
                 }
             })
 
             $("#table-student").on("click", ".cb-student", function() {
                 if ($(this).is(":checked")) {
-                    student.push($(this).val())
+                    if (!student.includes($(this).val())) {
+                        student.push($(this).val())
+                    }
                 } else {
                     const index = student.indexOf($(this).val())
-                    delete student[index]
+                    if (index !== -1) {
+                        student.splice(index, 1) // Memperbaiki cara hapus array
+                    }
                 }
             })
 
             $("#form").submit(function(e) {
                 e.preventDefault()
-
                 const formData = {
                     asrama: $("#asrama").val(),
                     halaqah: $("#halaqah").val(),
                     class: $("#class").val(),
-                    student
+                    student: student
                 }
 
                 $.ajax({
@@ -156,11 +154,9 @@
         function optionClass() {
             if (education_level != "") {
                 $("#loading-class").show()
-
                 const formData = {
                     level: education_level
                 }
-
                 $.ajax({
                     type: "POST",
                     url: "{{ route('academic.class.get.option') }}",
@@ -169,14 +165,14 @@
                     success: function(response) {
                         $("#loading-class").hide()
                         $("#class").html(response.option).trigger("change.select2")
-
-                        if (id_class != "")
-                            $("#class").val(id_class).trigger("change.select2")
+                        if (id_class != "") $("#class").val(id_class).trigger("change.select2")
                     },
                     error: function(xhr, ajaxOptions, thrownError) {
                         ajaxError(xhr.status)
                     }
                 })
+            } else {
+                $("#class").html('<option value=""></option>').trigger("change.select2")
             }
         }
 
@@ -192,9 +188,7 @@
                     url: "{{ route('academic.student.datatable.set') }}",
                     type: "POST",
                     data: (d) => {
-                        d.selected = student
-                        d.level_education = $("#education-level").val()
-                        d.id_class = $("#class").val()
+                        d.selected = student // Filter class dan education_level dihapus dari sini
                         return d
                     }
                 },
