@@ -20,14 +20,12 @@ use App\Models\Employee;
 use App\Models\LunchRequest;
 use App\Models\ModuleRights;
 use App\Models\Parents;
-use App\Models\Payroll;
 use App\Models\ReportBill;
 use App\Models\ReportBillClass;
 use App\Models\ReportBillMethod;
 use App\Models\ReportBillType;
 use App\Models\SavingsWithdrawal;
 use App\Models\Student;
-use App\Models\Submissions;
 use App\Models\Transaction;
 use App\Models\TransactionBill;
 use App\Models\Year;
@@ -43,7 +41,9 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 class DashboardController extends Controller
 {
     private $title = 'Dashboard';
+
     private $icon = 'bx bxs-bar-chart-alt-2';
+
     private $path = 'backend.dashboard.';
 
     public function index()
@@ -54,13 +54,13 @@ class DashboardController extends Controller
             // setcookie('paycode', rand(100, 999), time() + (86400 * 30), "/");
             // setcookie('paycode', '', time() - 3600, '/');
             return $this->orangTua();
-        } else if ($user->role == UserRole::PenanggungJawabTabungan) {
+        } elseif ($user->role == UserRole::PenanggungJawabTabungan) {
             return $this->penanggungJawabTabungan();
-        } else if ($user->role == UserRole::WaliKelas) {
+        } elseif ($user->role == UserRole::WaliKelas) {
             return $this->waliKelas();
-        } else if ($user->role == UserRole::Kasir) {
+        } elseif ($user->role == UserRole::Kasir) {
             return $this->kasir();
-        } else if ($user->role == UserRole::Pegawai) {
+        } elseif ($user->role == UserRole::Pegawai) {
             return $this->pegawai();
         } else {
             return $this->admin();
@@ -78,7 +78,7 @@ class DashboardController extends Controller
         $alfa = $attendance->where('status', 'alpha');
 
         $totalHadirTerlambat = $hadir->filter(function ($item) {
-            return !empty($item->reason_in);
+            return ! empty($item->reason_in);
         });
 
         $totalEmployees = Employee::where('status', 1)
@@ -97,7 +97,7 @@ class DashboardController extends Controller
             })
             ->count();
 
-        return view($this->path . 'index', [
+        return view($this->path.'index', [
             'icon' => 'bx bxs-user-check',
             'title' => $this->title,
             'totalHadir' => $hadir->count(),
@@ -109,7 +109,7 @@ class DashboardController extends Controller
             'totalEmployees' => $totalEmployees,
             'attendance' => $attendance,
             'stayEmployees' => $stayEmployees,
-            'honorerEmployees' => $honorerEmployees
+            'honorerEmployees' => $honorerEmployees,
         ]);
     }
 
@@ -124,7 +124,7 @@ class DashboardController extends Controller
         $query = AttendanceReport::with('employee', 'group')
             ->whereDate('date', $today);
 
-        if (!empty($search)) {
+        if (! empty($search)) {
             $query->whereHas('employee', function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%");
             });
@@ -140,13 +140,14 @@ class DashboardController extends Controller
             'draw' => intval($request->input('draw')),
             'recordsTotal' => $total,
             'recordsFiltered' => $total,
-            'data' => $attendance
+            'data' => $attendance,
         ]);
     }
 
     public function getPositions()
     {
         $positions = AttendanceGroup::with('position')->get();
+
         return response()->json($positions);
     }
 
@@ -220,7 +221,7 @@ class DashboardController extends Controller
             ->get()
             ->groupBy('employee_id');
 
-        $spreadsheet = new Spreadsheet();
+        $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
 
         // Judul laporan
@@ -229,15 +230,15 @@ class DashboardController extends Controller
         $sheet->getStyle('B1')->getFont()->setBold(true)->setSize(14);
         $sheet->getStyle('B1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-        $sheet->setCellValue('A2', 'Periode: ' . $start->translatedFormat('F Y'));
-        $sheet->setCellValue('A3', 'Tanggal Export: ' . now()->translatedFormat('l, d F Y H:i:s'));
+        $sheet->setCellValue('A2', 'Periode: '.$start->translatedFormat('F Y'));
+        $sheet->setCellValue('A3', 'Tanggal Export: '.now()->translatedFormat('l, d F Y H:i:s'));
 
         // Header tanggal dan kolom rekap
         $headerRow = 5;
-        $sheet->setCellValue('A' . $headerRow, 'Nama');
+        $sheet->setCellValue('A'.$headerRow, 'Nama');
         $col = 'B';
         for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
-            $sheet->setCellValue($col . $headerRow, $date->format('d'));
+            $sheet->setCellValue($col.$headerRow, $date->format('d'));
             $col++;
         }
 
@@ -252,19 +253,19 @@ class DashboardController extends Controller
         $tidakHadirCol = ++$col;
 
         // Header tambahan
-        $sheet->setCellValue($jumlahHadirCol . $headerRow, 'Jumlah Hadir (hari)');
-        $sheet->setCellValue($totalJamCol . $headerRow, 'Total Jam Hadir');
-        $sheet->setCellValue($lateCountCol . $headerRow, 'Terlambat (kali)');
-        $sheet->setCellValue($totalLateMinutesCol . $headerRow, 'Total Menit Terlambat');
-        $sheet->setCellValue($pulangAwalCountCol . $headerRow, 'Pulang Awal (kali)');
-        $sheet->setCellValue($totalPulangAwalMinutesCol . $headerRow, 'Total Menit Pulang Awal');
-        $sheet->setCellValue($tidakAbsenPulangCol . $headerRow, 'Tidak Absen Pulang (kali)');
-        $sheet->setCellValue($tidakHadirCol . $headerRow, 'Tidak Hadir (hari)');
+        $sheet->setCellValue($jumlahHadirCol.$headerRow, 'Jumlah Hadir (hari)');
+        $sheet->setCellValue($totalJamCol.$headerRow, 'Total Jam Hadir');
+        $sheet->setCellValue($lateCountCol.$headerRow, 'Terlambat (kali)');
+        $sheet->setCellValue($totalLateMinutesCol.$headerRow, 'Total Menit Terlambat');
+        $sheet->setCellValue($pulangAwalCountCol.$headerRow, 'Pulang Awal (kali)');
+        $sheet->setCellValue($totalPulangAwalMinutesCol.$headerRow, 'Total Menit Pulang Awal');
+        $sheet->setCellValue($tidakAbsenPulangCol.$headerRow, 'Tidak Absen Pulang (kali)');
+        $sheet->setCellValue($tidakHadirCol.$headerRow, 'Tidak Hadir (hari)');
 
         $row = $headerRow + 1;
 
         foreach ($employees as $emp) {
-            $sheet->setCellValue('A' . $row, $emp->name);
+            $sheet->setCellValue('A'.$row, $emp->name);
 
             $col = 'B';
             $hadirCount = 0;
@@ -286,18 +287,18 @@ class DashboardController extends Controller
                         $hadirCount++;
 
                         // Hitung jam kerja
-                        if (!empty($record->work_minutes)) {
+                        if (! empty($record->work_minutes)) {
                             $totalHours += $record->work_minutes / 60;
 
                             // Deteksi pulang awal
-                            if (!empty($record->early_leave_minutes > 0 || $record->reason_out)) {
+                            if (! empty($record->early_leave_minutes > 0 || $record->reason_out)) {
                                 $pulangAwalCount++;
                                 $totalPulangAwalMinutes += $record->early_leave_minutes;
                             }
                         }
 
                         // Deteksi terlambat
-                        if (!empty($record->late_minutes > 0 || $record->reason_in)) {
+                        if (! empty($record->late_minutes > 0 || $record->reason_in)) {
                             $lateCount++;
                             $totalLateMinutes += $record->late_minutes;
                         }
@@ -313,28 +314,28 @@ class DashboardController extends Controller
                     $tidakHadir++;
                 }
 
-                $sheet->setCellValue($col . $row, $status);
+                $sheet->setCellValue($col.$row, $status);
                 $col++;
             }
 
             // Rekap kolom tambahan
-            $sheet->setCellValue($jumlahHadirCol . $row, $hadirCount);
-            $sheet->setCellValue($totalJamCol . $row, floor($totalHours) . ' jam');
-            $sheet->setCellValue($lateCountCol . $row, $lateCount);
-            $sheet->setCellValue($totalLateMinutesCol . $row, $totalLateMinutes);
-            $sheet->setCellValue($pulangAwalCountCol . $row, $pulangAwalCount);
-            $sheet->setCellValue($totalPulangAwalMinutesCol . $row, $totalPulangAwalMinutes);
-            $sheet->setCellValue($tidakAbsenPulangCol . $row, $tidakAbsenPulang);
-            $sheet->setCellValue($tidakHadirCol . $row, $tidakHadir);
+            $sheet->setCellValue($jumlahHadirCol.$row, $hadirCount);
+            $sheet->setCellValue($totalJamCol.$row, floor($totalHours).' jam');
+            $sheet->setCellValue($lateCountCol.$row, $lateCount);
+            $sheet->setCellValue($totalLateMinutesCol.$row, $totalLateMinutes);
+            $sheet->setCellValue($pulangAwalCountCol.$row, $pulangAwalCount);
+            $sheet->setCellValue($totalPulangAwalMinutesCol.$row, $totalPulangAwalMinutes);
+            $sheet->setCellValue($tidakAbsenPulangCol.$row, $tidakAbsenPulang);
+            $sheet->setCellValue($tidakHadirCol.$row, $tidakHadir);
 
             $row++;
         }
 
         // Style header
-        $sheet->freezePane('B' . ($headerRow + 1));
+        $sheet->freezePane('B'.($headerRow + 1));
         $highestColumn = $sheet->getHighestColumn();
         $highestColumnIndex = Coordinate::columnIndexFromString($highestColumn);
-        $headerRange = 'A' . $headerRow . ':' . $highestColumn . $headerRow;
+        $headerRange = 'A'.$headerRow.':'.$highestColumn.$headerRow;
         $sheet->getStyle($headerRange)->getFont()->setBold(true);
         $sheet->getStyle($headerRange)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getStyle($headerRange)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
@@ -345,15 +346,13 @@ class DashboardController extends Controller
         }
 
         // Simpan file
-        $fileName = 'data_absensi_' . $month . '_' . now()->format('H-i-s') . '.xlsx';
+        $fileName = 'data_absensi_'.$month.'_'.now()->format('H-i-s').'.xlsx';
         $filePath = storage_path($fileName);
         $writer = new Xlsx($spreadsheet);
         $writer->save($filePath);
 
         return response()->download($filePath)->deleteFileAfterSend(true);
     }
-
-
 
     private function kasir()
     {
@@ -363,14 +362,14 @@ class DashboardController extends Controller
         $years = Year::selectRaw('id, CONCAT("Thn. Ajaran : ", start_year, " - ", end_year) AS start_year')->orderBy('start_year', 'desc')->pluck('start_year', 'id');
         $year = Year::select('id')->active()->first();
 
-        return view($this->path . 'kasir', [
+        return view($this->path.'kasir', [
             'icon' => 'bx bxs-home-smile',
             'title' => $this->title,
             'type_bill' => $type_bill,
             'type_topup' => $type_topup,
             'type_withdrawal' => $type_withdrawal,
             'years' => $years,
-            'year' => $year
+            'year' => $year,
         ]);
     }
 
@@ -382,15 +381,16 @@ class DashboardController extends Controller
         $period_semester = BillPeriod::Semiannual->value;
 
         $transaction = Transaction::select('id', 'id_student', 'payment_method', 'paid_at', 'flag', 'total')
-            ->with(['student' => fn($query) => $query->select('id', 'id_parent', 'name')])
-            ->whereHas('student', fn($query) => $query->whereIdParent(Auth::user()->parent->id))
+            ->with(['student' => fn ($query) => $query->select('id', 'id_parent', 'name')])
+            ->whereHas('student', fn ($query) => $query->whereIdParent(Auth::user()->parent->id))
             ->paid()
             ->orderBy('paid_at', 'desc')
             ->get();
 
         foreach ($transaction as $t) {
-            if ($transaction_count == 6)
+            if ($transaction_count == 6) {
                 break;
+            }
 
             $method = $t->method->name;
 
@@ -398,22 +398,24 @@ class DashboardController extends Controller
                 $bills = TransactionBill::select('id', 'id_bill', 'semester', 'months', 'years', 'total')
                     ->with([
                         'bill' => function ($query) {
-                            $query->select('id', 'id_type')->with(['type' => fn($qt) => $qt->select('id', 'name', 'period')]);
-                        }
+                            $query->select('id', 'id_type')->with(['type' => fn ($qt) => $qt->select('id', 'name', 'period')]);
+                        },
                     ])
                     ->whereIdTransaction($t->id)
                     ->get();
 
                 foreach ($bills as $b) {
-                    if ($transaction_count == 6)
+                    if ($transaction_count == 6) {
                         break;
+                    }
 
                     $name = $b->bill->type->name;
 
-                    if ($b->bill->type->period->value == $period_monthly)
-                        $name .= ' - ' . Common::monthFormat($b->months) . ' ' . $b->years;
-                    else if ($b->bill->type->period->value == $period_semester)
-                        $name .= ' - Semester ' . $b->semester;
+                    if ($b->bill->type->period->value == $period_monthly) {
+                        $name .= ' - '.Common::monthFormat($b->months).' '.$b->years;
+                    } elseif ($b->bill->type->period->value == $period_semester) {
+                        $name .= ' - Semester '.$b->semester;
+                    }
 
                     array_push($transactions, (object) [
                         'icon' => $t->flag_detail->icon,
@@ -422,7 +424,7 @@ class DashboardController extends Controller
                         'total' => $b->total,
                         'total_class' => 'text-danger',
                         'paid_at' => $t->paid_at,
-                        'method' => $method
+                        'method' => $method,
                     ]);
 
                     $transaction_count++;
@@ -435,16 +437,16 @@ class DashboardController extends Controller
                     'total' => $t->total,
                     'total_class' => ($t->flag->value == TransactionFlag::PengambilanTabungan->value) ? 'text-danger' : 'text-success',
                     'paid_at' => $t->paid_at,
-                    'method' => $method
+                    'method' => $method,
                 ]);
 
                 $transaction_count++;
             }
         }
 
-        return view($this->path . 'orang-tua', [
+        return view($this->path.'orang-tua', [
             'title' => $this->title,
-            'transaction' => (object) $transactions
+            'transaction' => (object) $transactions,
         ]);
     }
 
@@ -452,16 +454,16 @@ class DashboardController extends Controller
     {
         $withdrawal = SavingsWithdrawal::selectRaw('COUNT(id) AS amount, SUM(total) AS total')->notProcessed()->first();
 
-        return view($this->path . 'penanggung-jawab-tabungan', [
+        return view($this->path.'penanggung-jawab-tabungan', [
             'title' => $this->title,
             'icon' => $this->icon,
-            'withdrawal' => $withdrawal
+            'withdrawal' => $withdrawal,
         ]);
     }
 
     private function waliKelas()
     {
-        return view($this->path . 'wali-kelas', [
+        return view($this->path.'wali-kelas', [
             'title' => $this->title,
             'icon' => $this->icon,
         ]);
@@ -478,7 +480,7 @@ class DashboardController extends Controller
 
         $user = Auth::user();
 
-        if (!$user->employee) {
+        if (! $user->employee) {
             return back()->with('error', 'Data pegawai tidak ditemukan untuk akun ini.');
         }
 
@@ -489,8 +491,8 @@ class DashboardController extends Controller
             $allowedSubmission = in_array($employee->employee_id, $allowedSubmissionEmployeeIds);
         }
 
-        if (!$employee) {
-            return view($this->path . 'pegawai', [
+        if (! $employee) {
+            return view($this->path.'pegawai', [
                 'title' => $this->title,
                 'module_rights' => $module_rights,
                 'module_absence' => $module_absence,
@@ -503,7 +505,7 @@ class DashboardController extends Controller
                 'selectedShift' => null,
                 'groupAttendance' => null,
                 'shifts' => [],
-                'allowedSubmission' => null
+                'allowedSubmission' => null,
             ]);
         }
 
@@ -560,7 +562,7 @@ class DashboardController extends Controller
         $isMudir = AllowedSubmissionEmployee::where('employee_id', $user->employee->id)->where('position', 'like', '%mudir%')->exists();
         $isWadir = AllowedSubmissionEmployee::where('employee_id', $user->employee->id)->where('position', 'like', '%wadir%')->exists();
 
-        return view($this->path . 'pegawai', [
+        return view($this->path.'pegawai', [
             'title' => $this->title,
             'module_rights' => $module_rights,
             'module_absence' => $module_absence,
@@ -582,10 +584,9 @@ class DashboardController extends Controller
             'inDepartment' => $inDepartment,
             'isPimpinan' => $isPimpinan,
             'isMudir' => $isMudir,
-            'isWadir' => $isWadir
+            'isWadir' => $isWadir,
         ]);
     }
-
 
     public function datatableWithdrawal(Request $request)
     {
@@ -597,25 +598,25 @@ class DashboardController extends Controller
             ->with([
                 'student' => function ($query) {
                     $query->select('id', 'id_class', 'nis', 'name')
-                        ->with(['class' => fn($qc) => $qc->select('id', 'name', 'level_education')]);
-                }
+                        ->with(['class' => fn ($qc) => $qc->select('id', 'name', 'level_education')]);
+                },
             ])
             ->notProcessed();
 
         $withdrawal_count = $withdrawal->count();
 
-        if (empty($search))
+        if (empty($search)) {
             $withdrawal_filter = $withdrawal;
-        else {
+        } else {
             $withdrawal_filter = $withdrawal->where(function ($query) use ($search) {
-                $query->where('number', 'like', '%' . $search . '%')
-                    ->orWhere('dates', 'like', '%' . $search . '%')
+                $query->where('number', 'like', '%'.$search.'%')
+                    ->orWhere('dates', 'like', '%'.$search.'%')
                     ->orWhereHas('student', function ($qs) use ($search) {
-                        $qs->where('nis', 'like', '%' . $search . '%')
-                            ->orWhere('name', 'like', '%' . $search . '%')
+                        $qs->where('nis', 'like', '%'.$search.'%')
+                            ->orWhere('name', 'like', '%'.$search.'%')
                             ->orWhereHas('class', function ($qc) use ($search) {
-                                $qc->where('name', 'like', '%' . $search . '%')
-                                    ->where('level_education', 'like', '%' . $search . '%');
+                                $qc->where('name', 'like', '%'.$search.'%')
+                                    ->where('level_education', 'like', '%'.$search.'%');
                             });
                     });
             });
@@ -640,7 +641,7 @@ class DashboardController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $withdrawal_count,
             'recordsFiltered' => $withdrawal_count_filter,
-            'data' => $withdrawal_arr
+            'data' => $withdrawal_arr,
         ]);
     }
 
@@ -656,27 +657,27 @@ class DashboardController extends Controller
         $bill = TransactionBill::select('id', 'id_student', 'id_bill', 'semester', 'months', 'years', 'total')
             ->with([
                 'student' => function ($query) {
-                    $query->select('id', 'id_class', 'nis', 'name')->with(['class' => fn($qc) => $qc->select('id', 'name')]);
+                    $query->select('id', 'id_class', 'nis', 'name')->with(['class' => fn ($qc) => $qc->select('id', 'name')]);
                 },
                 'bill' => function ($query) {
                     $query->select('id', 'id_year', 'id_type', 'name')
                         ->with([
-                            'year' => fn($qt) => $qt->select('id', 'start_year', 'end_year'),
-                            'type' => fn($qt) => $qt->select('id', 'name', 'period'),
+                            'year' => fn ($qt) => $qt->select('id', 'start_year', 'end_year'),
+                            'type' => fn ($qt) => $qt->select('id', 'name', 'period'),
                         ]);
                 },
             ])
             ->notPaid()
-            ->whereHas('student', fn($query) => $query->whereIdClass(Auth::user()->class->id));
+            ->whereHas('student', fn ($query) => $query->whereIdClass(Auth::user()->class->id));
 
         $bill_count = $bill->count();
         $bill_filter = $bill->where(function ($query) use ($search) {
             $query->whereHas('bill', function ($qb) use ($search) {
-                $qb->where('name', 'like', '%' . $search . '%');
+                $qb->where('name', 'like', '%'.$search.'%');
             })
                 ->orWhereHas('student', function ($qs) use ($search) {
-                    $qs->where('nis', 'like', '%' . $search . '%')
-                        ->orWhere('name', 'like', '%' . $search . '%');
+                    $qs->where('nis', 'like', '%'.$search.'%')
+                        ->orWhere('name', 'like', '%'.$search.'%');
                 });
         });
 
@@ -695,10 +696,11 @@ class DashboardController extends Controller
             $push['year'] = $b->bill->year->year_name;
             $push['bill_name'] = $b->bill->name;
 
-            if ($b->bill->type->period->value == $period_monthly)
-                $push['bill_name'] .= ' Bulan ' . Common::monthFormat($b->months) . ' ' . $b->years;
-            else if ($b->bill->type->period->value == $period_semester)
-                $push['bill_name'] .= ' Semester ' . $b->semester;
+            if ($b->bill->type->period->value == $period_monthly) {
+                $push['bill_name'] .= ' Bulan '.Common::monthFormat($b->months).' '.$b->years;
+            } elseif ($b->bill->type->period->value == $period_semester) {
+                $push['bill_name'] .= ' Semester '.$b->semester;
+            }
 
             array_push($bill_arr, $push);
         }
@@ -707,7 +709,7 @@ class DashboardController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $bill_count,
             'recordsFiltered' => $bill_count_filter,
-            'data' => $bill_arr
+            'data' => $bill_arr,
         ]);
     }
 
@@ -726,7 +728,7 @@ class DashboardController extends Controller
                 'topup' => $topup,
                 'cash' => (empty(@$cash->total)) ? 0 : $cash->total,
                 'unique_code' => $unique_code,
-            ]
+            ],
         ];
 
         return response()->json($response);
@@ -749,14 +751,15 @@ class DashboardController extends Controller
 
         $progress = ($total->bill == 0) ? 0 : ($total->paid / $total->bill) * 100;
 
-        if ($progress >= 90)
+        if ($progress >= 90) {
             $progress_color = 'bg-success';
-        else if ($progress >= 26)
+        } elseif ($progress >= 26) {
             $progress_color = 'bg-primary';
-        else
+        } else {
             $progress_color = 'bg-danger';
+        }
 
-        $view = view($this->path . 'get-payment-progress', [
+        $view = view($this->path.'get-payment-progress', [
             'report' => $report,
             'total' => $total,
             'progress' => $progress,
@@ -770,7 +773,7 @@ class DashboardController extends Controller
                 'report' => $view,
                 'total' => $total,
                 'progress' => $progress,
-            ]
+            ],
         ];
 
         return response()->json($response);
@@ -795,8 +798,8 @@ class DashboardController extends Controller
             ->with([
                 'class' => function ($query) {
                     $query->select('id', 'id_wali_kelas', 'name')
-                        ->with(['waliKelas' => fn($qw) => $qw->select('id', 'name')]);
-                }
+                        ->with(['waliKelas' => fn ($qw) => $qw->select('id', 'name')]);
+                },
             ])
             ->whereIdYear($year)
             ->today()
@@ -807,34 +810,35 @@ class DashboardController extends Controller
 
         foreach ($classes as $c) {
             $report_bill_type = ReportBillType::select('id', 'id_type', 'total')
-                ->with(['type' => fn($query) => $query->select('id', 'name')])
+                ->with(['type' => fn ($query) => $query->select('id', 'name')])
                 ->whereIdYear($year)
                 ->whereLevel($c)
                 ->today()
                 ->get();
 
             if ($report_bill_type->count() > 0) {
-                if (!array_key_exists($c, $receipt_type))
+                if (! array_key_exists($c, $receipt_type)) {
                     $receipt_type[$c] = [];
+                }
 
                 foreach ($report_bill_type as $r) {
                     array_push($receipt_type[$c], (object) [
                         'type' => $r->type->name,
-                        'total' => $r->total
+                        'total' => $r->total,
                     ]);
                 }
             }
         }
 
-        $view_recipient = view($this->path . 'get-receipt-recipient', [
+        $view_recipient = view($this->path.'get-receipt-recipient', [
             'recipient' => $receipt_recipient,
         ])->render();
 
-        $view_class = view($this->path . 'get-receipt-class', [
+        $view_class = view($this->path.'get-receipt-class', [
             'class' => $receipt_class,
         ])->render();
 
-        $view_type = view($this->path . 'get-receipt-type', [
+        $view_type = view($this->path.'get-receipt-type', [
             'type' => $receipt_type,
         ])->render();
 
@@ -845,7 +849,7 @@ class DashboardController extends Controller
                 'recipient' => $view_recipient,
                 'class' => $view_class,
                 'type' => $view_type,
-            ]
+            ],
         ];
 
         return response()->json($response);

@@ -1,22 +1,20 @@
 <?php
 
-use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AttachmentController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\CaptchaController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Employee\AttendanceController;
-use App\Http\Controllers\Employee\TahfidzController;
 use App\Http\Controllers\IconController;
 use App\Http\Controllers\MootaController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\RegionController;
-use App\Http\Controllers\UserController;
 use App\Http\Controllers\Setting\AppController as SettingAppController;
 use App\Http\Controllers\Setting\YearController as SettingYearController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\WhatsappController;
 use Illuminate\Support\Facades\Route;
-use SebastianBergmann\CodeCoverage\Report\Html\Dashboard;
 
 Route::get('/', [AuthController::class, 'index'])->name('base');
 Route::get('register', [AuthController::class, 'register'])->name('auth.register');
@@ -40,23 +38,23 @@ Route::get('captcha-refresh', [CaptchaController::class, 'refresh'])->name('capt
 
 Route::group(['middleware' => ['auth', 'initialize.backend']], function () {
     Route::prefix('academic')->group(function () {
-        require_once __DIR__ . '/academic.php';
+        require_once __DIR__.'/academic.php';
     });
 
     Route::prefix('employee')->group(function () {
-        require_once __DIR__ . '/employee.php';
+        require_once __DIR__.'/employee.php';
     });
 
     Route::prefix('finance')->group(function () {
-        require_once __DIR__ . '/finance.php';
+        require_once __DIR__.'/finance.php';
     });
 
     Route::prefix('hr')->group(function () {
-        require_once __DIR__ . '/hr.php';
+        require_once __DIR__.'/hr.php';
     });
 
     Route::prefix('service')->group(function () {
-        require_once __DIR__ . '/service.php';
+        require_once __DIR__.'/service.php';
     });
 
     Route::prefix('attachment')->group(function () {
@@ -77,8 +75,6 @@ Route::group(['middleware' => ['auth', 'initialize.backend']], function () {
         Route::get('/attendance-summary/data', [DashboardController::class, 'getData'])->name('attendance.summary.data');
         Route::get('/attendance/positions', [DashboardController::class, 'getPositions'])->name('attendance.positions');
         Route::get('/attendance/export', [DashboardController::class, 'exportExcel'])->name('attendance.export');
-
-
 
         // Employee Attendance
         Route::post('attendance/in', [AttendanceController::class, 'attendanceIn'])->name('dashboard.employee.attendanceIn')->middleware('role:kasir,pegawai,wali-kelas,admin,penanggungJawabTabungan');

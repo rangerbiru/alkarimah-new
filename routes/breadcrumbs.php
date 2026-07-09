@@ -152,7 +152,7 @@ Breadcrumbs::for('academic/student/history-displacement', function (BreadcrumbTr
     $trail->push(__('label.move_history'), route('academic.student.history.displacement', $id));
 });
 
-//Add student permit breadcrumb
+// Add student permit breadcrumb
 Breadcrumbs::for('academic/student-permit', function (BreadcrumbTrail $trail) {
     $trail->parent('dashboard');
     $trail->push(__('label.student_permit'), route('academic.student-permit.index'));
@@ -168,7 +168,7 @@ Breadcrumbs::for('academic/student-permit/edit', function (BreadcrumbTrail $trai
     $trail->push(__('label.edit'), route('academic.student-permit.edit', $id));
 });
 
-//Add student permit group breadcrumb
+// Add student permit group breadcrumb
 Breadcrumbs::for('academic/student-permit-group', function (BreadcrumbTrail $trail) {
     $trail->parent('dashboard');
     $trail->push(__('label.student_permit_group'), route('academic.student-permit-group.index'));
@@ -313,7 +313,7 @@ Breadcrumbs::for('branch/edit', function (BreadcrumbTrail $trail, $id) {
 
 Breadcrumbs::for('finance/bill/discount', function (BreadcrumbTrail $trail) {
     $trail->parent('dashboard');
-    $trail->push(__('label.bill') . ' - ' . __('label.discount'), route('finance.bill.discount.index'));
+    $trail->push(__('label.bill').' - '.__('label.discount'), route('finance.bill.discount.index'));
 });
 
 Breadcrumbs::for('finance/bill/discount/create', function (BreadcrumbTrail $trail) {
@@ -328,7 +328,7 @@ Breadcrumbs::for('finance/bill/discount/edit', function (BreadcrumbTrail $trail,
 
 Breadcrumbs::for('finance/bill/type', function (BreadcrumbTrail $trail) {
     $trail->parent('dashboard');
-    $trail->push(__('label.bill') . ' - ' . __('label.type'), route('finance.bill.type.index'));
+    $trail->push(__('label.bill').' - '.__('label.type'), route('finance.bill.type.index'));
 });
 
 Breadcrumbs::for('finance/bill/type/create', function (BreadcrumbTrail $trail) {
@@ -343,7 +343,7 @@ Breadcrumbs::for('finance/bill/type/edit', function (BreadcrumbTrail $trail, $id
 
 Breadcrumbs::for('finance/bill/setup', function (BreadcrumbTrail $trail) {
     $trail->parent('dashboard');
-    $trail->push(__('label.bill') . ' - ' . __('label.setup'), route('finance.bill.setup.index'));
+    $trail->push(__('label.bill').' - '.__('label.setup'), route('finance.bill.setup.index'));
 });
 
 Breadcrumbs::for('finance/bill/setup/setting', function (BreadcrumbTrail $trail) {

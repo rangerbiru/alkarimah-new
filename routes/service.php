@@ -1,13 +1,13 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Service\ActivityController as ServiceActivityController;
 use App\Http\Controllers\Service\DashboardController as ServiceDashboardController;
-use App\Http\Controllers\Service\QuranController;
 use App\Http\Controllers\Service\DzikirDoaController;
 use App\Http\Controllers\Service\HadistController;
 use App\Http\Controllers\Service\JadwalSholatController;
 use App\Http\Controllers\Service\PosterDakwahController;
+use App\Http\Controllers\Service\QuranController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('dashboard', [ServiceDashboardController::class, 'index'])->name('service.dashboard.index');
 

@@ -3,21 +3,20 @@
 use App\Http\Controllers\Employee\ActivityReportsController;
 use App\Http\Controllers\Employee\AttendanceController;
 use App\Http\Controllers\Employee\AttendanceReportController;
-use App\Http\Controllers\Employee\HafalanController;
-use App\Http\Controllers\Employee\StudentPermitController as EmployeeStudentPermitController;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Employee\TahfidzController;
-use App\Http\Controllers\Employee\TeachingScheduleController;
 use App\Http\Controllers\Employee\CommitteeActivityController;
 use App\Http\Controllers\Employee\EmployeePermitController;
+use App\Http\Controllers\Employee\HafalanController;
+use App\Http\Controllers\Employee\LogisticsInventoryController;
 use App\Http\Controllers\Employee\LunchReportController;
+use App\Http\Controllers\Employee\StudentPermitController as EmployeeStudentPermitController;
 use App\Http\Controllers\Employee\SubmissionController;
 use App\Http\Controllers\Employee\SubmissionItemController;
-use App\Http\Controllers\Employee\LogisticsInventoryController;
+use App\Http\Controllers\Employee\TahfidzController;
+use App\Http\Controllers\Employee\TeachingScheduleController;
 use App\Http\Middleware\CheckAllowedSubmissionEmployee;
 use App\Http\Middleware\CheckPimpinanEmployee;
 use App\Models\Employee;
-use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Route;
 
 Route::resource('tahfidz', TahfidzController::class)->names('employee.tahfidz');
 
@@ -31,13 +30,11 @@ Route::delete('/employee/hafalan/delete', [HafalanController::class, 'destroy'])
 Route::get('/data-hafalan', [HafalanController::class, 'datatable'])->name('employee.hafalan.datatable');
 Route::get('/data-hafalan/{id}/{jenis_kaldik}', [HafalanController::class, 'datatableById'])->name('employee.hafalan.datatableById');
 
-
 Route::get('/data-absensi-tahfidz', [TahfidzController::class, 'anyDataAbsensiTahfidz'])->name('employee.tahfidz.datatable');
 Route::get('/get-siswa-by-pengampu', [TahfidzController::class, 'getSiswaByPengampu'])->name('employee.tahfidz.get-siswa-by-pengampu');
 
 Route::get('/process/{id}', [TahfidzController::class, 'process'])->name('employee.tahfidz.process');
 Route::get('/pertemuan-terpakai/{id}', [TahfidzController::class, 'getPertemuanTerpakai'])->name('employee.tahfidz.pertemuan-terpakai');
-
 
 // Absensi KBM Tahfidz
 Route::prefix('process')->group(function () {
@@ -82,7 +79,6 @@ Route::resource('teaching-schedule', TeachingScheduleController::class)->names('
 Route::post('/teaching-schedule/journal', [TeachingScheduleController::class, 'storeJournal'])
     ->name('employee.teaching-schedule.journal.store');
 
-
 Route::resource('activity-report', ActivityReportsController::class)->names('employee.activity-report')->except(['show']);
 Route::post('/activity-report/datatable', [ActivityReportsController::class, 'datatable'])->name('employee.activity-report.datatable');
 Route::post('/employee/activity-report/{id}/comment', [ActivityReportsController::class, 'storeComment'])
@@ -121,7 +117,6 @@ Route::post('/inventory/datatable', [LogisticsInventoryController::class, 'datat
 Route::get('/item/{id}/modal', [LogisticsInventoryController::class, 'showModal'])->name('employee.inventory.modal');
 Route::get('/inventory/{id}/input', [LogisticsInventoryController::class, 'inputInventory'])->name('employee.inventory.input');
 Route::post('/inventory/{id}/input', [LogisticsInventoryController::class, 'inputInventory']);
-
 
 Route::middleware([CheckPimpinanEmployee::class])->group(function () {
     Route::resource('attendance-report', AttendanceReportController::class)->names('employee.attendance-report')->except(['show']);

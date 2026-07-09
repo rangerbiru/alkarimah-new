@@ -1,25 +1,23 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Hr\AllowanceController as HrAllowanceController;
-use App\Http\Controllers\Hr\AttendanceDataController;
+use App\Http\Controllers\Hr\AllowedSubmissionEmployeeController as HrAllowedSubmissionEmployeeController;
 use App\Http\Controllers\Hr\AttendanceGroupController;
 use App\Http\Controllers\Hr\AttendanceLocationController;
 use App\Http\Controllers\Hr\AttendanceMemberController;
 use App\Http\Controllers\Hr\AttendanceReportController;
-use App\Http\Controllers\Hr\AttendanceScheduleController;
-use App\Http\Controllers\Hr\EmployeeController as HrEmployeeController;
-use App\Http\Controllers\Hr\PositionController as HrPositionController;
-use App\Http\Controllers\Hr\EmployeeActivityController as HrEmployeeActivityController;
-use App\Http\Controllers\Hr\AllowedSubmissionEmployeeController as HrAllowedSubmissionEmployeeController;
 use App\Http\Controllers\Hr\DepartmentController as HrDepartmentController;
-use App\Http\Controllers\Hr\PermitTypeController as HrPermitTypeController;
+use App\Http\Controllers\Hr\EmployeeActivityController as HrEmployeeActivityController;
+use App\Http\Controllers\Hr\EmployeeController as HrEmployeeController;
 use App\Http\Controllers\Hr\InventoryItemController as HrInventoryItemController;
-use App\Http\Controllers\Hr\ItemsController as HrItemsController;
 use App\Http\Controllers\Hr\ItemCategoryController as HrItemCategoryController;
+use App\Http\Controllers\Hr\ItemsController as HrItemsController;
 use App\Http\Controllers\Hr\LocationMasterController as HrLocationMasterController;
+use App\Http\Controllers\Hr\PermitTypeController as HrPermitTypeController;
+use App\Http\Controllers\Hr\PositionController as HrPositionController;
 use App\Http\Controllers\Hr\UnitMasterController as HrUnitMasterController;
 use App\Http\Controllers\Hr\ViolationTypeMasterController as HrViolationTypeMasterController;
+use Illuminate\Support\Facades\Route;
 
 Route::post('allowance/datatable', [HrAllowanceController::class, 'datatable'])->name('hr.allowance.datatable')->middleware('role:bendahara');
 Route::resource('allowance', HrAllowanceController::class, ['as' => 'hr'])->except(['show'])->middleware('role:bendahara');
@@ -38,7 +36,6 @@ Route::resource('employee', HrEmployeeController::class, ['as' => 'hr'])->except
 Route::post('position/datatable', [HrPositionController::class, 'datatable'])->name('hr.position.datatable')->middleware('role:admin');
 Route::resource('position', HrPositionController::class, ['as' => 'hr'])->except(['show'])->middleware('role:admin');
 
-
 Route::prefix('attendance')->name('hr.attendance.')->middleware('role:admin')->group(function () {
     // Attendance Group
     Route::resource('group', AttendanceGroupController::class)->except(['show'])->names('group');
@@ -46,7 +43,6 @@ Route::prefix('attendance')->name('hr.attendance.')->middleware('role:admin')->g
     Route::put('/group/{id}/update-time-shift', [AttendanceGroupController::class, 'updateTimeShift'])->name('group.update-time-shift');
     Route::post('group/datatable', [AttendanceGroupController::class, 'datatable'])->name('group.datatable');
     // Route::put('group/{id}', [AttendanceGroupController::class, 'updateShift'])->name('hr.attendance.group.update');
-
 
     // Attendance Member
     Route::resource('member', AttendanceMemberController::class)->names('member');

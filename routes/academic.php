@@ -1,23 +1,22 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Academic\AbsenceController as AcademicAbsenceController;
 use App\Http\Controllers\Academic\AsramaController as AcademicAsramaController;
+use App\Http\Controllers\Academic\BasicDataController as AcademicBasicDataController;
 use App\Http\Controllers\Academic\ClassController as AcademicClassController;
+use App\Http\Controllers\Academic\ClassHoursController as AcademicClassHoursController;
+use App\Http\Controllers\Academic\ClassMonitoringController as AcademicClassMonitoringController;
+use App\Http\Controllers\Academic\ClassScheduleController as AcademicClassScheduleController;
 use App\Http\Controllers\Academic\ExculController as AcademicExculController;
 use App\Http\Controllers\Academic\HalaqahController as AcademicHalaqahController;
 use App\Http\Controllers\Academic\ParentController as AcademicParentController;
 use App\Http\Controllers\Academic\StudentController as AcademicStudentController;
 use App\Http\Controllers\Academic\StudentPermitController as AcademicStudentPermitController;
 use App\Http\Controllers\Academic\StudentPermitGroupController as AcademicStudentPermitGroupController;
-use App\Http\Controllers\Academic\TahfidzController as AcademicTahfidzController;
-use App\Http\Controllers\Academic\BasicDataController as AcademicBasicDataController;
-use App\Http\Controllers\Academic\SubjectController as AcademicSubjectController;
-use App\Http\Controllers\Academic\ClassHoursController as AcademicClassHoursController;
-use App\Http\Controllers\Academic\ClassScheduleController as AcademicClassScheduleController;
-use App\Http\Controllers\Academic\ClassMonitoringController as AcademicClassMonitoringController;
 use App\Http\Controllers\Academic\StudentViolationController as AcademicStudentViolationController;
-
+use App\Http\Controllers\Academic\SubjectController as AcademicSubjectController;
+use App\Http\Controllers\Academic\TahfidzController as AcademicTahfidzController;
+use Illuminate\Support\Facades\Route;
 
 Route::prefix('absence')->group(function () {
     Route::get('create', [AcademicAbsenceController::class, 'create'])->name('academic.absence.create')->middleware(['role:pegawai', 'accessRights:1']);
@@ -65,8 +64,6 @@ Route::post('class-schedule/datatable-manage-schedule/{id}', [AcademicClassSched
 //     ->name('academic.class-schedule.save-schedule');
 Route::post('class-schedule/{id}/save', [AcademicClassScheduleController::class, 'saveManageSchedule'])
     ->name('academic.class-schedule.save-manage');
-
-
 
 Route::prefix('excul')->group(function () {
     Route::prefix('group')->group(function () {
@@ -131,17 +128,14 @@ Route::prefix('student-permit-group')->group(function () {
     Route::post('datatable', [AcademicStudentPermitGroupController::class, 'datatable'])->name('academic.student-permit-group.datatable')->middleware('role:admin');
 });
 
-
 Route::prefix('tahfidz')->group(function () {
     Route::get('/', [AcademicTahfidzController::class, 'index'])->name('academic.tahfidz.index');
     Route::post('datatable', [AcademicTahfidzController::class, 'datatable'])->name('academic.tahfidz.datatable');
     Route::get('print/{id}/{jenis_kaldik}', [AcademicTahfidzController::class, 'printTahfidz'])->name('academic.tahfidz.print');
 });
 
-
 Route::resource('basic', AcademicBasicDataController::class)->names('academic.basic');
 Route::post('basic/datatable', [AcademicBasicDataController::class, 'datatable'])->name('academic.basic.datatable');
-
 
 Route::resource('subject', AcademicSubjectController::class)->names('academic.subject');
 Route::post('subject/datatable', [AcademicSubjectController::class, 'datatable'])->name('academic.subject.datatable');

@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Finance\BalanceController as FinanceBalanceController;
 use App\Http\Controllers\Finance\BillController as FinanceBillController;
 use App\Http\Controllers\Finance\DonationController as FinanceDonationController;
@@ -9,6 +8,7 @@ use App\Http\Controllers\Finance\PayrollController as FinancePayrollController;
 use App\Http\Controllers\Finance\ReportController as FinanceReportController;
 use App\Http\Controllers\Finance\SavingsController as FinanceSavingsController;
 use App\Http\Controllers\Finance\TransactionController as FinanceTransactionController;
+use Illuminate\Support\Facades\Route;
 
 Route::prefix('balance')->group(function () {
     Route::get('/', [FinanceBalanceController::class, 'index'])->name('finance.balance.index')->middleware('role:orang-tua');
