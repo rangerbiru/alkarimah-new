@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Employee;
 use App\Http\Controllers\Controller;
 use App\Models\AbsensiKbmTahfidz;
 use App\Models\ActiveAbsensiKbmTahfidz;
-use App\Models\ActiveTargetSabqi;
 use App\Models\Parents;
 use App\Models\PembagianHalaqoh;
 use App\Models\ProsesAbsensiKbmTahfidz;
@@ -22,7 +21,9 @@ class TahfidzController extends Controller
 {
     // private $title = 'label.absensi_tahfidz';
     private $path = 'backend.employee.tahfidz.';
+
     private $icon = 'bx bx-book-reader';
+
     private $iconProcess = 'bx bx-check-circle';
 
     /**
@@ -30,7 +31,7 @@ class TahfidzController extends Controller
      */
     public function index()
     {
-        return view($this->path . 'index', [
+        return view($this->path.'index', [
             'title' => 'Absensi KBM Tahfidz',
             'icon' => $this->icon,
         ]);
@@ -46,11 +47,11 @@ class TahfidzController extends Controller
 
         $absensi_count = $absensi->count();
 
-        if (!empty($search)) {
+        if (! empty($search)) {
             $absensi = $absensi->where(function ($query) use ($search) {
-                $query->where('name', 'like', '%' . $search . '%')
-                    ->orWhere('name_pengampu', 'like', '%' . $search . '%')
-                    ->orWhere('description', 'like', '%' . $search . '%');
+                $query->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('name_pengampu', 'like', '%'.$search.'%')
+                    ->orWhere('description', 'like', '%'.$search.'%');
             });
         }
 
@@ -64,10 +65,9 @@ class TahfidzController extends Controller
         return response()->json([
             'recordsTotal' => $absensi_count,
             'recordsFiltered' => $absensi_count_filter,
-            'data' => $absensi_data
+            'data' => $absensi_data,
         ]);
     }
-
 
     /**
      * Show the form for creating a new resource.
@@ -82,7 +82,7 @@ class TahfidzController extends Controller
             ->where('pembagian_halaqoh.id_pegawai', Auth::user()->id)
             ->get();
 
-        return view($this->path . 'create', [
+        return view($this->path.'create', [
             'title' => 'Tambah Absensi KBM Tahfidz',
             'icon' => $this->icon,
             'dataPeriode' => $dataPeriode,
@@ -100,8 +100,6 @@ class TahfidzController extends Controller
 
         return response()->json($pertemuan);
     }
-
-
 
     /**
      * Store a newly created resource in storage.
@@ -141,7 +139,6 @@ class TahfidzController extends Controller
     //     $validated['izin'] = collect($keterangan)->filter(fn($item) => $item === 'izin')->count();
     //     $validated['alpha'] = collect($keterangan)->filter(fn($item) => $item === 'alpha')->count();
 
-
     //     $absensi = AbsensiKbmTahfidz::create($validated);
     //     $idAbsensi = $absensi->id;
 
@@ -155,7 +152,7 @@ class TahfidzController extends Controller
     //         $siswaArray = json_decode($idSantri, true);
 
     //         $santriData = isset($siswaArray[$index]) ? $siswaArray[$index] : null;
-    //         $santriId = $santriData['id'] ?? null; 
+    //         $santriId = $santriData['id'] ?? null;
 
     //         if ($santriId) {
     //             $absensiData[] = [
@@ -214,10 +211,10 @@ class TahfidzController extends Controller
         $validated['jumlah_santri'] = $jumlahSantri[0]->jumlah_siswa ?? 0;
 
         $keterangan = $request->keterangan;
-        $validated['hadir'] = collect($keterangan)->filter(fn($item) => $item === 'hadir')->count();
-        $validated['sakit'] = collect($keterangan)->filter(fn($item) => $item === 'sakit')->count();
-        $validated['izin'] = collect($keterangan)->filter(fn($item) => $item === 'izin')->count();
-        $validated['alpha'] = collect($keterangan)->filter(fn($item) => $item === 'alpha')->count();
+        $validated['hadir'] = collect($keterangan)->filter(fn ($item) => $item === 'hadir')->count();
+        $validated['sakit'] = collect($keterangan)->filter(fn ($item) => $item === 'sakit')->count();
+        $validated['izin'] = collect($keterangan)->filter(fn ($item) => $item === 'izin')->count();
+        $validated['alpha'] = collect($keterangan)->filter(fn ($item) => $item === 'alpha')->count();
 
         $absensi = AbsensiKbmTahfidz::create($validated);
         $idAbsensi = $absensi->id;
@@ -265,12 +262,11 @@ class TahfidzController extends Controller
         return redirect()->route('employee.tahfidz.index')->with('success', 'Data absensi berhasil disimpan.');
     }
 
-
     public function getSiswaByPengampu(Request $request)
     {
         $namaKaldik = $request->input('nama_kaldik');
 
-        if (!$namaKaldik) {
+        if (! $namaKaldik) {
             return response()->json([
                 'draw' => intval($request->input('draw')),
                 'recordsTotal' => 0,
@@ -283,7 +279,7 @@ class TahfidzController extends Controller
             ->where('nama_kaldik', $namaKaldik)
             ->first();
 
-        if (!$dataHalaqoh) {
+        if (! $dataHalaqoh) {
             return response()->json([
                 'draw' => intval($request->input('draw')),
                 'recordsTotal' => 0,
@@ -313,8 +309,6 @@ class TahfidzController extends Controller
             'data' => $siswaList,
         ]);
     }
-
-
 
     /**
      * Display the specified resource.
@@ -353,6 +347,7 @@ class TahfidzController extends Controller
             $activeAbsensi->delete();
             $prosesAbsensi->delete();
             $absensi->delete();
+
             return redirect()->route('employee.tahfidz.index')->with('success', 'Data absensi berhasil dihapus.');
         }
     }
@@ -409,13 +404,13 @@ class TahfidzController extends Controller
                 ->get();
         }
 
-        return view($this->path . 'process', [
+        return view($this->path.'process', [
             'absensi' => $absensi,
             'title' => 'Proses Absensi KBM Tahfidz',
             'icon' => $this->iconProcess,
             'activeAbsensi' => $activeAbsensi,
             'jenisKaldik' => $jenisKaldik,
-            'target' => $target
+            'target' => $target,
         ]);
     }
 
@@ -451,7 +446,7 @@ class TahfidzController extends Controller
         $data = $query->first();
 
         // Jika data tidak ditemukan
-        if (!$data) {
+        if (! $data) {
             return response()->json(['message' => 'Data not found'], 404);
         }
 
@@ -483,8 +478,6 @@ class TahfidzController extends Controller
         return response()->json($data);
     }
 
-
-
     public function getHalamanByJuz($juz)
     {
         $subQuery = DB::connection('mysql_second')
@@ -510,6 +503,7 @@ class TahfidzController extends Controller
         $target = DB::connection('mysql_second')->table('data_satuan_baris')->get();
 
         $barisList = $target->where('halaman', $halaman)->pluck('baris', 'baris');
+
         return response()->json($barisList);
     }
 
@@ -524,18 +518,17 @@ class TahfidzController extends Controller
             ->get()
             ->keyBy('id');
 
-
         $result = $absensiData->map(function ($item) use ($santriData) {
             $item->student = $santriData->get($item->id_santri) ?? null;
+
             return $item;
         });
 
         // return response()->json($result);
         return response()->json([
-            'data' => $result
+            'data' => $result,
         ]);
     }
-
 
     public function storeProsesAbsensi(Request $request, $id)
     {
@@ -559,21 +552,22 @@ class TahfidzController extends Controller
             ->where('absensi_kbm_tahfidz.id', $id)
             ->value('pembagian_halaqoh.jenis_kaldik');
 
-        if ($jenisKaldik === "Ziyadah") {
+        if ($jenisKaldik === 'Ziyadah') {
             $validatedData['id_target_ziyadah'] = $request->input('id_target');
             $validatedData['mulai_proses_baris'] = $request->input('mulai_proses_baris');
             $validatedData['capaian_target_baris'] = $request->input('capaian_target_baris');
-        } else if ($jenisKaldik === "Murojaah Sabqi") {
+        } elseif ($jenisKaldik === 'Murojaah Sabqi') {
             $validatedData['id_target_murojaah'] = $request->input('id_target');
             $validatedData['mulai_proses_baris'] = $request->input('mulai_proses_baris');
             $validatedData['capaian_target_baris'] = $request->input('capaian_target_baris');
-        } else if ($jenisKaldik === "Murojaah Manzil") {
+        } elseif ($jenisKaldik === 'Murojaah Manzil') {
             $validatedData['id_target_murojaah_manzil'] = $request->input('id_target');
         }
 
         // Simpan data ke database
         // DB::connection('mysql_second')->table('proses_absensi_kbm_tahfidz')->create($validatedData);
         ProsesAbsensiKbmTahfidz::create($validatedData);
+
         return redirect()->back()->with('success', 'Data berhasil disimpan.');
     }
 
@@ -603,7 +597,6 @@ class TahfidzController extends Controller
 
         return response()->json(['error' => 'Data not found'], 404);
     }
-
 
     public function getIdSuratMurojaah(Request $request)
     {
@@ -651,12 +644,11 @@ class TahfidzController extends Controller
                 );
         }
 
-
         // Ambil data dari query
         $data = $query->first();
 
         // Jika data tidak ditemukan
-        if (!$data) {
+        if (! $data) {
             return response()->json(['message' => 'Data not found'], 404);
         }
 
@@ -674,7 +666,6 @@ class TahfidzController extends Controller
             ->whereNotNull('proses_absensi_kbm_tahfidz.id_target_murojaah')
             ->select('capaian_target_juz', 'capaian_target_halaman', 'capaian_target_baris', 'proses_absensi_kbm_tahfidz.pertemuan')
             ->first();
-
 
         // Jika data hari sebelumnya ditemukan, set nilai mulai_target_*
         if ($previousData) {
@@ -715,12 +706,11 @@ class TahfidzController extends Controller
                 );
         }
 
-
         // Ambil data dari query
         $data = $query->first();
 
         // Jika data tidak ditemukan
-        if (!$data) {
+        if (! $data) {
             return response()->json(['message' => 'Data not found'], 404);
         }
 
@@ -738,7 +728,6 @@ class TahfidzController extends Controller
             ->whereNotNull('proses_absensi_kbm_tahfidz.id_target_murojaah')
             ->select('capaian_target_juz', 'capaian_target_halaman', 'capaian_target_baris', 'proses_absensi_kbm_tahfidz.pertemuan')
             ->first();
-
 
         // Jika data hari sebelumnya ditemukan, set nilai mulai_target_*
         if ($previousData) {
@@ -773,7 +762,7 @@ class TahfidzController extends Controller
                 WHERE id_target_murojaah = {$activeTarget->id_target_murojaah}
                   AND hari <= {$absensiData->pertemuan}
                 GROUP BY hari) t"))
-                ->select(DB::raw("SUM(t.target_baris) as total_baris"))
+                ->select(DB::raw('SUM(t.target_baris) as total_baris'))
                 ->value('total_baris');
 
             $status = $activeTarget->target_baris < $absensiData->capaian_target
@@ -781,7 +770,7 @@ class TahfidzController extends Controller
                 : ($activeTarget->target_baris == $absensiData->capaian_target
                     ? 'Sesuai Target'
                     : 'Dibawah Target');
-        } else if ($absensiData->id_target_murojaah_manzil) {
+        } elseif ($absensiData->id_target_murojaah_manzil) {
             $activeTarget = TargetManzil::where('id_santri', $id)
                 ->first()?->activeTargetManzil()
                 ->where('hari', $absensiData->pertemuan)
@@ -792,7 +781,7 @@ class TahfidzController extends Controller
                 WHERE id_target_murojaah = {$activeTarget->id_target_murojaah}
                   AND hari <= {$absensiData->pertemuan}
                 GROUP BY hari) t"))
-                ->select(DB::raw("SUM(t.target_halaman) as total_halaman"))
+                ->select(DB::raw('SUM(t.target_halaman) as total_halaman'))
                 ->value('total_halaman');
 
             $status = $activeTarget->target_halaman < $absensiData->capaian_target
@@ -800,7 +789,7 @@ class TahfidzController extends Controller
                 : ($activeTarget->target_halaman == $absensiData->capaian_target
                     ? 'Sesuai Target'
                     : 'Dibawah Target');
-        } else if ($absensiData->id_target_ziyadah) {
+        } elseif ($absensiData->id_target_ziyadah) {
             $activeTarget = TargetZiyadah::where('id_santri', $id)
                 ->first()?->activeTargetZiyadah()
                 ->where('hari', $absensiData->pertemuan)
@@ -811,7 +800,7 @@ class TahfidzController extends Controller
                 WHERE id_target_ziyadah = {$activeTarget->id_target_ziyadah}
                   AND hari <= {$absensiData->pertemuan}
                 GROUP BY hari) t"))
-                ->select(DB::raw("SUM(t.target_baris) as total_baris"))
+                ->select(DB::raw('SUM(t.target_baris) as total_baris'))
                 ->value('total_baris');
 
             $status = $activeTarget->target_baris < $absensiData->capaian_target
@@ -821,19 +810,19 @@ class TahfidzController extends Controller
                     : 'Dibawah Target');
         }
 
-        if (!$absensiData) {
+        if (! $absensiData) {
             return response()->json(['error' => 'Data absensi tidak ditemukan'], 404);
         }
 
         $studentName = $student->name;
-        $phoneNo     = $parent->phone;
-        $tanggal     = Carbon::parse($absensiData->tanggal)->translatedFormat('l, d F Y');
+        $phoneNo = $parent->phone;
+        $tanggal = Carbon::parse($absensiData->tanggal)->translatedFormat('l, d F Y');
         $totalCapaian = DB::connection('mysql_second')->table(DB::raw("(SELECT pertemuan, MAX(capaian_target) AS target_capaian
                 FROM proses_absensi_kbm_tahfidz
                 WHERE id_santri = {$absensiData->id_santri}
                   AND pertemuan <= {$absensiData->pertemuan}
                 GROUP BY pertemuan) t"))
-            ->select(DB::raw("SUM(t.target_capaian) as total_capaian"))
+            ->select(DB::raw('SUM(t.target_capaian) as total_capaian'))
             ->value('total_capaian');
 
         // Buat pesan berdasarkan tipe target
@@ -852,79 +841,77 @@ class TahfidzController extends Controller
     private function buildMessage($absensiData, $studentName, $tanggal, $totalTargetCapaian, $status, $totalCapaian)
     {
         $header = "*LAPORAN PROSES KBM TAHFIDZ*\n\n"
-            . "Kepada Yth:\nOrang Tua/Wali *{$studentName}*\n\n"
-            . "Berikut laporan capaian hafalan santri:\n";
+            ."Kepada Yth:\nOrang Tua/Wali *{$studentName}*\n\n"
+            ."Berikut laporan capaian hafalan santri:\n";
 
         if ($absensiData->id_target_ziyadah != null) {
             return $header
-                . "📘 Jenis Target : Ziyadah\n"
-                . "📌 Pertemuan ke-{$absensiData->pertemuan} pada hari {$tanggal}\n"
-                . "🎯 Target: {$absensiData->jml_target}\n"
-                . "📖 Mulai dari Juz {$absensiData->mulai_proses_juz}, Halaman {$absensiData->mulai_proses_halaman}, Baris {$absensiData->mulai_proses_baris}\n"
-                . "✅ Capaian: Juz {$absensiData->capaian_target_juz}, Halaman {$absensiData->capaian_target_halaman}, Baris {$absensiData->capaian_target_baris}\n"
-                . "📊 Total capaian baris: {$absensiData->capaian_target} baris\n\n"
-                . "=======================\n"
-                . "*Rekapitulasi Capaian*\n\n"
-                . "Total capaian saat ini : {$totalCapaian} baris\n"
-                . "Target capaian saat ini : {$totalTargetCapaian} baris\n"
-                . "Status : {$status}\n\n"
-                . "*Program Unggulan PPIA (Tahfidz Al Quran)*";
+                ."📘 Jenis Target : Ziyadah\n"
+                ."📌 Pertemuan ke-{$absensiData->pertemuan} pada hari {$tanggal}\n"
+                ."🎯 Target: {$absensiData->jml_target}\n"
+                ."📖 Mulai dari Juz {$absensiData->mulai_proses_juz}, Halaman {$absensiData->mulai_proses_halaman}, Baris {$absensiData->mulai_proses_baris}\n"
+                ."✅ Capaian: Juz {$absensiData->capaian_target_juz}, Halaman {$absensiData->capaian_target_halaman}, Baris {$absensiData->capaian_target_baris}\n"
+                ."📊 Total capaian baris: {$absensiData->capaian_target} baris\n\n"
+                ."=======================\n"
+                ."*Rekapitulasi Capaian*\n\n"
+                ."Total capaian saat ini : {$totalCapaian} baris\n"
+                ."Target capaian saat ini : {$totalTargetCapaian} baris\n"
+                ."Status : {$status}\n\n"
+                .'*Program Unggulan Al Karimah (Tahfidz Al Quran)*';
         }
 
         if ($absensiData->id_target_murojaah) {
             return $header
-                . "📘 Jenis Target : Murojaah Sabqi\n"
-                . "📌 Pertemuan ke-{$absensiData->pertemuan} pada hari {$tanggal}\n"
-                . "🎯 Target: {$absensiData->jml_target}\n"
-                . "📖 Mulai dari Juz {$absensiData->mulai_proses_juz}, Halaman {$absensiData->mulai_proses_halaman}, Baris {$absensiData->mulai_proses_baris}\n"
-                . "✅ Capaian: Juz {$absensiData->capaian_target_juz}, Halaman {$absensiData->capaian_target_halaman}, Baris {$absensiData->capaian_target_baris}\n"
-                . "📊 Total capaian baris: {$absensiData->capaian_target} baris\n\n"
-                . "=======================\n"
-                . "*Rekapitulasi Capaian*\n\n"
-                . "Total capaian saat ini : {$totalCapaian} baris\n"
-                . "Target capaian saat ini : {$totalTargetCapaian} baris\n"
-                . "Status : {$status}\n\n"
-                . "*Program Unggulan PPIA (Tahfidz Al Quran)*";
+                ."📘 Jenis Target : Murojaah Sabqi\n"
+                ."📌 Pertemuan ke-{$absensiData->pertemuan} pada hari {$tanggal}\n"
+                ."🎯 Target: {$absensiData->jml_target}\n"
+                ."📖 Mulai dari Juz {$absensiData->mulai_proses_juz}, Halaman {$absensiData->mulai_proses_halaman}, Baris {$absensiData->mulai_proses_baris}\n"
+                ."✅ Capaian: Juz {$absensiData->capaian_target_juz}, Halaman {$absensiData->capaian_target_halaman}, Baris {$absensiData->capaian_target_baris}\n"
+                ."📊 Total capaian baris: {$absensiData->capaian_target} baris\n\n"
+                ."=======================\n"
+                ."*Rekapitulasi Capaian*\n\n"
+                ."Total capaian saat ini : {$totalCapaian} baris\n"
+                ."Target capaian saat ini : {$totalTargetCapaian} baris\n"
+                ."Status : {$status}\n\n"
+                .'*Program Unggulan Al Karimah (Tahfidz Al Quran)*';
         }
 
         if ($absensiData->id_target_murojaah_manzil) {
             return $header
-                . "📘 Jenis Target : Murojaah Manzil\n"
-                . "📌 Pertemuan ke-{$absensiData->pertemuan} pada hari {$tanggal}\n"
-                . "🎯 Target: {$absensiData->jml_target}\n"
-                . "📖 Mulai dari Juz {$absensiData->mulai_proses_juz}, Halaman {$absensiData->mulai_proses_halaman}\n"
-                . "✅ Capaian: Juz {$absensiData->capaian_target_juz}, Halaman {$absensiData->capaian_target_halaman}\n"
-                . "📊 Total capaian halaman: {$absensiData->capaian_target} Halaman\n\n"
-                . "=======================\n"
-                . "*Rekapitulasi Capaian*\n\n"
-                . "Total capaian saat ini : {$totalCapaian} Halaman\n"
-                . "Target capaian saat ini : {$totalTargetCapaian} Halaman\n"
-                . "Status : {$status}\n\n"
-                . "*Program Unggulan PPIA (Tahfidz Al Quran)*";
+                ."📘 Jenis Target : Murojaah Manzil\n"
+                ."📌 Pertemuan ke-{$absensiData->pertemuan} pada hari {$tanggal}\n"
+                ."🎯 Target: {$absensiData->jml_target}\n"
+                ."📖 Mulai dari Juz {$absensiData->mulai_proses_juz}, Halaman {$absensiData->mulai_proses_halaman}\n"
+                ."✅ Capaian: Juz {$absensiData->capaian_target_juz}, Halaman {$absensiData->capaian_target_halaman}\n"
+                ."📊 Total capaian halaman: {$absensiData->capaian_target} Halaman\n\n"
+                ."=======================\n"
+                ."*Rekapitulasi Capaian*\n\n"
+                ."Total capaian saat ini : {$totalCapaian} Halaman\n"
+                ."Target capaian saat ini : {$totalTargetCapaian} Halaman\n"
+                ."Status : {$status}\n\n"
+                .'*Program Unggulan Al Karimah (Tahfidz Al Quran)*';
         }
 
         return null;
     }
 
-
-
     private function sendToWa($phone_no, $message)
     {
-        $message = preg_replace("/(\n)/", "<ENTER>", $message);
-        $message = preg_replace("/(\r)/", "<ENTER>", $message);
+        $message = preg_replace("/(\n)/", '<ENTER>', $message);
+        $message = preg_replace("/(\r)/", '<ENTER>', $message);
 
-        $phone_no = preg_replace("/(\n)/", ",", $phone_no);
-        $phone_no = preg_replace("/(\r)/", "", $phone_no);
+        $phone_no = preg_replace("/(\n)/", ',', $phone_no);
+        $phone_no = preg_replace("/(\r)/", '', $phone_no);
 
         $data = [
-            "phone_no" => $phone_no,
-            "key" => "edf3fba125169941c4fe3355145fe8c9cd71b2db16f7feaa",
-            "message" => $message
+            'phone_no' => $phone_no,
+            'key' => 'edf3fba125169941c4fe3355145fe8c9cd71b2db16f7feaa',
+            'message' => $message,
         ];
         $data_string = json_encode($data);
 
         $ch = curl_init('http://116.203.92.59/api/send_message');
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
         curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
@@ -932,10 +919,10 @@ class TahfidzController extends Controller
         curl_setopt(
             $ch,
             CURLOPT_HTTPHEADER,
-            array(
+            [
                 'Content-Type: application/json',
-                'Content-Length' => strlen($data_string)
-            )
+                'Content-Length' => strlen($data_string),
+            ]
         );
         $result = curl_exec($ch);
         curl_close($ch);
@@ -943,23 +930,23 @@ class TahfidzController extends Controller
         return $result;
 
         // Kirim ke CS
-        $nowa_cs = "+6282137017491";
+        $nowa_cs = '+6282137017491';
         $phone_no = $nowa_cs;
-        $message = preg_replace("/(\n)/", "<ENTER>", $message);
-        $message = preg_replace("/(\r)/", "<ENTER>", $message);
+        $message = preg_replace("/(\n)/", '<ENTER>', $message);
+        $message = preg_replace("/(\r)/", '<ENTER>', $message);
 
-        $phone_no = preg_replace("/(\n)/", ",", $phone_no);
-        $phone_no = preg_replace("/(\r)/", "", $phone_no);
+        $phone_no = preg_replace("/(\n)/", ',', $phone_no);
+        $phone_no = preg_replace("/(\r)/", '', $phone_no);
 
         $data = [
-            "phone_no" => $phone_no,
-            "key" => "edf3fba125169941c4fe3355145fe8c9cd71b2db16f7feaa",
-            "message" => $message
+            'phone_no' => $phone_no,
+            'key' => 'edf3fba125169941c4fe3355145fe8c9cd71b2db16f7feaa',
+            'message' => $message,
         ];
         $data_string = json_encode($data);
 
         $ch = curl_init('http://116.203.92.59/api/send_message');
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
         curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
@@ -967,10 +954,10 @@ class TahfidzController extends Controller
         curl_setopt(
             $ch,
             CURLOPT_HTTPHEADER,
-            array(
+            [
                 'Content-Type: application/json',
-                'Content-Length' => strlen($data_string)
-            )
+                'Content-Length' => strlen($data_string),
+            ]
         );
         $result = curl_exec($ch);
         curl_close($ch);

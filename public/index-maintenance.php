@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maintenance - Ibnu Abbas</title>
+    <title>Maintenance - Al Karimah</title>
 
     <style>
         body {
@@ -47,7 +47,7 @@
         <h1>Kami akan segera kembali!</h1>
         <div>
             <p>Mohon maaf atas ketidaknyamanannya, tetapi saat ini kami sedang melakukan pemeliharaan. Jika Anda memerlukannya, Anda selalu dapat menghubungi kami, jika tidak, kami akan segera kembali online!</p>
-            <p>&mdash; Ponpes Ibnu Abbas As Salafy</p>
+            <p>&mdash; Ponpes Al Karimah</p>
         </div>
     </article>
 </body>

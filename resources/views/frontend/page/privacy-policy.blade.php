@@ -8,7 +8,7 @@
                     <img src="{{ asset('images/logo.png') }}" style="width: 50px;" alt="logo" class="desktop-dark">
                 </a>
 
-                <h4 class="mt-1">Kebijakan Privasi Aplikasi PPIA LINK</h4>
+                <h4 class="mt-1">Kebijakan Privasi Aplikasi Si-Alka</h4>
             </div>
 
             <b>Rahasia Pribadi</b><br />
