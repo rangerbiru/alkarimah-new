@@ -241,8 +241,9 @@
                             },
                             {
                                 class: "align-middle",
-                                render: (data, type, row, meta) => htmlEntities(row.spp ? row
-                                    .spp : "-")
+                                render: (data, type, row, meta) => htmlEntities(row.spp ?
+                                    moneyFormat(row
+                                        .spp) : "-")
                             },
                         ]
                     })
@@ -296,7 +297,7 @@
 
                 btn.addClass("btn-loader").html(
                     "<span class='loading'><i class='ri-refresh-line fs-16'></i></span> &nbsp;&nbsp;{{ __('label.generating') }}..."
-                    ).attr("disabled", true)
+                ).attr("disabled", true)
 
                 $.ajax({
                     type: "POST",
@@ -306,13 +307,13 @@
                     success: function(response) {
                         btn.removeClass("btn-loader").html(
                             "<i class='fa-solid fa-refresh'></i> &nbsp;{{ __('label.generate') }}"
-                            ).removeAttr("disabled")
+                        ).removeAttr("disabled")
                         setNotifSuccess(response.message, false)
                     },
                     error: function(xhr, ajaxOptions, thrownError) {
                         btn.removeClass("btn-loader").html(
                             "<i class='fa-solid fa-refresh'></i> &nbsp;{{ __('label.generate') }}"
-                            ).removeAttr("disabled")
+                        ).removeAttr("disabled")
                         ajaxLaravelError(xhr)
                     }
                 })
