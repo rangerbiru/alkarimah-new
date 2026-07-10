@@ -27,16 +27,19 @@ use Illuminate\Support\Str;
 class BillController extends Controller
 {
     private $title_prefix = 'label.bill';
+
     private $title = [
         'type' => 'label.type',
         'setup' => 'label.setup',
         'discount' => 'label.discount',
     ];
+
     private $icon = 'bx bx-credit-card-front';
+
     private $path = [
         'type' => 'backend.finance.bill.type.',
         'setup' => 'backend.finance.bill.setup.',
-        'discount' => 'backend.finance.bill.discount.'
+        'discount' => 'backend.finance.bill.discount.',
     ];
 
     public function index()
@@ -45,7 +48,7 @@ class BillController extends Controller
         $years = Year::selectRaw('id, CONCAT("Thn. Ajaran : ", start_year, " - ", end_year) AS start_year')->orderBy('start_year', 'desc')->pluck('start_year', 'id');
         $year = Year::select('id')->active()->first();
 
-        return view($this->path['setup'] . 'list', [
+        return view($this->path['setup'].'list', [
             'title' => __($this->title_prefix),
             'icon' => $this->icon,
             'path' => $this->path['setup'],
@@ -60,8 +63,8 @@ class BillController extends Controller
         $count = BillType::count();
         $period_monthly = BillPeriod::Monthly->value;
 
-        return view($this->path['type'] . 'index', [
-            'title' => __($this->title_prefix) . ' - ' . __($this->title['type']),
+        return view($this->path['type'].'index', [
+            'title' => __($this->title_prefix).' - '.__($this->title['type']),
             'icon' => $this->icon,
             'count' => $count,
             'period_monthly' => $period_monthly,
@@ -74,8 +77,8 @@ class BillController extends Controller
         $year = Year::select('id')->active()->first();
         $period_onetime = BillPeriod::OneTime->value;
 
-        return view($this->path['setup'] . 'index', [
-            'title' => __($this->title_prefix) . ' - ' . __($this->title['setup']),
+        return view($this->path['setup'].'index', [
+            'title' => __($this->title_prefix).' - '.__($this->title['setup']),
             'path' => $this->path['setup'],
             'icon' => $this->icon,
             'years' => $years,
@@ -90,8 +93,8 @@ class BillController extends Controller
         $years = Year::selectRaw('id, CONCAT("Thn. Ajaran : ", start_year, " - ", end_year) AS start_year')->orderBy('start_year', 'desc')->pluck('start_year', 'id');
         $year = Year::select('id')->active()->first();
 
-        return view($this->path['setup'] . 'setting', [
-            'title' => __($this->title_prefix) . ' - ' . __($this->title['setup']),
+        return view($this->path['setup'].'setting', [
+            'title' => __($this->title_prefix).' - '.__($this->title['setup']),
             'path' => $this->path['setup'],
             'icon' => $this->icon,
             'educations' => $educations,
@@ -104,11 +107,11 @@ class BillController extends Controller
     {
         $count = BillDiscount::count();
 
-        return view($this->path['discount'] . 'index', [
-            'title' => __($this->title_prefix) . ' - ' . __($this->title['discount']),
+        return view($this->path['discount'].'index', [
+            'title' => __($this->title_prefix).' - '.__($this->title['discount']),
             'path' => $this->path['discount'],
             'icon' => $this->icon,
-            'count' => $count
+            'count' => $count,
         ]);
     }
 
@@ -122,11 +125,11 @@ class BillController extends Controller
 
         $bill_count = $bill->count();
 
-        if (empty($search))
+        if (empty($search)) {
             $bill_filter = $bill;
-        else {
+        } else {
             $bill_filter = $bill->where(function ($query) use ($search) {
-                $query->where('name', 'like', '%' . $search . '%');
+                $query->where('name', 'like', '%'.$search.'%');
             });
         }
 
@@ -150,7 +153,7 @@ class BillController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $bill_count,
             'recordsFiltered' => $bill_count_filter,
-            'data' => $bill_arr
+            'data' => $bill_arr,
         ]);
     }
 
@@ -161,21 +164,21 @@ class BillController extends Controller
         $start = $request->input('start');
 
         $bill = Bill::select('id', 'id_type', 'name', 'nominal', 'billing_date', 'due_date', 'description', 'start_month', 'start_year',
-                'end_month', 'end_year')
-            ->with(['type' => fn($query) => $query->select('id', 'name', 'period')])
+            'end_month', 'end_year')
+            ->with(['type' => fn ($query) => $query->select('id', 'name', 'period')])
             ->whereIdYear($request->year);
 
         $bill_count = $bill->count();
 
-        if (empty($search))
+        if (empty($search)) {
             $bill_filter = $bill;
-        else {
+        } else {
             $bill_filter = $bill->where(function ($query) use ($search) {
-                $query->where('name', 'like', '%' . $search . '%')
-                    ->orWhere('billing_date', 'like', '%' . $search . '%')
-                    ->orWhere('due_date', 'like', '%' . $search . '%')
-                    ->orWhereHas('type', function($qt) use($search) {
-                        $qt->where('name', 'like', '%' . $search . '%');
+                $query->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('billing_date', 'like', '%'.$search.'%')
+                    ->orWhere('due_date', 'like', '%'.$search.'%')
+                    ->orWhereHas('type', function ($qt) use ($search) {
+                        $qt->where('name', 'like', '%'.$search.'%');
                     });
             });
         }
@@ -199,10 +202,11 @@ class BillController extends Controller
             if ($b->type->is_period_monthly) {
                 $push['period_monthly'] = true;
 
-                if ($b->start_year == $b->end_year)
-                    $push['period'] = Common::monthFormat($b->start_month, 'mmm') . ' - ' . Common::monthFormat($b->end_month, 'mmm') . ' ' . $b->start_year;
-                else
-                    $push['period'] = Common::monthFormat($b->start_month, 'mmm') . ' ' . $b->start_year . ' - ' . Common::monthFormat($b->end_month, 'mmm') . ' ' . $b->end_year;
+                if ($b->start_year == $b->end_year) {
+                    $push['period'] = Common::monthFormat($b->start_month, 'mmm').' - '.Common::monthFormat($b->end_month, 'mmm').' '.$b->start_year;
+                } else {
+                    $push['period'] = Common::monthFormat($b->start_month, 'mmm').' '.$b->start_year.' - '.Common::monthFormat($b->end_month, 'mmm').' '.$b->end_year;
+                }
             }
 
             array_push($bill_arr, $push);
@@ -212,7 +216,7 @@ class BillController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $bill_count,
             'recordsFiltered' => $bill_count_filter,
-            'data' => $bill_arr
+            'data' => $bill_arr,
         ]);
     }
 
@@ -222,15 +226,15 @@ class BillController extends Controller
         $limit = $request->input('length');
         $start = $request->input('start');
 
-        $student = Student::select('id', 'nis', 'name')->whereIdClass($request->class);
+        $student = Student::select('id', 'nis', 'name', 'spp')->whereIdClass($request->class);
         $student_count = $student->count();
 
-        if (empty($search))
+        if (empty($search)) {
             $student_filter = $student;
-        else {
+        } else {
             $student_filter = $student->where(function ($query) use ($search) {
-                $query->where('name', 'like', '%' . $search . '%')
-                    ->orWhere('nis', 'like', '%' . $search . '%');
+                $query->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('nis', 'like', '%'.$search.'%');
             });
         }
 
@@ -244,7 +248,7 @@ class BillController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $student_count,
             'recordsFiltered' => $student_count_filter,
-            'data' => $student_data
+            'data' => $student_data,
         ];
 
         return response()->json($response);
@@ -258,21 +262,22 @@ class BillController extends Controller
         $start = $request->input('start');
 
         $student = Student::select('id', 'id_class', 'nis', 'name', 'bills')
-            ->with(['class' => fn($query) => $query->select('id', 'name')]);
+            ->with(['class' => fn ($query) => $query->select('id', 'name')]);
 
-        if (!empty($request->class))
+        if (! empty($request->class)) {
             $student = $student->whereIdClass($request->class);
+        }
 
         $student_count = $student->count();
 
-        if (empty($search))
+        if (empty($search)) {
             $student_filter = $student;
-        else {
+        } else {
             $student_filter = $student->where(function ($query) use ($search) {
-                $query->where('name', 'like', '%' . $search . '%')
-                    ->orWhere('nis', 'like', '%' . $search . '%')
-                    ->orWhereHas('class', function($qc) use($search) {
-                        $qc->where('name', 'like', '%' . $search . '%');
+                $query->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('nis', 'like', '%'.$search.'%')
+                    ->orWhereHas('class', function ($qc) use ($search) {
+                        $qc->where('name', 'like', '%'.$search.'%');
                     });
             });
         }
@@ -291,26 +296,26 @@ class BillController extends Controller
 
             $bills_year = (empty($s->bills)) ? [] : json_decode($s->bills, true);
 
-            if (isset($bills_year['Y' . $year])) {
-                $bills = $bills_year['Y' . $year];
+            if (isset($bills_year['Y'.$year])) {
+                $bills = $bills_year['Y'.$year];
 
                 foreach ($bills as $b) {
                     $bill = Bill::select('id', 'id_type', 'name', 'nominal')
-                        ->with(['type' => fn($query) => $query->select('id', 'period')])
+                        ->with(['type' => fn ($query) => $query->select('id', 'period')])
                         ->whereId($b)
                         ->first();
 
                     switch ($bill->type->period->value) {
                         case BillPeriod::OneTime->value:
-                        $icon = 'bx bx-calendar-event';
-                        break;
+                            $icon = 'bx bx-calendar-event';
+                            break;
 
                         case BillPeriod::Monthly->value:
-                        $icon = 'bx bx-calendar';
-                        break;
+                            $icon = 'bx bx-calendar';
+                            break;
 
                         default:
-                        $icon = 'bx bx-calendar-week';
+                            $icon = 'bx bx-calendar-week';
                     }
 
                     array_push($push['bills'], [
@@ -318,7 +323,7 @@ class BillController extends Controller
                         'name' => $bill->name,
                         'nominal' => $bill->nominal,
                         'icon' => $icon,
-                        'period' => $bill->type->period_name
+                        'period' => $bill->type->period_name,
                     ]);
                 }
             }
@@ -330,7 +335,7 @@ class BillController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $student_count,
             'recordsFiltered' => $student_count_filter,
-            'data' => $student_arr
+            'data' => $student_arr,
         ];
 
         return response()->json($response);
@@ -344,33 +349,33 @@ class BillController extends Controller
 
         $discount = BillDiscount::select('id', 'id_year', 'id_bill', 'id_student', 'nominal', 'applies_to', 'status')
             ->with([
-                'year' => fn($query) => $query->select('id', 'start_year', 'end_year'),
+                'year' => fn ($query) => $query->select('id', 'start_year', 'end_year'),
                 'bill' => function ($query) {
                     $query->select('id', 'id_type', 'name')
-                        ->with(['type' => fn($qt) => $qt->select('id', 'name', 'period')]);
+                        ->with(['type' => fn ($qt) => $qt->select('id', 'name', 'period')]);
                 },
-                'student' => function($query) {
+                'student' => function ($query) {
                     $query->select('id', 'id_class', 'name')
-                        ->with(['class' => fn($qc) => $qc->select('id', 'name')]);
+                        ->with(['class' => fn ($qc) => $qc->select('id', 'name')]);
                 },
             ])
             ->withoutGlobalScopes([ActiveScope::class])
-            ->when(!empty($request->status), fn($query) => $query->whereStatus($request->status));
+            ->when(! empty($request->status), fn ($query) => $query->whereStatus($request->status));
 
         $discount_count = $discount->count();
         $discount_filter = $discount
-            ->when(!empty($search), function($query) use($search) {
+            ->when(! empty($search), function ($query) use ($search) {
                 $query->whereHas('year', function ($qy) use ($search) {
-                        $qy->where('start_year', 'like', '%' . $search . '%')
-                            ->orWhere('end_year', 'like', '%' . $search . '%');
-                    })
+                    $qy->where('start_year', 'like', '%'.$search.'%')
+                        ->orWhere('end_year', 'like', '%'.$search.'%');
+                })
                     ->orWhereHas('bill', function ($qt) use ($search) {
-                        $qt->where('name', 'like', '%' . $search . '%');
+                        $qt->where('name', 'like', '%'.$search.'%');
                     })
                     ->orWhereHas('student', function ($qs) use ($search) {
-                        $qs->where('name', 'like', '%' . $search . '%')
+                        $qs->where('name', 'like', '%'.$search.'%')
                             ->orWhereHas('class', function ($qc) use ($search) {
-                                $qc->where('name', 'like', '%' . $search . '%');
+                                $qc->where('name', 'like', '%'.$search.'%');
                             });
                     });
             });
@@ -396,7 +401,7 @@ class BillController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $discount_count,
             'recordsFiltered' => $discount_count_filter,
-            'data' => $discount_arr
+            'data' => $discount_arr,
         ]);
     }
 
@@ -405,8 +410,8 @@ class BillController extends Controller
         $periods = Common::option('bill_period');
         $spp_options = Common::option('yesno');
 
-        return view($this->path['type'] . 'create', [
-            'title' => __($this->title_prefix) . ' - ' . __($this->title['type']),
+        return view($this->path['type'].'create', [
+            'title' => __($this->title_prefix).' - '.__($this->title['type']),
             'icon' => $this->icon,
             'periods' => $periods,
             'spp_options' => $spp_options,
@@ -425,11 +430,12 @@ class BillController extends Controller
 
         $dates = [];
 
-        for ($d=1; $d<=28; $d++)
+        for ($d = 1; $d <= 28; $d++) {
             $dates[$d] = $d;
+        }
 
-        return view($this->path['setup'] . 'create', [
-            'title' => __($this->title_prefix) . ' - ' . __($this->title['setup']),
+        return view($this->path['setup'].'create', [
+            'title' => __($this->title_prefix).' - '.__($this->title['setup']),
             'icon' => $this->icon,
             'types' => $types,
             'years' => $years,
@@ -446,8 +452,8 @@ class BillController extends Controller
     {
         $years = Year::selectRaw('id, CONCAT("Thn. Ajaran : ", start_year, " - ", end_year) AS start_year')->orderBy('start_year', 'desc')->pluck('start_year', 'id');
 
-        return view($this->path['discount'] . 'create', [
-            'title' => __($this->title_prefix) . ' - ' . __($this->title['discount']),
+        return view($this->path['discount'].'create', [
+            'title' => __($this->title_prefix).' - '.__($this->title['discount']),
             'icon' => $this->icon,
             'years' => $years,
         ]);
@@ -469,8 +475,8 @@ class BillController extends Controller
             ];
         } else {
             $merge = [
-                'billing_date' => date('Y-m') . '-' . $request->billing_date2,
-                'due_date' => date('Y-m') . '-' . $request->due_date2,
+                'billing_date' => date('Y-m').'-'.$request->billing_date2,
+                'due_date' => date('Y-m').'-'.$request->due_date2,
             ];
         }
 
@@ -493,13 +499,13 @@ class BillController extends Controller
 
     public function generate(BillGenerateRequest $request)
     {
-        DB::transaction(function() use($request) {
+        DB::transaction(function () use ($request) {
             $year = $request->id_year;
             $months = [];
             $bill = Bill::select('id', 'id_year', 'id_type', 'nominal', 'due_date', 'start_year', 'start_month', 'end_year', 'end_month', 'billing_date')
                 ->with([
-                    'year' => fn($query) => $query->select('id', 'start_year', 'start_month', 'end_year', 'end_month'),
-                    'type' => fn($query) => $query->select('id', 'period'),
+                    'year' => fn ($query) => $query->select('id', 'start_year', 'start_month', 'end_year', 'end_month'),
+                    'type' => fn ($query) => $query->select('id', 'period'),
                 ])
                 ->whereId($request->id_bill)
                 ->first();
@@ -509,47 +515,50 @@ class BillController extends Controller
                 $mm = 1;
 
                 if ($bill->start_year == $bill->end_year) {
-                    for ($i=(int) $bill->start_month; $i<=(int) $bill->end_month; $i++) {
+                    for ($i = (int) $bill->start_month; $i <= (int) $bill->end_month; $i++) {
                         array_push($months, ['m' => $i, 'y' => (int) $bill->start_year, 's' => $semester]);
 
-                        if ($mm == 6)
+                        if ($mm == 6) {
                             $semester = 2;
+                        }
 
                         $mm++;
                     }
                 } else {
-                    for ($i=(int) $bill->start_month; $i<=12; $i++) {
+                    for ($i = (int) $bill->start_month; $i <= 12; $i++) {
                         array_push($months, ['m' => $i, 'y' => (int) $bill->start_year, 's' => $semester]);
 
-                        if ($mm == 6)
+                        if ($mm == 6) {
                             $semester = 2;
+                        }
 
                         $mm++;
                     }
 
-                    for ($i=1; $i<=(int) $bill->end_month; $i++) {
+                    for ($i = 1; $i <= (int) $bill->end_month; $i++) {
                         array_push($months, ['m' => $i, 'y' => (int) $bill->end_year, 's' => $semester]);
 
-                        if ($mm == 6)
+                        if ($mm == 6) {
                             $semester = 2;
+                        }
 
                         $mm++;
                     }
                 }
-            } else if ($bill->type->is_period_semiannual) {
-                $start = $bill->year->start_year . '-' . Str::padLeft($bill->year->start_month, 2, '0') . '-01';
-                $s1 = strtotime($start . ' +5 month');
+            } elseif ($bill->type->is_period_semiannual) {
+                $start = $bill->year->start_year.'-'.Str::padLeft($bill->year->start_month, 2, '0').'-01';
+                $s1 = strtotime($start.' +5 month');
 
                 array_push($months, [
                     'm' => (int) date('n', $s1),
                     'y' => (int) date('Y', $s1),
-                    's' => 1
+                    's' => 1,
                 ]);
 
                 array_push($months, [
                     'm' => (int) $bill->year->end_month,
                     'y' => (int) $bill->year->end_year,
-                    's' => 2
+                    's' => 2,
                 ]);
             } else {
                 $time = strtotime($bill->billing_date);
@@ -557,7 +566,7 @@ class BillController extends Controller
                 array_push($months, [
                     'm' => date('n', $time),
                     'y' => date('Y', $time),
-                    's' => null
+                    's' => null,
                 ]);
             }
 
@@ -566,10 +575,11 @@ class BillController extends Controller
 
                 foreach ($student as $s) {
                     $bills = (empty($s->bills)) ? [] : json_decode($s->bills, true);
-                    $index = 'Y' . $year;
+                    $index = 'Y'.$year;
 
-                    if (!isset($bills[$index]))
+                    if (! isset($bills[$index])) {
                         $bills[$index] = [];
+                    }
 
                     array_push($bills[$index], strval($bill->id));
 
@@ -587,7 +597,7 @@ class BillController extends Controller
                             'years' => $m['y'],
                             'subtotal' => $bill->nominal,
                             'total' => $bill->nominal,
-                            'due_date' => ($bill->type->is_period_onetime) ? $bill->due_date : $m['y'] . '-' . Str::padLeft($m['m'], 2, '0') . '-' . Str::padLeft(date('j', strtotime($bill->due_date)), 2, '0')
+                            'due_date' => ($bill->type->is_period_onetime) ? $bill->due_date : $m['y'].'-'.Str::padLeft($m['m'], 2, '0').'-'.Str::padLeft(date('j', strtotime($bill->due_date)), 2, '0'),
                         ]);
                     }
 
@@ -595,17 +605,18 @@ class BillController extends Controller
                     $bill_not_paid = (empty($report)) ? 0 : $report->bill_not_paid;
 
                     ReportStudent::updateOrCreate(['id_student' => $s->id], [
-                        'bill_not_paid' => $bill_not_paid +  $bill_add
+                        'bill_not_paid' => $bill_not_paid + $bill_add,
                     ]);
                 }
             } else {
                 foreach ($request->student as $s) {
                     $student = Student::select('id', 'bills')->whereId($s)->first();
                     $bills = (empty($student->bills)) ? [] : json_decode($student->bills, true);
-                    $index = 'Y' . $year;
+                    $index = 'Y'.$year;
 
-                    if (!isset($bills[$index]))
+                    if (! isset($bills[$index])) {
                         $bills[$index] = [];
+                    }
 
                     array_push($bills[$index], strval($bill->id));
 
@@ -623,7 +634,7 @@ class BillController extends Controller
                             'years' => $m['y'],
                             'subtotal' => $bill->nominal,
                             'total' => $bill->nominal,
-                            'due_date' => ($bill->type->is_period_onetime) ? $bill->due_date : $m['y'] . '-' . Str::padLeft($m['m'], 2, '0') . '-' . Str::padLeft(date('j', strtotime($bill->due_date)), 2, '0')
+                            'due_date' => ($bill->type->is_period_onetime) ? $bill->due_date : $m['y'].'-'.Str::padLeft($m['m'], 2, '0').'-'.Str::padLeft(date('j', strtotime($bill->due_date)), 2, '0'),
                         ]);
                     }
 
@@ -631,7 +642,7 @@ class BillController extends Controller
                     $bill_not_paid = (empty($report)) ? 0 : $report->bill_not_paid;
 
                     ReportStudent::updateOrCreate(['id_student' => $s], [
-                        'bill_not_paid' => $bill_not_paid +  $bill_add
+                        'bill_not_paid' => $bill_not_paid + $bill_add,
                     ]);
                 }
             }
@@ -650,12 +661,12 @@ class BillController extends Controller
         $periods = Common::option('bill_period');
         $spp_options = Common::option('yesno');
 
-        return view($this->path['type'] . 'edit', [
-            'title' => __('label.edit') . ' ' . __($this->title['type']),
+        return view($this->path['type'].'edit', [
+            'title' => __('label.edit').' '.__($this->title['type']),
             'icon' => $this->icon,
             'type' => $type,
             'periods' => $periods,
-            'spp_options' =>  $spp_options,
+            'spp_options' => $spp_options,
         ]);
     }
 
@@ -671,11 +682,12 @@ class BillController extends Controller
 
         $dates = [];
 
-        for ($d = 1; $d <= 28; $d++)
+        for ($d = 1; $d <= 28; $d++) {
             $dates[$d] = $d;
+        }
 
-        return view($this->path['setup'] . 'edit', [
-            'title' => __($this->title_prefix) . ' - ' . __($this->title['setup']),
+        return view($this->path['setup'].'edit', [
+            'title' => __($this->title_prefix).' - '.__($this->title['setup']),
             'icon' => $this->icon,
             'bill' => $bill,
             'types' => $types,
@@ -693,8 +705,8 @@ class BillController extends Controller
     {
         $years = Year::selectRaw('id, CONCAT("Thn. Ajaran : ", start_year, " - ", end_year) AS start_year')->orderBy('start_year', 'desc')->pluck('start_year', 'id');
 
-        return view($this->path['discount'] . 'edit', [
-            'title' => __($this->title_prefix) . ' - ' . __($this->title['discount']),
+        return view($this->path['discount'].'edit', [
+            'title' => __($this->title_prefix).' - '.__($this->title['discount']),
             'icon' => $this->icon,
             'discount' => $discount,
             'years' => $years,
@@ -719,30 +731,31 @@ class BillController extends Controller
             ];
         } else {
             $merge = [
-                'billing_date' => date('Y-m') . '-' . $request->billing_date2,
-                'due_date' => date('Y-m') . '-' . $request->due_date2,
+                'billing_date' => date('Y-m').'-'.$request->billing_date2,
+                'due_date' => date('Y-m').'-'.$request->due_date2,
             ];
         }
 
-        DB::transaction(function() use($request, $merge, $bill, &$error) {
+        DB::transaction(function () use ($request, $merge, $bill, &$error) {
             $type = BillType::select('id', 'period')->whereId($request->id_type)->first();
 
             if ($bill->type->period->value != $type->period->value or $bill->id_year != $request->id_year or $bill->nominal != $request->nominal) {
                 $paid = TransactionBill::whereIdBill($bill->id)->paid()->count();
 
-                if ($paid > 0)
+                if ($paid > 0) {
                     $error = __('string.bill_setup_change_cancel');
+                }
 
                 if ($error == false) {
                     TransactionBill::whereIdBill($bill->id)->delete();
 
-                    $student = Student::select('id', 'bills')->where('bills', 'like', '%"' . $bill->id . '"%')->get();
+                    $student = Student::select('id', 'bills')->where('bills', 'like', '%"'.$bill->id.'"%')->get();
 
                     foreach ($student as $s) {
                         $bills = json_decode($s->bills, true);
-                        $index = array_search($bill->id, $bills['Y' . $bill->id_year]);
+                        $index = array_search($bill->id, $bills['Y'.$bill->id_year]);
 
-                        unset($bills['Y' . $bill->id_year][$index]);
+                        unset($bills['Y'.$bill->id_year][$index]);
 
                         $s->bills = json_encode($bills);
                         $s->save();
@@ -753,12 +766,14 @@ class BillController extends Controller
             if ($error == false) {
                 $request->merge($merge);
                 $bill->update($request->all());
-            } else
+            } else {
                 DB::rollBack();
+            }
         });
 
-        if ($error != false)
+        if ($error != false) {
             return Redirect::route('finance.bill.setup.edit', $bill->encrypted_id)->withErrors($error)->withInput();
+        }
 
         return Redirect::route('finance.bill.setup.index')->with('success', __('message.update_success', ['label' => __($this->title['setup'])]));
     }
@@ -781,20 +796,20 @@ class BillController extends Controller
         if ($bill_paid > 0) {
             $response = [
                 'status' => false,
-                'message' => __('string.bill_can_not_delete')
+                'message' => __('string.bill_can_not_delete'),
             ];
 
             return response()->json($response);
         }
 
-        DB::transaction(function() use($request) {
+        DB::transaction(function () use ($request) {
             $bill = Bill::select('id', 'id_type', 'nominal')
-                ->with(['type' => fn($query) => $query->select('id', 'period')])
+                ->with(['type' => fn ($query) => $query->select('id', 'period')])
                 ->whereId($request->bill)
                 ->first();
 
             $student = Student::select('id', 'bills')->whereId($request->student)->first();
-            $year_index = 'Y' . $request->year;
+            $year_index = 'Y'.$request->year;
             $bills = json_decode($student->bills, true);
             $bill_index = array_search($bill->id, $bills[$year_index]);
 
@@ -813,7 +828,7 @@ class BillController extends Controller
 
         $response = [
             'status' => true,
-            'message' => __('message.delete_success', ['label' => __($this->title_prefix)])
+            'message' => __('message.delete_success', ['label' => __($this->title_prefix)]),
         ];
 
         return response()->json($response);
@@ -825,7 +840,7 @@ class BillController extends Controller
 
         $response = [
             'status' => true,
-            'message' => __('message.delete_success', ['label' => __($this->title['type'])])
+            'message' => __('message.delete_success', ['label' => __($this->title['type'])]),
         ];
 
         return response()->json($response);
@@ -835,43 +850,45 @@ class BillController extends Controller
     {
         $error = false;
 
-        DB::transaction(function() use($bill, &$error) {
+        DB::transaction(function () use ($bill, &$error) {
             $paid = TransactionBill::whereIdBill($bill->id)->paid()->count();
 
-            if ($paid > 0)
+            if ($paid > 0) {
                 $error = __('string.bill_setup_delete_cancel');
+            }
 
             if ($error == false) {
                 TransactionBill::whereIdBill($bill->id)->delete();
 
-                $student = Student::select('id', 'bills')->where('bills', 'like', '%"' . $bill->id . '"%')->get();
+                $student = Student::select('id', 'bills')->where('bills', 'like', '%"'.$bill->id.'"%')->get();
 
                 foreach ($student as $s) {
                     $bills = json_decode($s->bills, true);
-                    $index = array_search($bill->id, $bills['Y' . $bill->id_year]);
+                    $index = array_search($bill->id, $bills['Y'.$bill->id_year]);
 
-                    unset($bills['Y' . $bill->id_year][$index]);
+                    unset($bills['Y'.$bill->id_year][$index]);
 
                     $s->bills = json_encode($bills);
                     $s->save();
                 }
             }
 
-            if ($error == false)
+            if ($error == false) {
                 $bill->delete();
-            else
+            } else {
                 DB::rollBack();
+            }
         });
 
         if ($error == false) {
             $response = [
                 'status' => true,
-                'message' => __('message.delete_success', ['label' => __($this->title['setup'])])
+                'message' => __('message.delete_success', ['label' => __($this->title['setup'])]),
             ];
         } else {
             $response = [
                 'status' => false,
-                'message' => $error
+                'message' => $error,
             ];
         }
 
@@ -884,7 +901,7 @@ class BillController extends Controller
 
         $response = [
             'status' => true,
-            'message' => __('message.delete_success', ['label' => __($this->title['discount'])])
+            'message' => __('message.delete_success', ['label' => __($this->title['discount'])]),
         ];
 
         return response()->json($response);
@@ -893,32 +910,33 @@ class BillController extends Controller
     public function get(Request $request) // Get bill detail for discount form
     {
         $bill = Bill::select('id', 'id_type', 'start_month', 'start_year', 'end_month', 'end_year')
-        ->with(['type' => fn($qt) => $qt->select('id', 'name', 'period')])
-        ->whereId($request->id)
+            ->with(['type' => fn ($qt) => $qt->select('id', 'name', 'period')])
+            ->whereId($request->id)
             ->firstOrFail();
 
         $option = '<option value=""></option>';
 
         if ($bill->type->is_period_monthly) { // Per Bulan
             $period = 'monthly';
-            $start = $bill->start_year . '-' . $bill->start_month . '-01';
-            $end = $bill->end_year . '-' . $bill->end_month . '-01';
+            $start = $bill->start_year.'-'.$bill->start_month.'-01';
+            $end = $bill->end_year.'-'.$bill->end_month.'-01';
 
             $s = new DateTime('2024-07-01');
             $e = new DateTime('2025-06-01');
             $diff = $e->diff($s);
             $date = $start;
 
-            for ($i=0; $i<=$diff->format('%m'); $i++) {
+            for ($i = 0; $i <= $diff->format('%m'); $i++) {
                 $time = strtotime($date);
-                $option .= '<option value="' . date('Y-m', $time) . '">' . Common::monthFormat(date('n', $time), 'mmm') . ' ' . date('Y', $time) . '</option>';
-                $date = date('Y-m-d', strtotime($date . ' +1 month'));
+                $option .= '<option value="'.date('Y-m', $time).'">'.Common::monthFormat(date('n', $time), 'mmm').' '.date('Y', $time).'</option>';
+                $date = date('Y-m-d', strtotime($date.' +1 month'));
             }
-        } else if ($bill->type->is_period_semiannual) { // Per Semester
+        } elseif ($bill->type->is_period_semiannual) { // Per Semester
             $period = 'semester';
             $option = '<option value="1">Semester 1</option><option value="1">Semester 2</option>';
-        } else
+        } else {
             $period = 'once';
+        }
 
         $response = [
             'status' => true,
@@ -926,7 +944,7 @@ class BillController extends Controller
             'data' => [
                 'period' => $period,
                 'option' => $option,
-            ]
+            ],
         ];
 
         return response()->json($response);
@@ -940,8 +958,9 @@ class BillController extends Controller
             ->orderBy('name')
             ->get();
 
-        foreach ($bill as $b)
-            $options .= '<option value="' . $b->id . '">' . $b->name . ' - Rp. ' . number_format($b->nominal, 0, '', '.') . '</option>';
+        foreach ($bill as $b) {
+            $options .= '<option value="'.$b->id.'">'.$b->name.' - Rp. '.number_format($b->nominal, 0, '', '.').'</option>';
+        }
 
         return response()->json(['option' => $options]);
     }
@@ -950,21 +969,22 @@ class BillController extends Controller
     {
         $class = Classroom::select('id', 'name')->whereLevelEducation($request->education);
 
-        if (!empty($request->class))
+        if (! empty($request->class)) {
             $class = $class->whereLevelClass($request->class);
+        }
 
         $class = $class->orderBy('name')->get();
 
-        $view = view($this->path['setup'] . 'setting-class', [
-            'class' => $class
+        $view = view($this->path['setup'].'setting-class', [
+            'class' => $class,
         ])->render();
 
         $response = [
             'status' => true,
             'message' => 'Ok',
             'data' => [
-                'view' => $view
-            ]
+                'view' => $view,
+            ],
         ];
 
         return response()->json($response);
