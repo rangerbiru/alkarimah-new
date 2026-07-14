@@ -24,7 +24,7 @@ Route::get('forgot-password', [AuthController::class, 'forgotPassword'])->name('
 Route::get('forgot-password/verification/{user}', [AuthController::class, 'forgotPasswordVerification'])->name('auth.forgot-password.verification');
 Route::get('reset-password/{token}', [AuthController::class, 'resetPassword'])->name('auth.reset-password');
 Route::get('logout', [AuthController::class, 'logout'])->name('auth.logout');
-Route::get('privacy-policy', [PageController::class, 'privacyPolicy']);
+Route::get('kebijakan-privasi-si-alka', [PageController::class, 'privacyPolicy']);
 
 Route::post('register', [AuthController::class, 'storeRegister'])->name('auth.store.register');
 Route::post('register/verification/{parent}', [AuthController::class, 'storeRegisterVerification'])->name('auth.store.register.verification');
