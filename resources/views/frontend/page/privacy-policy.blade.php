@@ -1,95 +1,107 @@
 @extends('layouts.frontend.index')
 
 @section('content')
-    <div class="card custom-card rectangle2">
-        <div class="card-body">
-            <div class="text-center mb-4">
+    <div class="card custom-card rectangle2 shadow-sm border-0 mb-5">
+        <div class="card-body p-4 p-md-5">
+            <div class="text-center mb-5 border-bottom pb-4">
                 <a href="{{ route('base') }}">
-                    <img src="{{ asset('images/logo.png') }}" style="width: 50px;" alt="logo" class="desktop-dark">
+                    <img src="{{ asset('images/logo.png') }}" style="width: 60px;" alt="logo" class="desktop-dark mb-3">
                 </a>
-
-                <h4 class="mt-1">Kebijakan Privasi Aplikasi Si-Alka</h4>
+                <h3 class="fw-bold text-dark mb-1">Kebijakan Privasi Aplikasi SI-Alka</h3>
+                <span class="text-muted small"><i class="fa-solid fa-clock me-1"></i> Terakhir diperbarui: 14 Juli
+                    2026</span>
             </div>
 
-            <b>Rahasia Pribadi</b><br />
-            PONPES Al-Karimah membangun aplikasi sebagai aplikasi gratis. LAYANAN ini disediakan oleh PONPES Al-Karimah
-            tanpa biaya dan dimaksudkan untuk digunakan sebagaimana adanya. Halaman ini digunakan untuk menginformasikan
-            pengunjung mengenai kebijakan kami dengan pengumpulan, penggunaan, dan pengungkapan Informasi Pribadi jika ada
-            yang memutuskan untuk menggunakan Layanan kami. Jika Anda memilih untuk menggunakan Layanan kami, maka Anda
-            menyetujui pengumpulan dan penggunaan informasi yang terkait dengan kebijakan ini. Informasi Pribadi yang kami
-            kumpulkan digunakan untuk menyediakan dan meningkatkan Layanan. Kami tidak akan menggunakan atau membagikan
-            informasi Anda dengan siapa pun kecuali seperti yang dijelaskan dalam Kebijakan Privasi ini. Istilah-istilah
-            yang digunakan dalam Kebijakan Privasi ini memiliki arti yang sama seperti dalam Syarat dan
-            <br />
-            Ketentuan kami, yang dapat diakses di aplikasi kecuali ditentukan lain dalam Kebijakan Privasi ini.
-            <br /><br />
+            <div class="privacy-content" style="line-height: 1.8; color: #4a5568;">
+                <p class="mb-4">
+                    <strong>SI-Alka</strong> adalah aplikasi Sistem Informasi Al Karimah yang digunakan untuk membantu
+                    santri dan wali santri mengakses informasi administrasi, akademik, pembayaran, tabungan, dan layanan
+                    pesantren.
+                    Dengan menggunakan aplikasi SI-Alka, pengguna dianggap telah membaca dan memahami Kebijakan Privasi ini.
+                </p>
 
-            <b>Pengumpulan dan Penggunaan Informasi</b><br />
-            Untuk pengalaman yang lebih baik, saat menggunakan Layanan kami, kami mungkin meminta Anda untuk memberikan kami
-            informasi identitas pribadi tertentu, termasuk tetapi tidak terbatas pada lokasi. Informasi yang kami minta akan
-            disimpan oleh kami dan digunakan seperti yang dijelaskan dalam kebijakan privasi ini. Aplikasi ini menggunakan
-            layanan pihak ketiga yang dapat mengumpulkan informasi yang digunakan untuk mengidentifikasi Anda. Tautan ke
-            kebijakan privasi penyedia layanan pihak ketiga yang digunakan oleh aplikasi Layanan Google Play
-            <br /><br />
+                <h5 class="fw-bold mt-5 text-dark">1. Data yang Kami Kumpulkan</h5>
+                <p>Aplikasi SI-Alka dapat menampilkan dan/atau memproses data berikut:</p>
+                <ul style="list-style-type: disc; margin-left: 20px;" class="mb-3">
+                    <li>Nama santri</li>
+                    <li>Nomor induk santri atau NIS</li>
+                    <li>NISN jika tersedia</li>
+                    <li>Jenis kelamin</li>
+                    <li>Agama</li>
+                    <li>Tempat dan tanggal lahir</li>
+                    <li>Nama orang tua atau wali</li>
+                    <li>Alamat</li>
+                    <li>Informasi akademik</li>
+                    <li>Informasi tagihan pembayaran</li>
+                    <li>Riwayat pembayaran</li>
+                    <li>Informasi tabungan santri</li>
+                    <li>Nomor telepon atau email yang digunakan untuk login</li>
+                    <li>Data perangkat tertentu yang diperlukan untuk keamanan, notifikasi, dan kelancaran layanan aplikasi
+                    </li>
+                </ul>
+                <p>Data tersebut digunakan hanya untuk keperluan layanan administrasi dan informasi Pondok Pesantren Al
+                    Karimah.</p>
 
-            <b>Data Log</b><br />
-            Kami ingin menginformasikan kepada Anda bahwa setiap kali Anda menggunakan Layanan kami, dalam kasus kesalahan
-            dalam aplikasi kami mengumpulkan data dan informasi (melalui produk pihak ketiga) pada telepon Anda yang disebut
-            Data Log. Data Log ini dapat mencakup informasi seperti alamat Protokol Internet ("IP") perangkat Anda, nama
-            perangkat, versi sistem operasi, konfigurasi aplikasi saat menggunakan Layanan kami, waktu dan tanggal
-            penggunaan Layanan, dan statistik lainnya.
-            <br /><br />
+                <h5 class="fw-bold mt-5 text-dark">2. Tujuan Penggunaan Data</h5>
+                <p>Data pengguna digunakan untuk:</p>
+                <ul style="list-style-type: disc; margin-left: 20px;" class="mb-3">
+                    <li>Menampilkan profil santri</li>
+                    <li>Menampilkan informasi akademik</li>
+                    <li>Menampilkan tagihan dan rincian pembayaran</li>
+                    <li>Menampilkan riwayat pembayaran</li>
+                    <li>Menampilkan informasi tabungan</li>
+                    <li>Memberikan layanan informasi kepada santri dan wali santri</li>
+                    <li>Mengamankan akses akun pengguna</li>
+                    <li>Memperbaiki dan meningkatkan kualitas aplikasi</li>
+                </ul>
 
-            <b>Cookie</b><br />
-            Cookie adalah file dengan sejumlah kecil data yang umumnya digunakan sebagai pengidentifikasi unik anonim. Ini
-            dikirim ke browser Anda dari situs web yang Anda kunjungi dan disimpan di memori internal perangkat Anda.
-            Layanan ini tidak menggunakan "cookie" ini secara eksplisit. Namun, aplikasi dapat menggunakan kode dan pustaka
-            pihak ketiga yang menggunakan "cookies" untuk mengumpulkan informasi dan meningkatkan layanan mereka. Anda
-            memiliki opsi untuk menerima atau menolak cookie ini dan mengetahui kapan cookie dikirim ke perangkat Anda. Jika
-            Anda memilih untuk menolak cookie kami, Anda mungkin tidak dapat menggunakan beberapa bagian dari Layanan ini.
-            <br /><br />
+                <h5 class="fw-bold mt-5 text-dark">3. Pembagian Data kepada Pihak Lain</h5>
+                <p>Kami tidak menjual data pribadi pengguna kepada pihak mana pun.</p>
+                <p>Data hanya dapat digunakan oleh pihak internal Pondok Pesantren Al Karimah atau pihak penyedia layanan
+                    yang membantu operasional aplikasi, seperti layanan server, sistem pembayaran, perbankan, atau
+                    notifikasi, sesuai kebutuhan layanan.</p>
 
-            <b>Penyedia Jasa</b><br />
-            Kami dapat mempekerjakan perusahaan dan individu pihak ketiga karena alasan berikut:
-            <ul style="list-style-type: disc;margin-left: 15px;">
-                <li>Untuk memfasilitasi Layanan kami;</li>
-                <li>Untuk menyediakan Layanan atas nama kami;</li>
-                <li>Untuk melakukan layanan terkait Layanan; atau</li>
-                <li>Untuk membantu kami dalam menganalisis bagaimana Layanan kami digunakan.</li>
-            </ul>
+                <h5 class="fw-bold mt-5 text-dark">4. Keamanan Data</h5>
+                <p>Kami berupaya menjaga keamanan data pengguna dengan membatasi akses hanya kepada pihak yang berwenang dan
+                    menggunakan sistem keamanan yang sesuai untuk melindungi data dari akses yang tidak sah.</p>
+                <p>Namun, pengguna juga bertanggung jawab untuk menjaga kerahasiaan akun, email, nomor telepon, dan password
+                    yang digunakan untuk masuk ke aplikasi.</p>
 
-            Kami ingin menginformasikan kepada pengguna Layanan ini bahwa pihak ketiga ini memiliki akses ke Informasi
-            Pribadi Anda. Alasannya adalah untuk melakukan tugas yang ditugaskan kepada mereka atas nama kami. Namun, mereka
-            berkewajiban untuk tidak mengungkapkan atau menggunakan informasi untuk tujuan lain apa pun
-            <br /><br />
+                <h5 class="fw-bold mt-5 text-dark">5. Penyimpanan Data</h5>
+                <p>Data pengguna disimpan selama masih diperlukan untuk keperluan administrasi pesantren, layanan
+                    pendidikan, pembayaran, dan kewajiban pencatatan internal.</p>
 
-            <b>Keamanan</b><br />
-            Kami menghargai kepercayaan Anda dalam memberikan kami Informasi Pribadi Anda, sehingga kami berusaha
-            menggunakan sarana yang dapat diterima secara komersial untuk melindunginya. Tetapi ingat bahwa tidak ada metode
-            transmisi melalui internet, atau metode penyimpanan elektronik 100% aman dan andal, dan kami tidak dapat
-            menjamin keamanan mutlaknya.
-            <br /><br />
+                <h5 class="fw-bold mt-5 text-dark">6. Penghapusan Akun dan Data</h5>
+                <p>Pengguna dapat mengajukan permintaan penghapusan akun atau data pribadi dengan menghubungi pihak
+                    pengelola aplikasi melalui kontak resmi berikut:</p>
+                <p class="mb-3"><strong>Email:</strong> <a href="mailto:admin@alkarimah.org"
+                        class="text-primary text-decoration-none">admin@alkarimah.org</a></p>
+                <p>Permintaan akan diproses sesuai ketentuan administrasi Pondok Pesantren Al Karimah dan kewajiban
+                    penyimpanan data yang berlaku.</p>
 
-            <b>Tautan ke Situs Lain</b><br />
-            Layanan ini mungkin berisi tautan ke situs lain. Jika Anda mengklik tautan pihak ketiga, Anda akan diarahkan ke
-            situs itu. Perhatikan bahwa situs eksternal ini tidak dioperasikan oleh kami. Oleh karena itu, kami sangat
-            menyarankan Anda untuk meninjau Kebijakan Privasi dari situs web ini. Kami tidak memiliki kendali atas dan tidak
-            bertanggung jawab atas konten, kebijakan privasi, atau praktik dari situs atau layanan pihak ketiga.
-            <br /><br />
+                <h5 class="fw-bold mt-5 text-dark">7. Privasi Anak</h5>
+                <p>Aplikasi ini dapat digunakan untuk menampilkan data santri. Akses aplikasi diberikan kepada pihak yang
+                    berwenang, seperti santri, orang tua, wali santri, atau pihak pesantren.</p>
+                <p>Kami tidak menggunakan data anak untuk iklan atau penjualan data kepada pihak lain.</p>
 
-            <b>Privasi Anak-Anak</b><br />
-            Layanan ini tidak ditujukan kepada siapa pun yang berusia di bawah 13 tahun. Kami tidak secara sadar
-            mengumpulkan informasi identitas pribadi dari anak-anak berusia di bawah 13 tahun. Dalam kasus ini kami
-            menemukan bahwa seorang anak di bawah 13 tahun telah memberi kami informasi pribadi, kami segera menghapus ini
-            dari server kami. Jika Anda adalah orang tua atau wali dan Anda sadar bahwa anak Anda telah memberi kami
-            informasi pribadi, silakan hubungi kami sehingga kami akan dapat melakukan tindakan yang diperlukan.
-            <br /><br />
+                <h5 class="fw-bold mt-5 text-dark">8. Perubahan Kebijakan Privasi</h5>
+                <p>Kebijakan Privasi ini dapat diperbarui sewaktu-waktu apabila terdapat perubahan fitur, layanan, atau
+                    ketentuan yang berlaku. Perubahan akan ditampilkan pada halaman ini.</p>
 
-            <b>Perubahan pada Kebijakan Privasi ini</b><br />
-            Kami dapat memperbarui Kebijakan Privasi kami dari waktu ke waktu. Dengan demikian, Anda disarankan untuk
-            meninjau halaman ini secara berkala untuk setiap perubahan. Kami akan memberi tahu Anda tentang perubahan apa
-            pun dengan memposting Kebijakan Privasi baru di halaman ini. Perubahan ini efektif segera setelah diposkan di
-            halaman ini.
+                <h5 class="fw-bold mt-5 text-dark">9. Kontak</h5>
+                <p>Jika ada pertanyaan terkait Kebijakan Privasi ini, pengguna dapat menghubungi:</p>
+
+                <div class="bg-light p-4 rounded-3 border mt-3">
+                    <h6 class="fw-bold mb-2">Pondok Pesantren Al Karimah</h6>
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2"><i class="fa-solid fa-map-marker-alt text-muted me-2"></i> Mandungan,
+                            Karanganyar, Jawa Tengah 57713</li>
+                        <li><i class="fa-solid fa-envelope text-muted me-2"></i> <a href="mailto:admin@alkarimah.org"
+                                class="text-primary text-decoration-none">admin@alkarimah.org</a></li>
+                    </ul>
+                </div>
+
+            </div>
         </div>
     </div>
 @endsection
