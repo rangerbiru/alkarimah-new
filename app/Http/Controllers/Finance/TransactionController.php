@@ -22,7 +22,6 @@ use App\Models\Classroom;
 use App\Models\Donation;
 use App\Models\DonationHistory;
 use App\Models\Parents;
-use App\Models\ReportStudent;
 use App\Models\SavingsWithdrawal;
 use App\Models\Scopes\BranchScope;
 use App\Models\Student;
@@ -31,17 +30,18 @@ use App\Models\Transaction;
 use App\Models\TransactionBill;
 use App\Models\TransactionPaymentCode;
 use App\Models\UniqueCodeDeposit;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Str;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class TransactionController extends Controller
 {
     private $title_prefix = 'label.transaction';
+
     private $title = [
         'payment' => 'label.payment',
         'history' => 'label.history',
@@ -50,7 +50,9 @@ class TransactionController extends Controller
         'cash' => 'label.cash_deposit',
         'unique-code' => 'label.unique_code_deposit',
     ];
+
     private $icon = 'bx bx-receipt';
+
     private $path = [
         'transaction' => 'backend.finance.transaction.',
         'bill' => 'backend.finance.transaction.bill.',
@@ -64,8 +66,8 @@ class TransactionController extends Controller
         $number = Transaction::generateNumber(TransactionFlag::Tagihan->value);
         $yesno = Common::option('yesno');
 
-        return view($this->path['bill'] . 'index', [
-            'title' => __($this->title_prefix) . ' - ' . __($this->title['payment']),
+        return view($this->path['bill'].'index', [
+            'title' => __($this->title_prefix).' - '.__($this->title['payment']),
             'icon' => $this->icon,
             'number' => $number,
             'yesno' => $yesno,
@@ -83,8 +85,8 @@ class TransactionController extends Controller
         $type_bill = TransactionFlag::Tagihan->value;
         $type_topup = TransactionFlag::TopupSaldo->value;
 
-        return view($this->path['pending'] . 'index', [
-            'title' => __($this->title_prefix) . ' - ' . __($this->title['pending']),
+        return view($this->path['pending'].'index', [
+            'title' => __($this->title_prefix).' - '.__($this->title['pending']),
             'icon' => $this->icon,
             'types' => $types,
             'type_bill' => $type_bill,
@@ -94,8 +96,8 @@ class TransactionController extends Controller
 
     public function cash($render)
     {
-        return view($this->path['cash'] . $render, [
-            'title' => __($this->title_prefix) . ' - ' . __($this->title['cash']),
+        return view($this->path['cash'].$render, [
+            'title' => __($this->title_prefix).' - '.__($this->title['cash']),
             'icon' => $this->icon,
             'path' => $this->path['cash'],
             'render' => $render,
@@ -104,8 +106,8 @@ class TransactionController extends Controller
 
     public function uniqueCode($render)
     {
-        return view($this->path['unique-code'] . $render, [
-            'title' => __($this->title_prefix) . ' - ' . __($this->title['unique-code']),
+        return view($this->path['unique-code'].$render, [
+            'title' => __($this->title_prefix).' - '.__($this->title['unique-code']),
             'icon' => $this->icon,
             'path' => $this->path['unique-code'],
             'render' => $render,
@@ -114,7 +116,7 @@ class TransactionController extends Controller
 
     public function history(Request $request)
     {
-        $filter_start = (empty($request->start)) ? date('Y-m') . '-01' : $request->start;
+        $filter_start = (empty($request->start)) ? date('Y-m').'-01' : $request->start;
         $filter_end = (empty($request->end)) ? date('Y-m-t') : $request->end;
         $types = [
             TransactionFlag::Tagihan->value => __('label.bill'),
@@ -127,8 +129,8 @@ class TransactionController extends Controller
         $type_topup = TransactionFlag::TopupSaldo->value;
         $type_withdrawal = TransactionFlag::PengambilanTabungan->value;
 
-        return view($this->path['transaction'] . 'history', [
-            'title' => __($this->title_prefix) . ' - ' . __('label.history'),
+        return view($this->path['transaction'].'history', [
+            'title' => __($this->title_prefix).' - '.__('label.history'),
             'icon' => $this->icon,
             'types' => $types,
             'type_bill' => $type_bill,
@@ -137,7 +139,7 @@ class TransactionController extends Controller
             'filter' => (object) [
                 'start' => $filter_start,
                 'end' => $filter_end,
-            ]
+            ],
         ]);
     }
 
@@ -150,8 +152,8 @@ class TransactionController extends Controller
 
         $status_rejected = DepositStatus::Rejected->value;
 
-        return view($this->path['cash'] . 'verify', [
-            'title' => __($this->title_prefix) . ' - ' . __($this->title['cash']),
+        return view($this->path['cash'].'verify', [
+            'title' => __($this->title_prefix).' - '.__($this->title['cash']),
             'icon' => $this->icon,
             'deposit' => $deposit,
             'status' => $status,
@@ -168,8 +170,8 @@ class TransactionController extends Controller
 
         $status_rejected = DepositStatus::Rejected->value;
 
-        return view($this->path['unique-code'] . 'verify', [
-            'title' => __($this->title_prefix) . ' - ' . __($this->title['unique-code']),
+        return view($this->path['unique-code'].'verify', [
+            'title' => __($this->title_prefix).' - '.__($this->title['unique-code']),
             'icon' => $this->icon,
             'deposit' => $deposit,
             'status' => $status,
@@ -188,18 +190,18 @@ class TransactionController extends Controller
         if ($transaction->is_tagihan) {
             $bills = TransactionBill::select('id', 'id_bill', 'semester', 'months', 'years', 'subtotal', 'discount', 'total')
                 ->with([
-                    'bill' => function($query) {
+                    'bill' => function ($query) {
                         $query->select('id', 'id_year', 'id_type', 'name')
                             ->with([
-                                'year' => fn($qy) => $qy->select('id', 'start_year', 'end_year'),
-                                'type' => fn($qt) => $qt->select('id', 'name', 'period'),
+                                'year' => fn ($qy) => $qy->select('id', 'start_year', 'end_year'),
+                                'type' => fn ($qt) => $qt->select('id', 'name', 'period'),
                             ]);
-                    }
+                    },
                 ])
                 ->whereIdTransaction($transaction->id)
                 ->orderBy('due_date')
                 ->get();
-        } else if ($transaction->is_pengambilan_tabungan) {
+        } elseif ($transaction->is_pengambilan_tabungan) {
             // $withdrawals = SavingsWithdrawal::select('id', 'id_student', 'number', 'dates', 'total')
             //     ->with([
             //         'student' => function($query) {
@@ -212,19 +214,19 @@ class TransactionController extends Controller
             $table_savings = (new SavingsWithdrawal)->getTable();
             $table_student = (new Student)->getTable();
             $table_class = (new Classroom)->getTable();
-            $withdrawals = SavingsWithdrawal::select($table_savings . '.id', $table_savings . '.number', $table_savings . '.dates',
-                    $table_savings . '.total', $table_student . '.nis', $table_student . '.name', $table_class . '.name AS class_name')
-                ->join($table_student, $table_student . '.id', '=', $table_savings . '.id_student')
-                ->join($table_class, $table_class . '.id', '=', $table_student . '.id_class')
-                ->whereIn($table_savings . '.id', $transaction->bills)
-                ->where($table_savings . '.branch_id', Auth::user()->branch_id)
+            $withdrawals = SavingsWithdrawal::select($table_savings.'.id', $table_savings.'.number', $table_savings.'.dates',
+                $table_savings.'.total', $table_student.'.nis', $table_student.'.name', $table_class.'.name AS class_name')
+                ->join($table_student, $table_student.'.id', '=', $table_savings.'.id_student')
+                ->join($table_class, $table_class.'.id', '=', $table_student.'.id_class')
+                ->whereIn($table_savings.'.id', $transaction->bills)
+                ->where($table_savings.'.branch_id', Auth::user()->branch_id)
                 ->withoutGlobalScope(BranchScope::class)
-                ->orderBy($table_class . '.name')
+                ->orderBy($table_class.'.name')
                 ->get();
         }
 
-        return view($this->path['bill'] . 'show', [
-            'title' => __($this->title_prefix) . ' - ' . __($this->title['history']),
+        return view($this->path['bill'].'show', [
+            'title' => __($this->title_prefix).' - '.__($this->title['history']),
             'icon' => $this->icon,
             'transaction' => $transaction,
             'method_cash' => $method_cash,
@@ -233,7 +235,7 @@ class TransactionController extends Controller
             'period' => (object) [
                 'monthly' => $period_monthly,
                 'semester' => $period_semester,
-            ]
+            ],
         ]);
     }
 
@@ -245,7 +247,7 @@ class TransactionController extends Controller
 
         $donation = Donation::select('id', 'name', 'total', 'used', 'remaining')->whereRaw('used<total');
         $donation_count = $donation->count();
-        $donation_filter = $donation->where('name', 'like', '%' . $search . '%');
+        $donation_filter = $donation->where('name', 'like', '%'.$search.'%');
         $donation_count_filter = $donation_filter->count();
 
         $donation_data = $donation_filter->limit($limit)
@@ -266,7 +268,7 @@ class TransactionController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $donation_count,
             'recordsFiltered' => $donation_count_filter,
-            'data' => $donation_arr
+            'data' => $donation_arr,
         ]);
     }
 
@@ -281,39 +283,41 @@ class TransactionController extends Controller
         $end_date = $request->end_date;
 
         $transaction = Transaction::select('id', 'id_student', 'id_parent', 'number', 'dates', 'subtotal', 'donation', 'unique_code',
-                'total', 'payment_method', 'paid_at')
-            ->with(['student' => fn($query) => $query->select('id', 'nis', 'name')])
+            'total', 'payment_method', 'paid_at')
+            ->with(['student' => fn ($query) => $query->select('id', 'nis', 'name')])
             ->where(function ($query) use ($start_date, $end_date) {
-                if ($start_date == $end_date)
+                if ($start_date == $end_date) {
                     $query->whereDates($start_date);
-                else
+                } else {
                     $query->whereBetween('dates', [$start_date, $end_date]);
+                }
             })
             ->paid()
             ->tagihan();
 
         if ($request->has('edit')) {
-            $transaction = $transaction->where(function($query) use($request) {
+            $transaction = $transaction->where(function ($query) use ($request) {
                 $query->whereStatusDeposit(TransactionDepositStatus::NotDeposit->value)
                     ->orWhereIn('id', $request->edit);
             });
-        } else
+        } else {
             $transaction = $transaction->notDeposit();
+        }
 
         $transaction_count = $transaction->count();
 
-        if (empty($search))
+        if (empty($search)) {
             $transaction_filter = $transaction;
-        else {
+        } else {
             $transaction_filter = $transaction->where(function ($query) use ($search) {
-                $query->where('number', 'like', '%' . $search . '%')
-                    ->orWhere('dates', 'like', '%' . $search . '%')
-                    ->orWhereHas('student', function($qs) use($search) {
-                        $qs->where('nis', 'like', '%' . $search . '%')
-                            ->orWhere('name', 'like', '%' . $search . '%');
+                $query->where('number', 'like', '%'.$search.'%')
+                    ->orWhere('dates', 'like', '%'.$search.'%')
+                    ->orWhereHas('student', function ($qs) use ($search) {
+                        $qs->where('nis', 'like', '%'.$search.'%')
+                            ->orWhere('name', 'like', '%'.$search.'%');
                     })
                     ->orWhereHas('parent', function ($qd) use ($search) {
-                        $qd->where('name', 'like', '%' . $search . '%');
+                        $qd->where('name', 'like', '%'.$search.'%');
                     });
             });
         }
@@ -340,7 +344,7 @@ class TransactionController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $transaction_count,
             'recordsFiltered' => $transaction_count_filter,
-            'data' => $transaction_arr
+            'data' => $transaction_arr,
         ]);
     }
 
@@ -353,10 +357,10 @@ class TransactionController extends Controller
         $selected = (empty($request->selected)) ? [] : $request->selected;
 
         $transaction = Transaction::select('id', 'id_student', 'id_parent', 'number', 'dates', 'subtotal', 'donation', 'unique_code',
-                'total', 'payment_method', 'flag', 'paid_at')
+            'total', 'payment_method', 'flag', 'paid_at')
             ->with([
-                'student' => fn($query) => $query->select('id', 'nis', 'name'),
-                'parent' => fn($query) => $query->select('id', 'name', 'phone'),
+                'student' => fn ($query) => $query->select('id', 'nis', 'name'),
+                'parent' => fn ($query) => $query->select('id', 'name', 'phone'),
             ])
             ->where('flag', '!=', TransactionFlag::PengambilanTabungan->value)
             ->where('unique_code', '>', 0)
@@ -368,38 +372,41 @@ class TransactionController extends Controller
                 $query->whereStatusDepositCode(TransactionDepositStatus::NotDeposit->value)
                     ->orWhereIn('id', $request->edit);
             });
-        } else
+        } else {
             $transaction = $transaction->notDepositCode();
+        }
 
-        if (!empty($request->start_date)) {
+        if (! empty($request->start_date)) {
             $start_date = $request->start_date;
             $end_date = $request->end_date;
 
             $transaction = $transaction->where(function ($query) use ($start_date, $end_date) {
-                if ($start_date == $end_date)
+                if ($start_date == $end_date) {
                     $query->whereDates($start_date);
-                else
+                } else {
                     $query->whereBetween('dates', [$start_date, $end_date]);
+                }
             });
         }
 
-        if (!empty($request->type))
+        if (! empty($request->type)) {
             $transaction = $transaction->whereFlag($request->type);
+        }
 
         $transaction_count = $transaction->count();
 
-        if (empty($search))
+        if (empty($search)) {
             $transaction_filter = $transaction;
-        else {
+        } else {
             $transaction_filter = $transaction->where(function ($query) use ($search) {
-                $query->where('number', 'like', '%' . $search . '%')
-                    ->orWhere('dates', 'like', '%' . $search . '%')
+                $query->where('number', 'like', '%'.$search.'%')
+                    ->orWhere('dates', 'like', '%'.$search.'%')
                     ->orWhereHas('student', function ($qs) use ($search) {
-                        $qs->where('nis', 'like', '%' . $search . '%')
-                            ->orWhere('name', 'like', '%' . $search . '%');
+                        $qs->where('nis', 'like', '%'.$search.'%')
+                            ->orWhere('name', 'like', '%'.$search.'%');
                     })
                     ->orWhereHas('parent', function ($qd) use ($search) {
-                        $qd->where('name', 'like', '%' . $search . '%');
+                        $qd->where('name', 'like', '%'.$search.'%');
                     });
             });
         }
@@ -426,7 +433,7 @@ class TransactionController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $transaction_count,
             'recordsFiltered' => $transaction_count_filter,
-            'data' => $transaction_arr
+            'data' => $transaction_arr,
         ]);
     }
 
@@ -437,31 +444,32 @@ class TransactionController extends Controller
         $start = $request->input('start');
 
         $transaction = Transaction::select('id', 'id_student', 'id_parent', 'number', 'dates', 'subtotal', 'donation', 'unique_code',
-                'total', 'payment_method', 'flag')
+            'total', 'payment_method', 'flag')
             ->with([
-                'student' => fn($query) => $query->select('id', 'nis', 'name'),
-                'parent' => fn($query) => $query->select('id', 'name', 'phone'),
+                'student' => fn ($query) => $query->select('id', 'nis', 'name'),
+                'parent' => fn ($query) => $query->select('id', 'name', 'phone'),
             ])
             ->notPaid();
 
-        if (!empty($request->type))
+        if (! empty($request->type)) {
             $transaction = $transaction->whereFlag($request->type);
+        }
 
         $transaction_count = $transaction->count();
 
-        if (empty($search))
+        if (empty($search)) {
             $transaction_filter = $transaction;
-        else {
+        } else {
             $transaction_filter = $transaction->where(function ($query) use ($search) {
-                $query->where('number', 'like', '%' . $search . '%')
-                    ->orWhere('dates', 'like', '%' . $search . '%')
-                    ->orWhereHas('student', function($qs) use($search) {
-                        $qs->where('nis', 'like', '%' . $search . '%')
-                            ->orWhere('name', 'like', '%' . $search . '%');
+                $query->where('number', 'like', '%'.$search.'%')
+                    ->orWhere('dates', 'like', '%'.$search.'%')
+                    ->orWhereHas('student', function ($qs) use ($search) {
+                        $qs->where('nis', 'like', '%'.$search.'%')
+                            ->orWhere('name', 'like', '%'.$search.'%');
                     })
                     ->orWhereHas('parent', function ($qd) use ($search) {
-                        $qd->where('name', 'like', '%' . $search . '%')
-                            ->orWhere('phone', 'like', '%' . $search . '%');
+                        $qd->where('name', 'like', '%'.$search.'%')
+                            ->orWhere('phone', 'like', '%'.$search.'%');
                     });
             });
         }
@@ -487,7 +495,7 @@ class TransactionController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $transaction_count,
             'recordsFiltered' => $transaction_count_filter,
-            'data' => $transaction_arr
+            'data' => $transaction_arr,
         ]);
     }
 
@@ -498,43 +506,44 @@ class TransactionController extends Controller
         $start = $request->input('start');
 
         $transaction = Transaction::select('id', 'id_parent', 'id_student', 'id_donation', 'number', 'dates', 'subtotal', 'donation', 'total',
-                'payment_method', 'paid_at', 'flag', 'unique_code')
+            'payment_method', 'paid_at', 'flag', 'unique_code')
             ->with([
-                'student' => fn($query) => $query->select('id', 'nis', 'name'),
-                'donatur' => fn($query) => $query->select('id', 'name'),
-                'parent' => fn($query) => $query->select('id', 'name', 'phone'),
-                'personResponsible' => fn($query) => $query->select('id', 'name', 'phone'),
+                'student' => fn ($query) => $query->select('id', 'nis', 'name'),
+                'donatur' => fn ($query) => $query->select('id', 'name'),
+                'parent' => fn ($query) => $query->select('id', 'name', 'phone'),
+                'personResponsible' => fn ($query) => $query->select('id', 'name', 'phone'),
             ])
-            ->where(function($query) use($request) {
+            ->where(function ($query) use ($request) {
                 $query->whereBetween('dates', [$request->start_date, $request->end_date]);
             })
             ->paid();
 
-        if (!empty($request->type))
+        if (! empty($request->type)) {
             $transaction = $transaction->whereFlag($request->type);
+        }
 
         $transaction_count = $transaction->count();
 
-        if (empty($search))
+        if (empty($search)) {
             $transaction_filter = $transaction;
-        else {
+        } else {
             $transaction_filter = $transaction->where(function ($query) use ($search) {
-                $query->where('number', 'like', '%' . $search . '%')
-                    ->orWhere('dates', 'like', '%' . $search . '%')
-                    ->orWhereHas('student', function($qs) use($search) {
-                        $qs->where('nis', 'like', '%' . $search . '%')
-                            ->orWhere('name', 'like', '%' . $search . '%');
+                $query->where('number', 'like', '%'.$search.'%')
+                    ->orWhere('dates', 'like', '%'.$search.'%')
+                    ->orWhereHas('student', function ($qs) use ($search) {
+                        $qs->where('nis', 'like', '%'.$search.'%')
+                            ->orWhere('name', 'like', '%'.$search.'%');
                     })
                     ->orWhereHas('donatur', function ($qd) use ($search) {
-                        $qd->where('name', 'like', '%' . $search . '%');
+                        $qd->where('name', 'like', '%'.$search.'%');
                     })
                     ->orWhereHas('parent', function ($qd) use ($search) {
-                        $qd->where('name', 'like', '%' . $search . '%')
-                            ->orWhere('phone', 'like', '%' . $search . '%');
+                        $qd->where('name', 'like', '%'.$search.'%')
+                            ->orWhere('phone', 'like', '%'.$search.'%');
                     })
                     ->orWhereHas('personResponsible', function ($qd) use ($search) {
-                        $qd->where('name', 'like', '%' . $search . '%')
-                            ->orWhere('phone', 'like', '%' . $search . '%');
+                        $qd->where('name', 'like', '%'.$search.'%')
+                            ->orWhere('phone', 'like', '%'.$search.'%');
                     });
             });
         }
@@ -560,7 +569,7 @@ class TransactionController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $transaction_count,
             'recordsFiltered' => $transaction_count_filter,
-            'data' => $transaction_arr
+            'data' => $transaction_arr,
         ]);
     }
 
@@ -572,36 +581,37 @@ class TransactionController extends Controller
 
         switch ($request->render) {
             case 'accepted':
-            $status = DepositStatus::Accepted->value;
-            break;
+                $status = DepositStatus::Accepted->value;
+                break;
 
             case 'rejected':
-            $status = DepositStatus::Rejected->value;
-            break;
+                $status = DepositStatus::Rejected->value;
+                break;
 
             default:
-            $status = DepositStatus::Waiting->value;
+                $status = DepositStatus::Waiting->value;
         }
 
         $deposit = CashDeposit::select('id', 'number', 'dates', 'total', 'verified_at', 'verified_by', 'reason', 'created_at')
             ->with([
-                'verificator' => fn($query) => $query->select('id', 'name'),
+                'verificator' => fn ($query) => $query->select('id', 'name'),
             ])
             ->whereStatus($status);
 
-        if (Auth::user()->is_kasir)
+        if (Auth::user()->is_kasir) {
             $deposit = $deposit->whereCreatedBy(Auth::id());
+        }
 
         $deposit_count = $deposit->count();
 
-        if (empty($search))
+        if (empty($search)) {
             $deposit_filter = $deposit;
-        else {
+        } else {
             $deposit_filter = $deposit->where(function ($query) use ($search) {
-                $query->where('number', 'like', '%' . $search . '%')
-                    ->orWhere('dates', 'like', '%' . $search . '%')
+                $query->where('number', 'like', '%'.$search.'%')
+                    ->orWhere('dates', 'like', '%'.$search.'%')
                     ->orWhereHas('verificator', function ($qd) use ($search) {
-                        $qd->where('name', 'like', '%' . $search . '%');
+                        $qd->where('name', 'like', '%'.$search.'%');
                     });
             });
         }
@@ -626,7 +636,7 @@ class TransactionController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $deposit_count,
             'recordsFiltered' => $deposit_count_filter,
-            'data' => $deposit_arr
+            'data' => $deposit_arr,
         ]);
     }
 
@@ -651,23 +661,24 @@ class TransactionController extends Controller
 
         $deposit = UniqueCodeDeposit::select('id', 'number', 'dates', 'total', 'verified_at', 'verified_by', 'reason', 'created_at')
             ->with([
-                'verificator' => fn($query) => $query->select('id', 'name'),
+                'verificator' => fn ($query) => $query->select('id', 'name'),
             ])
             ->whereStatus($status);
 
-        if (Auth::user()->is_kasir)
+        if (Auth::user()->is_kasir) {
             $deposit = $deposit->whereCreatedBy(Auth::id());
+        }
 
         $deposit_count = $deposit->count();
 
-        if (empty($search))
+        if (empty($search)) {
             $deposit_filter = $deposit;
-        else {
+        } else {
             $deposit_filter = $deposit->where(function ($query) use ($search) {
-                $query->where('number', 'like', '%' . $search . '%')
-                    ->orWhere('dates', 'like', '%' . $search . '%')
+                $query->where('number', 'like', '%'.$search.'%')
+                    ->orWhere('dates', 'like', '%'.$search.'%')
                     ->orWhereHas('verificator', function ($qd) use ($search) {
-                        $qd->where('name', 'like', '%' . $search . '%');
+                        $qd->where('name', 'like', '%'.$search.'%');
                     });
             });
         }
@@ -692,7 +703,7 @@ class TransactionController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $deposit_count,
             'recordsFiltered' => $deposit_count_filter,
-            'data' => $deposit_arr
+            'data' => $deposit_arr,
         ]);
     }
 
@@ -707,8 +718,8 @@ class TransactionController extends Controller
         $type_bill = TransactionFlag::Tagihan->value;
         $type_topup = TransactionFlag::TopupSaldo->value;
 
-        return view($this->path['cash'] . 'create', [
-            'title' => __($this->title_prefix) . ' - ' . __($this->title['cash']),
+        return view($this->path['cash'].'create', [
+            'title' => __($this->title_prefix).' - '.__($this->title['cash']),
             'icon' => $this->icon,
             'types' => $types,
             'type_bill' => $type_bill,
@@ -727,8 +738,8 @@ class TransactionController extends Controller
         $type_bill = TransactionFlag::Tagihan->value;
         $type_topup = TransactionFlag::TopupSaldo->value;
 
-        return view($this->path['unique-code'] . 'create', [
-            'title' => __($this->title_prefix) . ' - ' . __($this->title['unique-code']),
+        return view($this->path['unique-code'].'create', [
+            'title' => __($this->title_prefix).' - '.__($this->title['unique-code']),
             'icon' => $this->icon,
             'types' => $types,
             'type_bill' => $type_bill,
@@ -741,116 +752,137 @@ class TransactionController extends Controller
         $error = false;
         $bills = $request->bills;
 
-        if (empty($bills))
+        if (empty($bills)) {
             $error = __('string.not_bill_selected');
-
-        if (empty($request->dates))
+        }
+        if (empty($request->dates)) {
             $error = __('validation.required', ['attribute' => __('label.transaction_date')]);
+        }
 
         if ($error == false) {
-            $subtotal = 0;
-            $bills_id = [];
 
-            foreach ($bills as $id => $nominal) {
-                $subtotal += $nominal;
-                array_push($bills_id, $id);
-            }
+            DB::transaction(function () use ($request, $bills) {
+                $is_cicilan = $request->is_cicilan == 1;
+                $cicilan_nominal = floatval($request->cicilan_nominal);
 
-            DB::transaction(function() use($request, $subtotal, $bills_id) {
+                $total_selected_bills = 0;
+                foreach ($bills as $id => $nominal) {
+                    $total_selected_bills += $nominal;
+                }
+
+                if ($is_cicilan && $cicilan_nominal > 0) {
+                    $actual_subtotal = min($cicilan_nominal, $total_selected_bills);
+                } else {
+                    $actual_subtotal = $total_selected_bills;
+                }
+
+                $donation = 0;
+                $id_donation = null;
+                if (! empty($request->id_donation)) {
+                    $donation = (float) str_replace('.', '', $request->donation);
+                    $id_donation = Crypt::decrypt($request->id_donation);
+                }
+
+                $actual_total = $actual_subtotal - $donation;
+
                 $merge = [
-                    'bills' => $bills_id,
                     'payment_method' => TransactionMethod::Cash->value,
                     'paid_at' => date('Y-m-d H:i:s'),
                     'paid_by' => Auth::id(),
                     'status' => TransactionStatus::Paid->value,
                     'flag' => TransactionFlag::Tagihan->value,
+                    'subtotal' => $actual_subtotal,
+                    'total' => $actual_total,
+                    'id_donation' => $id_donation,
+                    'donation' => $donation,
                 ];
-
-                if (!empty($request->id_donation)) {
-                    $donation = str_replace('.', '', $request->donation);
-                    $total = $subtotal - $donation;
-
-                    $merge['id_donation'] = Crypt::decrypt($request->id_donation);
-                    $merge['donation'] = $donation;
-                } else
-                    $total = $subtotal;
-
-                $merge['subtotal'] = $subtotal;
-                $merge['total'] = $total;
 
                 $request->merge($merge);
                 $transaction = Transaction::create($request->all());
 
-                if (empty($request->id_donation)) {
-                    foreach ($bills_id as $b) {
-                        $trans_bill =  TransactionBill::select('id', 'id_bill', 'id_student', 'total', 'status', 'branch_id')
-                            ->with([
-                                'bill' => fn($query) => $query->select('id', 'id_type', 'id_year'),
-                                'student' => function($query) {
-                                    $query->select('id', 'id_class')
-                                        ->with(['class' => fn($qc) => $qc->select('id', 'level_education', 'level_class')]);
-                                }
-                            ])
-                            ->whereId($b)
-                            ->first();
+                $remaining_payment = $actual_subtotal;
+                $processed_bills_ids = [];
+                $donation_descr = [];
 
-                        $trans_bill->update([
-                            'id_transaction' => $transaction->id,
-                            'status' => TransactionStatus::Paid->value
-                        ]);
-
-                        TransactionBill::updateReport($trans_bill, $transaction->paid_at);
+                foreach ($bills as $b_id => $b_nominal) {
+                    if ($remaining_payment <= 0) {
+                        break;
                     }
-                } else {
-                    $donation_descr = [];
 
-                    foreach ($bills_id as $b) {
-                        $trans_bill = TransactionBill::select('id', 'id_student', 'id_bill', 'semester', 'months', 'years', 'total', 'status')
-                            ->with([
-                                'bill' => function($query) {
-                                    $query->select('id', 'id_year', 'id_type', 'name')
-                                        ->with(['type' => fn($qt) => $qt->select('id', 'name', 'period')]);
-                                },
-                                'student' => function($query) {
-                                    $query->select('id', 'id_class')
-                                        ->with(['class' => fn($qc) => $qc->select('id', 'level_education', 'level_class')]);
-                                }
-                            ])
-                            ->whereId($b)
-                            ->first();
+                    $trans_bill = TransactionBill::with([
+                        'bill' => fn ($query) => $query->select('id', 'id_type', 'id_year', 'name')->with(['type' => fn ($qt) => $qt->select('id', 'name', 'period')]),
+                        'student' => function ($query) {
+                            $query->select('id', 'id_class')->with(['class' => fn ($qc) => $qc->select('id', 'level_education', 'level_class')]);
+                        },
+                    ])->find($b_id);
 
+                    if (! $trans_bill) {
+                        continue;
+                    }
+
+                    $pay_amount = min($remaining_payment, $trans_bill->total);
+
+                    if ($id_donation) {
                         $time = '';
+                        if ($trans_bill->bill->type->is_period_monthly) {
+                            $time = Common::monthFormat($trans_bill->months).' '.$trans_bill->years;
+                        } elseif ($trans_bill->bill->type->is_period_semiannual) {
+                            $time = 'Semester '.$trans_bill->semester;
+                        }
 
-                        if ($trans_bill->bill->type->is_period_monthly)
-                            $time = Common::monthFormat($trans_bill->months) . ' ' . $trans_bill->years;
-                        else if ($trans_bill->bill->type->is_period_semiannual)
-                            $time = 'Semester ' . $trans_bill->semester;
-
+                        $partial_text = ($pay_amount < $trans_bill->total) ? ' (Sebagian/Cicilan)' : '';
                         array_push($donation_descr, [
                             'type' => $trans_bill->bill->type->name,
-                            'name' => $trans_bill->bill->name,
-                            'time' => $time
+                            'name' => $trans_bill->bill->name.$partial_text,
+                            'time' => $time,
                         ]);
-
-                        $trans_bill->update([
-                            'id_transaction' => $transaction->id,
-                            'status' => TransactionStatus::Paid->value
-                        ]);
-
-                        TransactionBill::updateReport($trans_bill);
                     }
 
-                    $donation = Donation::select('id', 'used', 'remaining')->whereId($transaction->id_donation)->first();
-                    $donation->used += $transaction->donation;
-                    $donation->remaining -= $transaction->donation;
-                    $donation->save();
+                    if ($pay_amount == $trans_bill->total) {
+                        $trans_bill->update([
+                            'id_transaction' => $transaction->id,
+                            'status' => TransactionStatus::Paid->value,
+                        ]);
+                        TransactionBill::updateReport($trans_bill, $transaction->paid_at);
+                    } else {
+                        $original_total = $trans_bill->total;
+                        $original_subtotal = $trans_bill->subtotal;
+
+                        $trans_bill->update([
+                            'total' => $pay_amount,
+                            'subtotal' => $pay_amount,
+                            'id_transaction' => $transaction->id,
+                            'status' => TransactionStatus::Paid->value,
+                        ]);
+                        TransactionBill::updateReport($trans_bill, $transaction->paid_at);
+
+                        $new_bill = $trans_bill->replicate();
+                        $new_bill->id_transaction = null;
+                        $new_bill->status = 0;
+                        $new_bill->total = $original_total - $pay_amount;
+                        $new_bill->subtotal = $original_subtotal - $pay_amount;
+                        $new_bill->created_at = now();
+                        $new_bill->save();
+                    }
+
+                    array_push($processed_bills_ids, $b_id);
+                    $remaining_payment -= $pay_amount;
+                }
+
+                $transaction->update(['bills' => $processed_bills_ids]);
+
+                if ($id_donation) {
+                    $donation_model = Donation::select('id', 'used', 'remaining')->whereId($id_donation)->first();
+                    $donation_model->used += $donation;
+                    $donation_model->remaining -= $donation;
+                    $donation_model->save();
 
                     DonationHistory::create([
-                        'id_donation' => $transaction->id_donation,
+                        'id_donation' => $id_donation,
                         'id_transaction' => $transaction->id,
                         'id_student' => $transaction->id_student,
                         'description' => $donation_descr,
-                        'nominal' => $transaction->donation,
+                        'nominal' => $donation,
                         'paid_at' => $transaction->paid_at,
                     ]);
                 }
@@ -862,12 +894,12 @@ class TransactionController extends Controller
         if ($error == false) {
             $response = [
                 'status' => true,
-                'message' => __('message.payment_success', ['label' => __($this->title['payment'])])
+                'message' => __('message.payment_success', ['label' => __($this->title['payment'])]),
             ];
         } else {
             $response = [
                 'status' => false,
-                'message' => $error
+                'message' => $error,
             ];
         }
 
@@ -878,14 +910,15 @@ class TransactionController extends Controller
     {
         $deposit = (object) [];
 
-        DB::transaction(function() use($request, &$deposit) {
+        DB::transaction(function () use ($request, &$deposit) {
             $trans = $request->transaction;
             $transactions = [];
             $total = 0;
 
             foreach ($trans as $t) {
-                if (empty($t))
+                if (empty($t)) {
                     continue;
+                }
 
                 $transaction = Transaction::select('id', 'unique_code', 'total', 'status_deposit')->whereId($t)->first();
                 $transaction->status_deposit = TransactionDepositStatus::Deposited->value;
@@ -907,8 +940,8 @@ class TransactionController extends Controller
             'status' => true,
             'message' => __('message.create_success', ['label' => __($this->title['cash'])]),
             'data' => [
-                'print' => route('finance.transaction.print.cash', $deposit->encrypted_id)
-            ]
+                'print' => route('finance.transaction.print.cash', $deposit->encrypted_id),
+            ],
         ];
 
         return response()->json($response);
@@ -922,8 +955,9 @@ class TransactionController extends Controller
             $total = 0;
 
             foreach ($trans as $t) {
-                if (empty($t))
+                if (empty($t)) {
                     continue;
+                }
 
                 $transaction = Transaction::select('id', 'unique_code', 'status_deposit_code')->whereId($t)->first();
                 $transaction->status_deposit_code = TransactionDepositStatus::Deposited->value;
@@ -936,13 +970,13 @@ class TransactionController extends Controller
             UniqueCodeDeposit::create([
                 'dates' => $request->dates,
                 'transactions' => $transactions,
-                'total' => $total
+                'total' => $total,
             ]);
         });
 
         $response = [
             'status' => true,
-            'message' => __('message.create_success', ['label' => __($this->title['unique-code'])])
+            'message' => __('message.create_success', ['label' => __($this->title['unique-code'])]),
         ];
 
         return response()->json($response);
@@ -950,10 +984,10 @@ class TransactionController extends Controller
 
     public function storeVerifyCash(TransactionCashVerifyRequest $request, CashDeposit $deposit)
     {
-        DB::transaction(function() use($request, $deposit) {
+        DB::transaction(function () use ($request, $deposit) {
             $request->merge([
                 'verified_at' => date('Y-m-d H:i:s'),
-                'verified_by' => Auth::id()
+                'verified_by' => Auth::id(),
             ]);
 
             $deposit->update($request->all());
@@ -962,7 +996,7 @@ class TransactionController extends Controller
                 foreach ($deposit->transactions as $t) {
                     $transaction = Transaction::select('id', 'status_deposit')->whereId($t)->first();
                     $transaction->update([
-                        'status_deposit' => TransactionDepositStatus::NotDeposit->value
+                        'status_deposit' => TransactionDepositStatus::NotDeposit->value,
                     ]);
                 }
             }
@@ -976,7 +1010,7 @@ class TransactionController extends Controller
         DB::transaction(function () use ($request, $deposit) {
             $request->merge([
                 'verified_at' => date('Y-m-d H:i:s'),
-                'verified_by' => Auth::id()
+                'verified_by' => Auth::id(),
             ]);
 
             $deposit->update($request->all());
@@ -985,7 +1019,7 @@ class TransactionController extends Controller
                 foreach ($deposit->transactions as $t) {
                     $transaction = Transaction::select('id', 'status_deposit_code')->whereId($t)->first();
                     $transaction->update([
-                        'status_deposit_code' => TransactionDepositStatus::NotDeposit->value
+                        'status_deposit_code' => TransactionDepositStatus::NotDeposit->value,
                     ]);
                 }
             }
@@ -1005,8 +1039,8 @@ class TransactionController extends Controller
         $type_bill = TransactionFlag::Tagihan->value;
         $type_topup = TransactionFlag::TopupSaldo->value;
 
-        return view($this->path['cash'] . 'edit', [
-            'title' => __($this->title_prefix) . ' - ' . __($this->title['cash']),
+        return view($this->path['cash'].'edit', [
+            'title' => __($this->title_prefix).' - '.__($this->title['cash']),
             'icon' => $this->icon,
             'types' => $types,
             'type_bill' => $type_bill,
@@ -1026,8 +1060,8 @@ class TransactionController extends Controller
         $type_bill = TransactionFlag::Tagihan->value;
         $type_topup = TransactionFlag::TopupSaldo->value;
 
-        return view($this->path['unique-code'] . 'edit', [
-            'title' => __($this->title_prefix) . ' - ' . __($this->title['unique-code']),
+        return view($this->path['unique-code'].'edit', [
+            'title' => __($this->title_prefix).' - '.__($this->title['unique-code']),
             'icon' => $this->icon,
             'types' => $types,
             'type_bill' => $type_bill,
@@ -1041,7 +1075,7 @@ class TransactionController extends Controller
         $message = '';
         $transaction = Transaction::findOrFail(Crypt::decrypt($request->id));
 
-        DB::transaction(function() use($request, $transaction, &$message) {
+        DB::transaction(function () use ($request, $transaction, &$message) {
             if ($request->status == 'paid') {
                 $update = [
                     'status' => TransactionStatus::Paid->value,
@@ -1056,32 +1090,33 @@ class TransactionController extends Controller
 
                 $transaction->update($update);
 
-                if ($transaction->unique_code > 0)
+                if ($transaction->unique_code > 0) {
                     TransactionPaymentCode::whereCode($transaction->unique_code)->delete();
+                }
 
                 if ($transaction->is_tagihan) {
                     foreach ($transaction->bills as $b) {
-                        $trans_bill =  TransactionBill::select('id', 'id_bill', 'id_student', 'total', 'status', 'branch_id')
+                        $trans_bill = TransactionBill::select('id', 'id_bill', 'id_student', 'total', 'status', 'branch_id')
                             ->with([
-                                'bill' => fn($query) => $query->select('id', 'id_year', 'id_type'),
+                                'bill' => fn ($query) => $query->select('id', 'id_year', 'id_type'),
                                 'student' => function ($query) {
                                     $query->select('id', 'id_class')
-                                        ->with(['class' => fn($qc) => $qc->select('id', 'level_education', 'level_class')]);
-                                }
+                                        ->with(['class' => fn ($qc) => $qc->select('id', 'level_education', 'level_class')]);
+                                },
                             ])
                             ->whereId($b)
                             ->first();
 
                         $trans_bill->update([
                             'id_transaction' => $transaction->id,
-                            'status' => TransactionStatus::Paid->value
+                            'status' => TransactionStatus::Paid->value,
                         ]);
 
                         TransactionBill::updateReport($trans_bill, $transaction->paid_at);
                     }
 
                     event(new TransactionBillPaid($transaction));
-                } else if ($transaction->is_setor_tabungan) {
+                } elseif ($transaction->is_setor_tabungan) {
                     event(new SavingsDepositPaid($transaction));
                 } else { // Topup Saldo
                     $parent = Parents::select('id', 'balance')->whereId($transaction->id_parent)->first();
@@ -1092,7 +1127,7 @@ class TransactionController extends Controller
                         'id_parent' => $parent->id,
                         'id_transaction' => $transaction->id,
                         'debit' => $transaction->subtotal,
-                        'balance' => $parent->balance
+                        'balance' => $parent->balance,
                     ]);
                 }
 
@@ -1105,7 +1140,7 @@ class TransactionController extends Controller
 
         $response = [
             'status' => true,
-            'message' => $message
+            'message' => $message,
         ];
 
         return response()->json($response);
@@ -1119,12 +1154,13 @@ class TransactionController extends Controller
             $total = 0;
 
             foreach ($trans as $t) {
-                if (empty($t))
+                if (empty($t)) {
                     continue;
+                }
 
                 $transaction = Transaction::select('id', 'unique_code', 'total')->whereId($t)->first();
                 $transaction->update([
-                    'status_deposit' => TransactionDepositStatus::Deposited->value
+                    'status_deposit' => TransactionDepositStatus::Deposited->value,
                 ]);
 
                 $total += ($transaction->total - $transaction->unique_code);
@@ -1132,15 +1168,17 @@ class TransactionController extends Controller
             }
 
             foreach ($deposit->transactions as $t) {
-                if (empty($t))
+                if (empty($t)) {
                     continue;
+                }
 
-                if (in_array($t, $transactions))
+                if (in_array($t, $transactions)) {
                     continue;
+                }
 
                 $transaction = Transaction::select('id', 'status_deposit')->whereId($t)->first();
                 $transaction->update([
-                    'status_deposit' => TransactionDepositStatus::NotDeposit->value
+                    'status_deposit' => TransactionDepositStatus::NotDeposit->value,
                 ]);
             }
 
@@ -1156,8 +1194,8 @@ class TransactionController extends Controller
             'status' => true,
             'message' => __('message.create_success', ['label' => __($this->title['cash'])]),
             'data' => [
-                'print' => route('finance.transaction.print.cash', $deposit->encrypted_id)
-            ]
+                'print' => route('finance.transaction.print.cash', $deposit->encrypted_id),
+            ],
         ];
 
         return response()->json($response);
@@ -1171,12 +1209,13 @@ class TransactionController extends Controller
             $total = 0;
 
             foreach ($trans as $t) {
-                if (empty($t))
+                if (empty($t)) {
                     continue;
+                }
 
                 $transaction = Transaction::select('id', 'unique_code')->whereId($t)->first();
                 $transaction->update([
-                    'status_deposit_code' => TransactionDepositStatus::Deposited->value
+                    'status_deposit_code' => TransactionDepositStatus::Deposited->value,
                 ]);
 
                 $total += $transaction->unique_code;
@@ -1184,28 +1223,30 @@ class TransactionController extends Controller
             }
 
             foreach ($deposit->transactions as $t) {
-                if (empty($t))
+                if (empty($t)) {
                     continue;
+                }
 
-                if (in_array($t, $transactions))
+                if (in_array($t, $transactions)) {
                     continue;
+                }
 
                 $transaction = Transaction::select('id', 'status_deposit_code')->whereId($t)->first();
                 $transaction->update([
-                    'status_deposit_code' => TransactionDepositStatus::NotDeposit->value
+                    'status_deposit_code' => TransactionDepositStatus::NotDeposit->value,
                 ]);
             }
 
             $deposit->update([
                 'dates' => $request->dates,
                 'transactions' => $transactions,
-                'total' => $total
+                'total' => $total,
             ]);
         });
 
         $response = [
             'status' => true,
-            'message' => __('message.create_success', ['label' => __($this->title['unique-code'])])
+            'message' => __('message.create_success', ['label' => __($this->title['unique-code'])]),
         ];
 
         return response()->json($response);
@@ -1213,11 +1254,11 @@ class TransactionController extends Controller
 
     public function destroyCash(CashDeposit $deposit)
     {
-        DB::transaction(function() use($deposit) {
+        DB::transaction(function () use ($deposit) {
             foreach ($deposit->transactions as $t) {
                 $transaction = Transaction::select('id')->whereId($t)->first();
                 $transaction->update([
-                    'status_deposit' => TransactionDepositStatus::NotDeposit->value
+                    'status_deposit' => TransactionDepositStatus::NotDeposit->value,
                 ]);
             }
 
@@ -1226,7 +1267,7 @@ class TransactionController extends Controller
 
         $response = [
             'status' => true,
-            'message' => __('message.delete_success', ['label' => __($this->title['cash'])])
+            'message' => __('message.delete_success', ['label' => __($this->title['cash'])]),
         ];
 
         return response()->json($response);
@@ -1238,7 +1279,7 @@ class TransactionController extends Controller
             foreach ($deposit->transactions as $t) {
                 $transaction = Transaction::select('id')->whereId($t)->first();
                 $transaction->update([
-                    'status_deposit_code' => TransactionDepositStatus::NotDeposit->value
+                    'status_deposit_code' => TransactionDepositStatus::NotDeposit->value,
                 ]);
             }
 
@@ -1247,7 +1288,7 @@ class TransactionController extends Controller
 
         $response = [
             'status' => true,
-            'message' => __('message.delete_success', ['label' => __($this->title['unique-code'])])
+            'message' => __('message.delete_success', ['label' => __($this->title['unique-code'])]),
         ];
 
         return response()->json($response);
@@ -1266,37 +1307,37 @@ class TransactionController extends Controller
                     'bill' => function ($query) {
                         $query->select('id', 'id_year', 'id_type', 'name')
                             ->with([
-                                'year' => fn($qy) => $qy->select('id', 'start_year', 'end_year'),
-                                'type' => fn($qt) => $qt->select('id', 'name', 'period'),
+                                'year' => fn ($qy) => $qy->select('id', 'start_year', 'end_year'),
+                                'type' => fn ($qt) => $qt->select('id', 'name', 'period'),
                             ]);
-                    }
+                    },
                 ])
                 ->whereIdTransaction($transaction->id)
                 ->orderBy('due_date')
                 ->get();
-        } else if ($transaction->is_pengambilan_tabungan) {
+        } elseif ($transaction->is_pengambilan_tabungan) {
             $table_savings = (new SavingsWithdrawal)->getTable();
             $table_student = (new Student)->getTable();
             $table_class = (new Classroom)->getTable();
             $withdrawals = SavingsWithdrawal::select(
-                $table_savings . '.id',
-                $table_savings . '.number',
-                $table_savings . '.dates',
-                $table_savings . '.total',
-                $table_student . '.nis',
-                $table_student . '.name',
-                $table_class . '.name AS class_name'
+                $table_savings.'.id',
+                $table_savings.'.number',
+                $table_savings.'.dates',
+                $table_savings.'.total',
+                $table_student.'.nis',
+                $table_student.'.name',
+                $table_class.'.name AS class_name'
             )
-                ->join($table_student, $table_student . '.id', '=', $table_savings . '.id_student')
-                ->join($table_class, $table_class . '.id', '=', $table_student . '.id_class')
-                ->whereIn($table_savings . '.id', $transaction->bills)
-                ->where($table_savings . '.branch_id', Auth::user()->branch_id)
+                ->join($table_student, $table_student.'.id', '=', $table_savings.'.id_student')
+                ->join($table_class, $table_class.'.id', '=', $table_student.'.id_class')
+                ->whereIn($table_savings.'.id', $transaction->bills)
+                ->where($table_savings.'.branch_id', Auth::user()->branch_id)
                 ->withoutGlobalScope(BranchScope::class)
-                ->orderBy($table_class . '.name')
+                ->orderBy($table_class.'.name')
                 ->get();
         }
 
-        $pdf = PDF::loadView($this->path['transaction'] . 'pdf-receipt', [
+        $pdf = PDF::loadView($this->path['transaction'].'pdf-receipt', [
             'transaction' => $transaction,
             'bills' => $bills,
             'withdrawals' => $withdrawals,
@@ -1304,20 +1345,20 @@ class TransactionController extends Controller
             'period' => (object) [
                 'monthly' => $period_monthly,
                 'semester' => $period_semester,
-            ]
+            ],
         ]);
 
         // $pdf->setPaper([0, 0, 529, 831], 'landscape');
         $pdf->setPaper([0, 0, 529, 600], 'landscape');
 
-        return $pdf->stream($transaction->number . '-' . date('YmdHis') . '.pdf');
+        return $pdf->stream($transaction->number.'-'.date('YmdHis').'.pdf');
     }
 
     public function printCash(CashDeposit $deposit)
     {
         $time = strtotime($deposit->end_date);
 
-        $pdf = PDF::loadView($this->path['cash'] . 'pdf', [
+        $pdf = PDF::loadView($this->path['cash'].'pdf', [
             'deposit' => $deposit,
             'month' => date('n', $time),
             'year' => date('Y', $time),
@@ -1325,16 +1366,25 @@ class TransactionController extends Controller
 
         $pdf->setPaper('A4');
 
-        return $pdf->stream($deposit->number . '-' . date('YmdHis') . '.pdf');
+        return $pdf->stream($deposit->number.'-'.date('YmdHis').'.pdf');
     }
 
     public function getBill(Request $request)
     {
-        $search = explode(' - ', $request->search);
-        $student = Student::select('id')->whereNis($search[0])->first();
+        // 1. Perbaikan pencarian NIS + Nama
+        $searchData = explode(' - ', $request->search);
+        $nisNumber = trim($searchData[0]);
+
+        $queryStudent = Student::select('id')->where('nis', $nisNumber);
+        if (isset($searchData[1])) {
+            $queryStudent->where('name', trim($searchData[1]));
+        }
+
+        $student = $queryStudent->first();
         $student_id = (empty($student)) ? 0 : $student->id;
+
         $transaction = TransactionBill::select('id', 'id_bill', 'semester', 'months', 'years', 'total', 'due_date')
-            ->with(['bill' => fn($query) => $query->select('id', 'id_type', 'name')->with(['type' => fn($qt) => $qt->select('id', 'name', 'period')])])
+            ->with(['bill' => fn ($query) => $query->select('id', 'id_type', 'name')->with(['type' => fn ($qt) => $qt->select('id', 'name', 'period')])])
             ->whereIdStudent($student_id)
             ->notPaid()
             ->orderBy('due_date')
@@ -1351,26 +1401,33 @@ class TransactionController extends Controller
                     ->whereIdBill($t->bill->id)
                     ->first();
 
-                if (!empty($bill_discount)) {
-                    if (empty($bill_discount->applies_to))
+                if (! empty($bill_discount)) {
+                    if (empty($bill_discount->applies_to)) {
                         $discount = $bill_discount->nominal;
-                    else {
+                    } else {
                         $applies = json_decode(json_encode($bill_discount->applies_to), true);
-
                         if ($t->bill->type->is_period_monthly) {
-                            $month = $t->years . '-' . Str::padLeft($t->months, 2, '0');
-
-                            if (array_key_exists($month, $applies))
+                            $month = $t->years.'-'.Str::padLeft($t->months, 2, '0');
+                            if (array_key_exists($month, $applies)) {
                                 $discount = $bill_discount->nominal;
+                            }
                         } else {
-                            if (array_key_exists($t->semester, $applies))
+                            if (array_key_exists($t->semester, $applies)) {
                                 $discount = $bill_discount->nominal;
+                            }
                         }
                     }
                 }
 
                 $total = $t->total - $discount;
-                $bills[$t->id] = $total;
+
+                // --- INI ADALAH PERUBAHANNYA ---
+                // Kita simpan sebagai object/array yang berisi nominal dan id_type
+                $bills[$t->id] = [
+                    'nominal' => $total,
+                    'id_type' => $t->bill->id_type, // Mengambil id_type dari relasi bill
+                ];
+                // -------------------------------
 
                 array_push($transactions, (object) [
                     'id' => $t->id,
@@ -1383,15 +1440,16 @@ class TransactionController extends Controller
             }
         }
 
-        $table = view($this->path['bill'] . 'get-bill', ['transactions' => $transactions])->render();
+        $table = view($this->path['bill'].'get-bill', ['transactions' => $transactions])->render();
+
         $response = [
             'status' => true,
             'message' => 'Ok',
             'data' => [
                 'table' => $table,
                 'bills' => $bills,
-                'student' => $student_id
-            ]
+                'student' => $student_id,
+            ],
         ];
 
         return response()->json($response);
