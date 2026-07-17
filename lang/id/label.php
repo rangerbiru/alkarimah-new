@@ -1,4 +1,5 @@
 <?php
+
 return [
     'no' => 'No',
     'success' => 'Berhasil',
@@ -619,7 +620,6 @@ return [
     'sabtu' => 'Sabtu',
     'minggu' => 'Minggu',
 
-
     // Data Diri Siswa
     'nickname' => 'Nama Panggilan',
     'weight' => 'Berat Badan (Kg)',
@@ -705,4 +705,6 @@ return [
     'parent_data' => 'Data Orang Tua & Wali',
     'address_data' => 'Data Alamat',
     'other_data' => 'Data Lainnya',
+
+    'total_payment' => 'Jumlah Bayar',
 ];

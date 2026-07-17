@@ -27,7 +27,9 @@ use Illuminate\Support\Str;
 class PaymentController extends Controller
 {
     private $title = 'label.payment';
+
     private $icon = 'ti ti-credit-card-filled';
+
     private $path = 'backend.finance.payment.';
 
     public function index()
@@ -45,7 +47,7 @@ class PaymentController extends Controller
         $student_first = $st->id;
         $payment_code = TransactionPaymentCode::generate(TransactionFlag::Tagihan->value);
 
-        return view($this->path . 'index', [
+        return view($this->path.'index', [
             'title' => __($this->title),
             'icon' => $this->icon,
             'path' => $this->path,
@@ -60,10 +62,11 @@ class PaymentController extends Controller
 
     public function waiting(Transaction $transaction)
     {
-        if ($transaction->is_paid)
+        if ($transaction->is_paid) {
             return Redirect::route('finance.payment.show', $transaction->encrypted_id);
+        }
 
-        return view($this->path . 'waiting', [
+        return view($this->path.'waiting', [
             'title' => __($this->title),
             'icon' => $this->icon,
             'transaction' => $transaction,
@@ -75,17 +78,17 @@ class PaymentController extends Controller
     {
         $status_paid = TransactionStatus::Paid->value;
 
-        return view($this->path . 'history', [
+        return view($this->path.'history', [
             'title' => __($this->title),
             'icon' => $this->icon,
             'path' => $this->path,
-            'status_paid' => $status_paid
+            'status_paid' => $status_paid,
         ]);
     }
 
     public function show(Transaction $transaction)
     {
-        return view($this->path . 'show', [
+        return view($this->path.'show', [
             'title' => __($this->title),
             'icon' => $this->icon,
             'transaction' => $transaction,
@@ -98,8 +101,9 @@ class PaymentController extends Controller
         $bills = $request->bills;
         $transaction = (object) [];
 
-        if (empty($bills))
+        if (empty($bills)) {
             $error = __('string.not_bill_selected');
+        }
 
         if ($error == false) {
             $status = '';
@@ -107,47 +111,62 @@ class PaymentController extends Controller
             $bills_id = [];
             $student = $request->id_student;
 
+            // Hitung total murni dari tagihan yang dicentang
             foreach ($bills as $id => $nominal) {
                 $subtotal += $nominal;
                 array_push($bills_id, $id);
 
-                $trans_bill =  TransactionBill::select('id_student')->whereId($id)->first();
-
+                $trans_bill = TransactionBill::select('id_student')->whereId($id)->first();
                 if ($trans_bill->id_student != $student) {
                     Log::alert('-----');
                     Log::alert('Payment/store - failed');
                     Log::alert('Message : ID Student pada bills tidak sama dengan ID student yang dipilih');
-                    Log::alert('Data : ' . json_encode($request->all()));
-
+                    Log::alert('Data : '.json_encode($request->all()));
                     $error = __('string.something_went_wrong');
                     break;
                 }
             }
 
+            // --- AWAL LOGIKA CICILAN ---
+            $is_cicilan = $request->is_cicilan == 1;
+            $cicilan_nominal = floatval($request->cicilan_nominal);
+
+            // Tentukan nominal yang BENAR-BENAR dibayar (Actual Subtotal)
+            if ($is_cicilan && $cicilan_nominal > 0) {
+                // Pastikan nominal cicilan tidak melebihi jumlah tagihan yg dicentang
+                $actual_subtotal = min($cicilan_nominal, $subtotal);
+            } else {
+                $actual_subtotal = $subtotal;
+            }
+            // --- AKHIR LOGIKA CICILAN ---
+
             if ($request->payment_method == TransactionMethod::TopupBalance->value) {
-                if ($subtotal > Auth::user()->parent->balance)
+                // Cek saldo orang tua menggunakan nominal actual_subtotal
+                if ($actual_subtotal > Auth::user()->parent->balance) {
                     $error = __('string.balance_insufficient');
+                }
             }
 
             if ($error == false) {
-                $pending = Transaction::with(['student' => fn($query) => $query->select('id')])
-                    ->whereHas('student', fn($query) => $query->whereIdParent(Auth::user()->parent->id))
+                $pending = Transaction::with(['student' => fn ($query) => $query->select('id')])
+                    ->whereHas('student', fn ($query) => $query->whereIdParent(Auth::user()->parent->id))
                     ->tagihan()
                     ->notPaid()
                     ->count();
 
-                if ($pending > 0)
+                if ($pending > 0) {
                     $error = strip_tags(__('string.you_have_payment_pending'));
+                }
             }
 
             if ($error == false) {
-                DB::transaction(function () use ($request, $subtotal, $bills_id, &$transaction, &$status) {
+                DB::transaction(function () use ($request, $actual_subtotal, $bills, &$transaction, &$status) {
                     $status = TransactionStatus::NotPaid->value;
+
                     $merge = [
                         'dates' => date('Y-m-d'),
-                        'bills' => $bills_id,
-                        'subtotal' => $subtotal,
-                        'total' => $subtotal + $request->unique_code,
+                        'subtotal' => $actual_subtotal,
+                        'total' => $actual_subtotal + $request->unique_code,
                         'flag' => TransactionFlag::Tagihan->value,
                     ];
 
@@ -157,54 +176,99 @@ class PaymentController extends Controller
                         $merge['paid_at'] = date('Y-m-d H:i:s');
                         $merge['paid_by'] = 0;
                         $merge['unique_code'] = 0;
-                        $merge['total'] = $subtotal;
-                    } else
+                        $merge['total'] = $actual_subtotal;
+                    } else {
                         TransactionPaymentCode::whereCode($request->unique_code)->update(['status' => PaymentCodeStatus::Used->value]);
+                    }
 
                     $request->merge($merge);
                     $transaction = Transaction::create($request->all());
 
-                    if ($request->payment_method == TransactionMethod::TopupBalance->value) {
-                        foreach ($bills_id as $b) {
-                            $trans_bill =  TransactionBill::select('id', 'id_bill', 'id_student', 'total', 'status', 'branch_id')
-                                ->with([
-                                    'bill' => fn($query) => $query->select('id', 'id_type', 'id_year'),
-                                    'student' => function ($query) {
-                                        $query->select('id', 'id_class')
-                                            ->with(['class' => fn($qc) => $qc->select('id', 'level_education', 'level_class')]);
-                                    }
-                                ])
-                                ->whereId($b)
-                                ->first();
+                    // --- ALGORITMA WATERFALL & SPLIT BILL ---
+                    $remaining_payment = $actual_subtotal;
+                    $processed_bills_ids = [];
 
-                            $trans_bill->update([
-                                'id_transaction' => $transaction->id,
-                                'status' => TransactionStatus::Paid->value
-                            ]);
+                    foreach ($bills as $b_id => $b_nominal) {
+                        if ($remaining_payment <= 0) {
+                            break;
+                        } // Hentikan jika uang terdistribusi habis
 
-                            TransactionBill::updateReport($trans_bill, $transaction->paid_at);
+                        // PENTING: Jangan gunakan select('id', ...) di sini, panggil seluruh kolom
+                        // Tujuannya agar saat replicate() (duplikat), data bulan, tahun, & semester ikut tercopy
+                        $trans_bill = TransactionBill::with([
+                            'bill' => fn ($query) => $query->select('id', 'id_type', 'id_year'),
+                            'student' => function ($query) {
+                                $query->select('id', 'id_class')
+                                    ->with(['class' => fn ($qc) => $qc->select('id', 'level_education', 'level_class')]);
+                            },
+                        ])->find($b_id);
+
+                        if (! $trans_bill) {
+                            continue;
                         }
 
+                        // Tentukan berapa yang mampu dibayar untuk tagihan ini
+                        $pay_amount = min($remaining_payment, $trans_bill->total);
+
+                        if ($pay_amount == $trans_bill->total) {
+                            // LUNAS PENUH (Untuk tagihan ini)
+                            $trans_bill->update([
+                                'id_transaction' => $transaction->id,
+                                'status' => $status,
+                            ]);
+
+                            if ($status == TransactionStatus::Paid->value) {
+                                TransactionBill::updateReport($trans_bill, $transaction->paid_at);
+                            }
+                        } else {
+                            // CICILAN (PEMBAYARAN SEBAGIAN) -> SPLIT BILL
+                            $original_total = $trans_bill->total;
+                            $original_subtotal = $trans_bill->subtotal;
+
+                            // Langkah 1: Ubah nominal tagihan SAAT INI menjadi sejumlah uang cicilan
+                            $trans_bill->update([
+                                'total' => $pay_amount,
+                                'subtotal' => $pay_amount,
+                                'id_transaction' => $transaction->id,
+                                'status' => $status,
+                            ]);
+
+                            if ($status == TransactionStatus::Paid->value) {
+                                TransactionBill::updateReport($trans_bill, $transaction->paid_at);
+                            }
+
+                            // Langkah 2: DUPLIKAT baris untuk membuat sisa tagihannya
+                            $new_bill = $trans_bill->replicate();
+                            $new_bill->id_transaction = null;
+                            $new_bill->status = TransactionStatus::NotPaid->value; // Kembalikan statusnya ke 0 (Belum bayar)
+                            $new_bill->total = $original_total - $pay_amount;
+                            $new_bill->subtotal = $original_subtotal - $pay_amount;
+                            $new_bill->created_at = now();
+                            $new_bill->save();
+                        }
+
+                        array_push($processed_bills_ids, $b_id);
+                        $remaining_payment -= $pay_amount;
+                    }
+
+                    // Update Array tagihan yang terproses ke tabel Transaksi
+                    $transaction->update(['bills' => $processed_bills_ids]);
+
+                    // --- POTONG SALDO (Khusus Topup) ---
+                    if ($request->payment_method == TransactionMethod::TopupBalance->value) {
                         $parent = Parents::select('id', 'balance')->whereId(Auth::user()->parent->id)->first();
-                        $parent->balance -= $transaction->subtotal;
+                        $parent->balance -= $transaction->subtotal; // Memotong saldo berdasarkan nominal asli cicilan
                         $parent->save();
 
                         TopupHistory::create([
                             'id_parent' => $parent->id,
                             'id_transaction' => $transaction->id,
-                            'description' => 'Pembayaran Tagihan #' . $transaction->number,
+                            'description' => 'Pembayaran Tagihan #'.$transaction->number,
                             'credit' => $transaction->subtotal,
-                            'balance' => $parent->balance
+                            'balance' => $parent->balance,
                         ]);
 
                         event(new TransactionBillPaid($transaction));
-                    } else {
-                        foreach ($bills_id as $b) {
-                            TransactionBill::whereId($b)->update([
-                                'id_transaction' => $transaction->id,
-                                'status' => $status,
-                            ]);
-                        }
                     }
                 });
             }
@@ -216,22 +280,22 @@ class PaymentController extends Controller
                     'status' => true,
                     'message' => __('message.payment_success', ['label' => __($this->title)]),
                     'data' => [
-                        'redirect' => route('finance.payment.show', $transaction->encrypted_id)
-                    ]
+                        'redirect' => route('finance.payment.show', $transaction->encrypted_id),
+                    ],
                 ];
             } else {
                 $response = [
                     'status' => true,
                     'message' => __('message.process_success', ['label' => __($this->title)]),
                     'data' => [
-                        'redirect' => route('finance.payment.waiting', $transaction->encrypted_id)
-                    ]
+                        'redirect' => route('finance.payment.waiting', $transaction->encrypted_id),
+                    ],
                 ];
             }
         } else {
             $response = [
                 'status' => false,
-                'message' => $error
+                'message' => $error,
             ];
         }
 
@@ -245,7 +309,7 @@ class PaymentController extends Controller
     {
         if ($transaction->is_tagihan) {
             $redirect = route('finance.payment.index');
-        } else if ($transaction->is_setor_tabungan) {
+        } elseif ($transaction->is_setor_tabungan) {
             $redirect = route('finance.savings.index');
         } else { // Topup Saldo
             $redirect = route('finance.balance.index');
@@ -253,7 +317,7 @@ class PaymentController extends Controller
 
         Log::channel('payment')->info('-----');
         Log::channel('payment')->info('Moota/check');
-        Log::channel('payment')->info('Headers : ' . json_encode($transaction->toArray()));
+        Log::channel('payment')->info('Headers : '.json_encode($transaction->toArray()));
         Log::channel('payment')->info('-----');
 
         if ($transaction->status->value == TransactionStatus::Paid->value) {
@@ -261,8 +325,8 @@ class PaymentController extends Controller
                 'status' => true,
                 'message' => __('string.payment_received'),
                 'data' => [
-                    'redirect' => $redirect
-                ]
+                    'redirect' => $redirect,
+                ],
             ];
         } else {
             $response = [
@@ -285,7 +349,7 @@ class PaymentController extends Controller
             $redirect = route('finance.payment.index');
 
             TransactionBill::whereIdTransaction($transaction->id)->update(['id_transaction' => null]);
-        } else if ($transaction->is_setor_tabungan) {
+        } elseif ($transaction->is_setor_tabungan) {
             $label = __('label.savings_deposit');
             $redirect = route('finance.savings.index');
         } else { // Topup Saldo
@@ -299,8 +363,8 @@ class PaymentController extends Controller
             'status' => true,
             'message' => __('message.cancel_success', ['label' => $label]),
             'data' => [
-                'redirect' => $redirect
-            ]
+                'redirect' => $redirect,
+            ],
         ];
 
         return response()->json($response);
@@ -310,8 +374,8 @@ class PaymentController extends Controller
     {
         $student = $request->student;
         $pending = Transaction::select('id', 'id_student', 'number', 'total', 'payment_method')
-            ->with(['student' => fn($query) => $query->select('id')])
-            ->whereHas('student', fn($query) => $query->whereIdParent(Auth::user()->parent->id))
+            ->with(['student' => fn ($query) => $query->select('id')])
+            ->whereHas('student', fn ($query) => $query->whereIdParent(Auth::user()->parent->id))
             ->tagihan()
             ->notPaid()
             ->first();
@@ -322,11 +386,12 @@ class PaymentController extends Controller
                     'bill' => function ($query) {
                         $query->select('id', 'id_type', 'name')
                             ->with([
-                                'type' => fn($qt) => $qt->select('id', 'period')
+                                'type' => fn ($qt) => $qt->select('id', 'period'),
                             ]);
-                    }
+                    },
                 ])
                 ->whereIdStudent($student)
+                ->whereNull('id_transaction')
                 ->notPaid()
                 ->orderBy('due_date')
                 ->get();
@@ -341,26 +406,31 @@ class PaymentController extends Controller
                     ->whereIdBill($t->bill->id)
                     ->first();
 
-                if (!empty($bill_discount)) {
-                    if (empty($bill_discount->applies_to))
+                if (! empty($bill_discount)) {
+                    if (empty($bill_discount->applies_to)) {
                         $discount = $bill_discount->nominal;
-                    else {
+                    } else {
                         $applies = json_decode(json_encode($bill_discount->applies_to), true);
 
                         if ($t->bill->type->is_period_monthly) {
-                            $month = $t->years . '-' . Str::padLeft($t->months, 2, '0');
-
-                            if (array_key_exists($month, $applies))
+                            $month = $t->years.'-'.Str::padLeft($t->months, 2, '0');
+                            if (array_key_exists($month, $applies)) {
                                 $discount = $bill_discount->nominal;
+                            }
                         } else {
-                            if (array_key_exists($t->semester, $applies))
+                            if (array_key_exists($t->semester, $applies)) {
                                 $discount = $bill_discount->nominal;
+                            }
                         }
                     }
                 }
 
                 $total = $t->total - $discount;
-                $bill_list[$t->id] = $total;
+
+                $bill_list[$t->id] = [
+                    'nominal' => $total,
+                    'id_type' => $t->bill->id_type,
+                ];
 
                 array_push($bill, (object) [
                     'id' => $t->id,
@@ -375,20 +445,21 @@ class PaymentController extends Controller
 
             $period_monthly = BillPeriod::Monthly->value;
             $period_semester = BillPeriod::Semiannual->value;
-            $bills = view($this->path . 'get-bill', [
+
+            $bills = view($this->path.'get-bill', [
                 'bill' => $bill,
                 'bill_end' => count($transbill) - 1,
                 'period' => (object) [
                     'monthly' => $period_monthly,
                     'semester' => $period_semester,
-                ]
+                ],
             ])->render();
 
             $report = ReportStudent::select('bill_paid', 'bill_not_paid')->whereIdStudent($student)->first();
             $count_paid = 0;
             $count_not_paid = 0;
 
-            if (!empty($report)) {
+            if (! empty($report)) {
                 $count_paid = $report->bill_paid;
                 $count_not_paid = $report->bill_not_paid;
             }
@@ -403,15 +474,15 @@ class PaymentController extends Controller
                     'count' => [
                         'paid' => $count_paid,
                         'not_paid' => $count_not_paid,
-                    ]
-                ]
+                    ],
+                ],
             ];
         } else {
             $report = ReportStudent::select('bill_paid', 'bill_not_paid')->whereIdStudent($student)->first();
             $count_paid = 0;
             $count_not_paid = 0;
 
-            if (!empty($report)) {
+            if (! empty($report)) {
                 $count_paid = $report->bill_paid;
                 $count_not_paid = $report->bill_not_paid;
             }
@@ -428,8 +499,8 @@ class PaymentController extends Controller
                     'count' => [
                         'paid' => $count_paid,
                         'not_paid' => $count_not_paid,
-                    ]
-                ]
+                    ],
+                ],
             ];
         }
 
@@ -446,18 +517,18 @@ class PaymentController extends Controller
         $period_semester = BillPeriod::Semiannual->value;
 
         $transaction = Transaction::select('id', 'id_student', 'number', 'payment_method', 'paid_at', 'total', 'created_at', 'status')
-            ->with(['student' => fn($query) => $query->select('id')])
+            ->with(['student' => fn ($query) => $query->select('id')])
             ->whereHas('student', function ($query) use ($parent) {
                 $query->whereIdParent($parent);
             })
             ->tagihan();
 
-        if (!empty($request->search)) {
+        if (! empty($request->search)) {
             $search = $request->search;
             $transaction = $transaction->where(function ($query) use ($search) {
-                $query->where('number', 'like', '%' . $search . '%')
-                    ->orWhere('paid_at', 'like', '%' . $search . '%')
-                    ->orWhere('created_at', 'like', '%' . $search . '%');
+                $query->where('number', 'like', '%'.$search.'%')
+                    ->orWhere('paid_at', 'like', '%'.$search.'%')
+                    ->orWhere('created_at', 'like', '%'.$search.'%');
             });
         }
 
@@ -466,12 +537,12 @@ class PaymentController extends Controller
             ->offset($offset)
             ->get();
 
-        $list = view($this->path . 'get-history', [
+        $list = view($this->path.'get-history', [
             'transaction' => $transaction,
             'period' => (object) [
                 'monthly' => $period_monthly,
                 'semester' => $period_semester,
-            ]
+            ],
         ])->render();
 
         $response = [
@@ -479,8 +550,8 @@ class PaymentController extends Controller
             'message' => 'Ok',
             'data' => [
                 'count' => $transaction->count(),
-                'list' => $list
-            ]
+                'list' => $list,
+            ],
         ];
 
         return response()->json($response);
