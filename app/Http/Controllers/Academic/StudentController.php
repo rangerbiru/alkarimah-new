@@ -832,8 +832,7 @@ class StudentController extends Controller
                 }
 
                 $excelClassId = trim($row[71] ?? '');
-
-                $idClass = ! empty($excelClassId) ? $excelClassId : '-';
+                $idClass = ! empty($excelClassId) ? $excelClassId : 1;
 
                 $student = Student::create([
                     'id_parent' => $parent->id,

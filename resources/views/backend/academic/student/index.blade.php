@@ -201,28 +201,29 @@
                     },
                     {
                         class: "align-middle",
-                        render: (data, type, row, meta) => htmlEntities(row.nis)
+                        render: (data, type, row, meta) => htmlEntities(row.nis ?? '-')
                     },
                     {
                         class: "align-middle",
-                        render: (data, type, row, meta) => htmlEntities(row.name)
+                        render: (data, type, row, meta) => htmlEntities(row.name ?? '-')
                     },
                     {
                         class: "align-middle",
-                        render: (data, type, row, meta) => row.gender_name
+                        render: (data, type, row, meta) => htmlEntities(row.gender_name ?? '-')
                     },
                     {
                         class: "align-middle",
-                        render: (data, type, row, meta) => htmlEntities(row.class.name)
+                        // PERBAIKAN: Gunakan ?.name untuk mencegah error jika row.class null
+                        render: (data, type, row, meta) => htmlEntities(row.class?.name ?? '-')
                     },
                     {
                         class: "align-middle",
-                        render: (data, type, row, meta) => (row.parent == null) ? "-" : htmlEntities(row
-                            .parent.name)
+                        // PERBAIKAN: Gunakan ?.name untuk mencegah error jika row.parent null
+                        render: (data, type, row, meta) => htmlEntities(row.parent?.name ?? '-')
                     },
                     {
                         class: "align-middle",
-                        render: (data, type, row, meta) => row.status_badge
+                        render: (data, type, row, meta) => row.status_badge ?? '-'
                     },
                     {
                         class: "align-middle text-center",
@@ -238,29 +239,27 @@
                             url_destroy = url_destroy.replace("0", row.encrypted_id)
 
                             return `<div class="dropdown dropdown-link">
-                        <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fa-solid fa-ellipsis-vertical"></i>
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li>
-                                <a href="${url_history_move}" class="dropdown-item">
-                                    <i class="ti ti-history-toggle me-2"></i>{{ __('label.move_history') }}
-                                </a>
-                            </li>
-                            <li>
-                                <a href="${url_edit}" class="dropdown-item">
-                                    <i class="bx bx-pencil me-2"></i>${label_edit}
-                                </a>
-                            </li>
-                            <li>
-                                <a href="javascript:void(0)" class="dropdown-item text-danger" onclick="deleteConfirm('${url_destroy}', false, 'table-student')">
-                                    <i class="bx bx-trash me-2"></i>${label_delete}
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-
-`
+                                <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a href="${url_history_move}" class="dropdown-item">
+                                            <i class="ti ti-history-toggle me-2"></i>{{ __('label.move_history') }}
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="${url_edit}" class="dropdown-item">
+                                            <i class="bx bx-pencil me-2"></i>${label_edit}
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="javascript:void(0)" class="dropdown-item text-danger" onclick="deleteConfirm('${url_destroy}', false, 'table-student')">
+                                            <i class="bx bx-trash me-2"></i>${label_delete}
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>`
                         }
                     }
                 ]
