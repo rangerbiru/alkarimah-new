@@ -5,17 +5,19 @@ namespace App\Constants;
 abstract class EducationLevel
 {
     const Classes = [
-        'sd.1' => 1,
-        'sd.2' => 2,
-        'sd.3' => 3,
-        'sd.4' => 4,
-        'sd.5' => 5,
-        'sd.6' => 6,
-        'smp.1' => 7,
-        'smp.2' => 8,
-        'smp.3' => 9,
-        'sma.1' => 10,
-        'sma.2' => 11,
-        'sma.3' => 12,
+        'tk.1' => 1,
+        'tk.2' => 2,
+        'sd.1' => 3,
+        'sd.2' => 4,
+        'sd.3' => 5,
+        'sd.4' => 6,
+        'sd.5' => 7,
+        'sd.6' => 8,
+        'smp.1' => 9,
+        'smp.2' => 10,
+        'smp.3' => 11,
+        'sma.1' => 12,
+        'sma.2' => 13,
+        'sma.3' => 14,
     ];
 }
