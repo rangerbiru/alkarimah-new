@@ -40,9 +40,9 @@ class StudentRequest extends FormRequest
             'id_parent' => 'required',
             'religion' => 'required',
             'birthplace' => 'nullable|max:100',
-            'card_number' => 'required|max:50',
-            'id_asrama' => 'required',
-            'id_halaqah' => 'required',
+            'card_number' => 'nullable|max:50',
+            'id_asrama' => 'nullable',
+            'id_halaqah' => 'nullable',
             'id_class' => 'required',
             'school_from' => 'nullable|max:100',
             'entry_date' => 'required',
@@ -53,29 +53,30 @@ class StudentRequest extends FormRequest
         if ($this->method() == 'PUT') {
             $rules['nis'] = [
                 'required', 'max:50',
-                Rule::unique('App\Models\Student', 'nis')->ignore($this->student)
+                Rule::unique('App\Models\Student', 'nis')->ignore($this->student),
             ];
 
             $rules['nik'] = [
                 'nullable', 'max:16',
-                Rule::unique('App\Models\Student', 'nik')->ignore($this->student)
+                Rule::unique('App\Models\Student', 'nik')->ignore($this->student),
             ];
 
             $rules['nisn'] = [
                 'nullable', 'max:20',
-                Rule::unique('App\Models\Student', 'nisn')->ignore($this->student)
+                Rule::unique('App\Models\Student', 'nisn')->ignore($this->student),
             ];
 
             $rules['nis_local'] = [
                 'nullable', 'max:20',
-                Rule::unique('App\Models\Student', 'nis_local')->ignore($this->student)
+                Rule::unique('App\Models\Student', 'nis_local')->ignore($this->student),
             ];
         }
 
         return $rules;
     }
 
-    public function attributes() {
+    public function attributes()
+    {
         return [
             'nis' => __('label.nis'),
             'nis_local' => __('label.nis_local'),
@@ -101,7 +102,7 @@ class StudentRequest extends FormRequest
     {
         $this->merge([
             'spp' => str_replace('.', '', $this->spp),
-            'id_parent' => (empty($this->id_parent)) ? '' : Crypt::decrypt($this->id_parent)
+            'id_parent' => (empty($this->id_parent)) ? '' : Crypt::decrypt($this->id_parent),
         ]);
     }
 }

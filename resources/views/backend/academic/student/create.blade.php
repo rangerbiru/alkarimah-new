@@ -97,15 +97,17 @@
                     <div class="tab-pane border-0 pt-2" id="form-academic" role="tabpanel">
                         <div class="row">
                             <div class="col-sm-6 col-md-3">
-                                <x-form.input-text name="card_number" :label="__('label.student_card_number')" :old="old('card_number')" />
+                                <x-form.input-text name="card_number" :label="__('label.student_card_number')" :old="old('card_number')" optional />
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-sm-6 col-md-3">
-                                <x-form.select name="id_asrama" :label="__('label.asrama')" :option="$asramas" :old="old('id_asrama')" />
+                                <x-form.select name="id_asrama" :label="__('label.asrama')" :option="$asramas" :old="old('id_asrama')"
+                                    optional />
                             </div>
                             <div class="col-sm-6 col-md-3">
-                                <x-form.select name="id_halaqah" :label="__('label.halaqah')" :option="$halaqahs" :old="old('id_halaqah')" />
+                                <x-form.select name="id_halaqah" :label="__('label.halaqah')" :option="$halaqahs" :old="old('id_halaqah')"
+                                    optional />
                             </div>
                         </div>
                         <div class="row">

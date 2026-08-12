@@ -14,14 +14,16 @@ use Illuminate\Http\Request;
 class ClassController extends Controller
 {
     private $title = 'label.class';
+
     private $icon = 'bx bx-building';
+
     private $path = 'backend.academic.class.';
 
     public function index()
     {
         $count = Classroom::count();
 
-        return view($this->path . 'index', [
+        return view($this->path.'index', [
             'title' => __($this->title),
             'icon' => $this->icon,
             'count' => $count,
@@ -35,17 +37,17 @@ class ClassController extends Controller
         $start = $request->input('start');
 
         $class = Classroom::select('id', 'id_wali_kelas', 'name', 'level_education', 'level_class')
-            ->with(['waliKelas' => fn($query) => $query->select('id', 'name')]);
+            ->with(['waliKelas' => fn ($query) => $query->select('id', 'name')]);
 
         $class_count = $class->count();
 
-        if (empty($search))
+        if (empty($search)) {
             $class_filter = $class;
-        else {
+        } else {
             $class_filter = $class->where(function ($query) use ($search) {
-                $query->where('name', 'like', '%' . $search . '%')
-                    ->orWhere('level_education', 'like', '%' . $search . '%')
-                    ->orWhere('level_class', 'like', '%' . $search . '%');
+                $query->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('level_education', 'like', '%'.$search.'%')
+                    ->orWhere('level_class', 'like', '%'.$search.'%');
             });
         }
 
@@ -69,7 +71,7 @@ class ClassController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $class_count,
             'recordsFiltered' => $class_count_filter,
-            'data' => $class_arr
+            'data' => $class_arr,
         ];
 
         return response()->json($response);
@@ -80,11 +82,11 @@ class ClassController extends Controller
         $educations = Common::option('education_level');
         $wali_kelas = User::select('id', 'name')->whereRole(UserRole::WaliKelas)->orderBy('name')->pluck('name', 'id');
 
-        return view($this->path . 'create', [
-            'title' =>  __($this->title),
+        return view($this->path.'create', [
+            'title' => __($this->title),
             'icon' => $this->icon,
             'educations' => $educations,
-            'wali_kelas' => $wali_kelas
+            'wali_kelas' => $wali_kelas,
         ]);
     }
 
@@ -100,15 +102,14 @@ class ClassController extends Controller
         $educations = Common::option('education_level');
         $wali_kelas = User::select('id', 'name')->whereRole(UserRole::WaliKelas)->orderBy('name')->pluck('name', 'id');
 
-        return view($this->path . 'edit', [
+        return view($this->path.'edit', [
             'title' => __($this->title),
             'icon' => $this->icon,
             'class' => $class,
             'educations' => $educations,
-            'wali_kelas' => $wali_kelas
+            'wali_kelas' => $wali_kelas,
         ]);
     }
-
 
     public function update(ClassRequest $request, Classroom $class)
     {
@@ -129,8 +130,9 @@ class ClassController extends Controller
         $options = '<option value=""></option>';
         $class = Classroom::select('id', 'name')->whereLevelEducation($request->level)->orderBy('name')->get();
 
-        foreach ($class as $c)
-            $options .= '<option value="' . $c->id . '">' . $c->name . '</option>';
+        foreach ($class as $c) {
+            $options .= '<option value="'.$c->id.'">'.$c->name.'</option>';
+        }
 
         return response()->json(['option' => $options]);
     }
@@ -138,6 +140,12 @@ class ClassController extends Controller
     public function getOptionLevel(Request $request)
     {
         switch ($request->level) {
+            case EducationLevel::TK->value:
+                $class = [
+                    '1' => 'TK A',
+                    '2' => 'TK B',
+                ];
+                break;
             case EducationLevel::SD->value:
                 $class = [
                     '1' => '1 SD',
@@ -167,8 +175,9 @@ class ClassController extends Controller
 
         $options = '<option value=""></option>';
 
-        foreach ($class as $id => $name)
-            $options .= '<option value="' . $id . '">' . $name . '</option>';
+        foreach ($class as $id => $name) {
+            $options .= '<option value="'.$id.'">'.$name.'</option>';
+        }
 
         return response()->json(['option' => $options]);
     }
@@ -178,8 +187,9 @@ class ClassController extends Controller
         $options = '<option value=""></option>';
         $class = Classroom::select('id', 'name')->whereLevelClass($request->level)->orderByRaw('CAST(name AS UNSIGNED)')->get();
 
-        foreach ($class as $c)
-            $options .= '<option value="' . $c->id . '">' . $c->name . '</option>';
+        foreach ($class as $c) {
+            $options .= '<option value="'.$c->id.'">'.$c->name.'</option>';
+        }
 
         return response()->json(['option' => $options]);
     }
