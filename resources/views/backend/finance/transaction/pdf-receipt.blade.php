@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>{{ $transaction->number }}</title>
 
     <style>
@@ -124,7 +125,7 @@
         <table class="table">
             <tr>
                 <th style="width: 30px;">{{ __('label.no') }}</th>
-                
+
                 @if ($transaction->is_tagihan)
                     @php
                     $colspan = 4;

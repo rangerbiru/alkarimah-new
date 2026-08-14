@@ -20,7 +20,9 @@ class CashDeposit extends Model
     use HasFactory, LogsActivity;
 
     protected $table = 'cash_deposit';
+
     protected $guarded = ['id', 'created_at', 'created_by', 'updated_at', 'updated_by'];
+
     protected $fillable = [];
 
     /**
@@ -39,43 +41,43 @@ class CashDeposit extends Model
     protected function encryptedId(): Attribute
     {
         return Attribute::make(
-            get: fn() => Crypt::encrypt($this->id)
+            get: fn () => Crypt::encrypt($this->id)
         );
     }
 
     protected function dates(): Attribute
     {
         return Attribute::make(
-            set: fn($value) => date('Y-m-d', strtotime($value))
+            set: fn ($value) => date('Y-m-d', strtotime($value))
         );
     }
 
     protected function startDate(): Attribute
     {
         return Attribute::make(
-            set: fn($value) => date('Y-m-d', strtotime($value))
+            set: fn ($value) => date('Y-m-d', strtotime($value))
         );
     }
 
     protected function endDate(): Attribute
     {
         return Attribute::make(
-            set: fn($value) => date('Y-m-d', strtotime($value))
+            set: fn ($value) => date('Y-m-d', strtotime($value))
         );
     }
 
     protected function transactionDetail(): Attribute
     {
         return Attribute::make(
-            get: function() {
+            get: function () {
                 $transactions = [];
 
                 foreach ($this->transactions as $t) {
                     $trans = Transaction::select('id', 'id_student', 'id_parent', 'number', 'dates', 'subtotal', 'donation', 'unique_code',
-                            'total', 'payment_method', 'flag', 'paid_at', 'bills', 'status')
+                        'total', 'payment_method', 'flag', 'paid_at', 'bills', 'status')
                         ->with([
-                            'student' => fn($query) => $query->select('id', 'nis', 'name'),
-                            'parent' => fn($query) => $query->select('id', 'name', 'phone'),
+                            'student' => fn ($query) => $query->select('id', 'nis', 'name'),
+                            'parent' => fn ($query) => $query->select('id', 'name', 'phone'),
                         ])
                         ->whereId($t)
                         ->first();
@@ -83,10 +85,11 @@ class CashDeposit extends Model
                     $student = ['nis' => '', 'name' => ''];
                     $parent = ['name' => '', 'phone' => ''];
 
-                    if ($trans->flag->value == TransactionFlag::TopupSaldo->value)
+                    if ($trans->flag->value == TransactionFlag::TopupSaldo->value) {
                         $parent = ['name' => $trans->parent->name, 'phone' => $trans->parent->phone];
-                    else
+                    } else {
                         $student = ['nis' => $trans->student->nis, 'name' => $trans->student->name];
+                    }
 
                     array_push($transactions, (object) [
                         'number' => $trans->number,
@@ -113,7 +116,7 @@ class CashDeposit extends Model
     protected function isRejected(): Attribute
     {
         return Attribute::make(
-            get: fn() => $this->status->value == DepositStatus::Rejected->value
+            get: fn () => $this->status->value == DepositStatus::Rejected->value
         );
     }
 
@@ -145,7 +148,7 @@ class CashDeposit extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->setDescriptionForEvent(fn(string $eventName) => "This model has been {$eventName}")
+            ->setDescriptionForEvent(fn (string $eventName) => "This model has been {$eventName}")
             ->logOnly([
                 'number',
                 'dates',
@@ -176,6 +179,6 @@ class CashDeposit extends Model
         $count = self::whereMonth('dates', date('n'))->whereYear('dates', date('Y'))->count();
         $sequence = Str::padLeft($count + 1, 4, '0');
 
-        return 'SK' . date('Ym') . $sequence;
+        return 'SK'.date('Ym').$sequence;
     }
 }
