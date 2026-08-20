@@ -1,50 +1,57 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>{{ $transaction->number }}</title>
 
     <style>
-    @page {
-        margin: 35px
-    }
+        @page {
+            margin: 35px
+        }
 
-    body{
-        font-family: 'DejaVu Sans Mono';
-        font-size: 12px;
-        font-weight: bold;
-        color: rgb(67, 72, 78);
-    }
+        body {
+            font-family: 'DejaVu Sans Mono';
+            font-size: 12px;
+            font-weight: bold;
+            color: rgb(67, 72, 78);
+        }
 
-    .table th {
-        text-align: left;
-        border-bottom: 1px solid #caced3;
-        padding-bottom: 5px;
-    }
-    .table td {
-        padding-bottom: 5px;
-    }
-    .table td.border-top {
-        border-top: 1px solid #caced3;
-    }
-    .table-padding td {
-        padding: 3px 5px;
-        padding-left: 0;
-        vertical-align: top;
-    }
-    .table-padding .divide {
-        width: 21px;
-        text-align: center;
-    }
+        .table th {
+            text-align: left;
+            border-bottom: 1px solid #caced3;
+            padding-bottom: 5px;
+        }
 
-    .text-end {
-        text-align: right !important;
-    }
-    .text-center {
-        text-align: center !important;
-    }
+        .table td {
+            padding-bottom: 5px;
+        }
+
+        .table td.border-top {
+            border-top: 1px solid #caced3;
+        }
+
+        .table-padding td {
+            padding: 3px 5px;
+            padding-left: 0;
+            vertical-align: top;
+        }
+
+        .table-padding .divide {
+            width: 21px;
+            text-align: center;
+        }
+
+        .text-end {
+            text-align: right !important;
+        }
+
+        .text-center {
+            text-align: center !important;
+        }
     </style>
 </head>
+
 <body>
     <div style="border-bottom: 1px solid #caced3;padding-bottom: 5px;">
         <table>
@@ -65,21 +72,21 @@
                 <td style="width: 425px;">
                     <table class="table-padding">
                         @php
-                        if ($transaction->is_topup_saldo) {
-                            $name = $transaction->parent->name;
-                            $attr = __('label.phone_number');
-                            $attr_name = Common::phoneFormat($transaction->parent->phone);
-                        } else if ($transaction->is_pengambilan_tabungan) {
-                            $name = $transaction->personResponsible->name;
-                            $attr = __('label.phone_number');
-                            $attr_name = Common::phoneFormat($transaction->personResponsible->phone);
-                        } else {
-                            $name = $transaction->student->name;
-                            $attr = __('label.nis') . ' / ' . __('label.class');
-                            $attr_name = $transaction->student->nis . ' / ' . $transaction->student->class->name;
-                        }
+                            if ($transaction->is_topup_saldo) {
+                                $name = $transaction->parent->name;
+                                $attr = __('label.phone_number');
+                                $attr_name = Common::phoneFormat($transaction->parent->phone);
+                            } elseif ($transaction->is_pengambilan_tabungan) {
+                                $name = $transaction->personResponsible->name;
+                                $attr = __('label.phone_number');
+                                $attr_name = Common::phoneFormat($transaction->personResponsible->phone);
+                            } else {
+                                $name = $transaction->student->name;
+                                $attr = __('label.nis') . ' / ' . __('label.class');
+                                $attr_name = $transaction->student->nis . ' / ' . $transaction->student->class->name;
+                            }
 
-                        $cashier = ($transaction->is_method_cash) ? $transaction->cashier->name : Auth::user()->name;
+                            $cashier = $transaction->is_method_cash ? $transaction->cashier->name : Auth::user()->name;
                         @endphp
 
                         <tr>
@@ -128,7 +135,7 @@
 
                 @if ($transaction->is_tagihan)
                     @php
-                    $colspan = 4;
+                        $colspan = 4;
                     @endphp
 
                     @if ($transaction->discount == 0)
@@ -137,7 +144,7 @@
                         <th style="width: 315px;">{{ __('label.bill_name') }}</th>
                     @else
                         @php
-                        $colspan = 6;
+                            $colspan = 6;
                         @endphp
 
                         <th style="width: 100px;">{{ __('label.school_year') }}</th>
@@ -148,7 +155,7 @@
                     @endif
                 @elseif ($transaction->is_pengambilan_tabungan)
                     @php
-                    $colspan = 5;
+                        $colspan = 5;
                     @endphp
 
                     <th style="width: 130px;">{{ __('label.withdrawal_number') }}</th>
@@ -157,7 +164,7 @@
                     <th style="width: 105px;">{{ __('label.class') }}</th>
                 @else
                     @php
-                    $colspan = 2;
+                        $colspan = 2;
                     @endphp
                     <th style="width: 560px;">{{ __('label.bill_name') }}</th>
                 @endif
@@ -213,39 +220,49 @@
 
             {{-- Table Footer --}}
             <tr>
-                <td colspan="{{ $colspan }}" class="text-end border-top" style="padding-right: 5px;padding-top: 5px;">{{ __('label.subtotal') }}</td>
+                <td colspan="{{ $colspan }}" class="text-end border-top"
+                    style="padding-right: 5px;padding-top: 5px;">{{ __('label.subtotal') }}</td>
                 <td class="text-primary text-end border-top" style="width: 25px;padding-top: 5px;">Rp.</td>
-                <td class="text-end text-primary border-top" style="width: 100px;padding-top: 5px;">{{ number_format($transaction->subtotal, 0, '', '.') }}</td>
+                <td class="text-end text-primary border-top" style="width: 100px;padding-top: 5px;">
+                    {{ number_format($transaction->subtotal, 0, '', '.') }}</td>
             </tr>
 
             @if ($transaction->discount > 0)
                 <tr>
-                    <td colspan="{{ $colspan }}" class="text-end" style="padding-right: 5px;">{{ __('label.discount') }}</td>
+                    <td colspan="{{ $colspan }}" class="text-end" style="padding-right: 5px;">
+                        {{ __('label.discount') }}</td>
                     <td class="text-primary text-end pb-1 border-bottom-0" style="width: 25px;">Rp.</td>
-                    <td class="text-end text-primary pb-1 border-bottom-0" style="width: 100px;">{{ number_format($transaction->discount, 0, '', '.') }}</td>
+                    <td class="text-end text-primary pb-1 border-bottom-0" style="width: 100px;">
+                        {{ number_format($transaction->discount, 0, '', '.') }}</td>
                 </tr>
             @endif
 
             @if ($transaction->is_get_scholarship)
                 <tr>
-                    <td colspan="{{ $colspan }}" class="text-end" style="padding-right: 5px;">{{ __('label.scholarship') }}</td>
+                    <td colspan="{{ $colspan }}" class="text-end" style="padding-right: 5px;">
+                        {{ __('label.scholarship') }}</td>
                     <td class="pb-1 border-bottom-0 text-end">Rp.</td>
-                    <td class="text-end pb-1 border-bottom-0">{{ number_format($transaction->donation, 0, '', '.') }}</td>
+                    <td class="text-end pb-1 border-bottom-0">{{ number_format($transaction->donation, 0, '', '.') }}
+                    </td>
                 </tr>
             @endif
 
             @if ($transaction->unique_code > 0)
                 <tr>
-                    <td colspan="{{ $colspan }}" class="text-end" style="padding-right: 5px;">{{ __('label.unique_code') }}</td>
+                    <td colspan="{{ $colspan }}" class="text-end" style="padding-right: 5px;">
+                        {{ __('label.unique_code') }}</td>
                     <td class="pb-1 border-bottom-0 text-end">Rp.</td>
-                    <td class="text-end pb-1 border-bottom-0">{{ number_format($transaction->unique_code, 0, '', '.') }}</td>
+                    <td class="text-end pb-1 border-bottom-0">
+                        {{ number_format($transaction->unique_code, 0, '', '.') }}</td>
                 </tr>
             @endif
 
             <tr>
-                <td colspan="{{ $colspan }}" class="text-end" style="padding-right: 5px;">{{ __('label.total') }}</td>
+                <td colspan="{{ $colspan }}" class="text-end" style="padding-right: 5px;">{{ __('label.total') }}
+                </td>
                 <td class="text-success text-end fw-bold pb-1 border-bottom-0">Rp.</td>
-                <td class="text-end text-success fw-bold pb-1 border-bottom-0">{{ number_format($transaction->total, 0, '', '.') }}</td>
+                <td class="text-end text-success fw-bold pb-1 border-bottom-0">
+                    {{ number_format($transaction->total, 0, '', '.') }}</td>
             </tr>
         </table>
     </div>
@@ -269,4 +286,5 @@
         </table>
     </div>
 </body>
+
 </html>
