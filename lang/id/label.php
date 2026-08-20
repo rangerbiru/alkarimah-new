@@ -58,7 +58,7 @@ return [
     'end' => 'Akhir',
     'end_year' => 'Tahun Akhir',
     'wali_kelas' => 'Wali Kelas',
-    'level_class' => 'Tingkat Kelas',
+    'level_class' => 'Tingkat',
     'level_education' => 'Tingkat Pendidikan',
     'class' => 'Kelas',
     'parent' => 'Orang Tua',

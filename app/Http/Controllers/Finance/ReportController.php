@@ -92,7 +92,8 @@ class ReportController extends Controller
         $sum_remaining = 0;
 
         foreach ($classes as $c) {
-            $bill_progress[$c] = ['data' => [], 'total' => 0, 'paid' => 0, 'remaining' => 0, 'progress' => 0];
+            $levelName = new ReportBill(['level' => $c]);
+            $bill_progress[$c] = ['data' => [], 'total' => 0, 'paid' => 0, 'remaining' => 0, 'progress' => 0, 'level_name' => $levelName->level_name];
 
             $report = ReportBill::select('id', 'id_type', 'total', 'paid', 'remaining')
                 ->with(['type' => fn ($query) => $query->select('id', 'name')])
