@@ -1,37 +1,35 @@
 <tbody>
     @foreach ($report as $index => $r)
         @php
-            $progress = $r->total == 0 ? 0 : ($r->paid / $r->total) * 100;
+            $row_progress = $r->total == 0 ? 0 : ($r->paid / $r->total) * 100;
 
-            if ($progress >= 90) {
-                $progress_color = 'bg-success';
-            } elseif ($progress >= 26) {
-                $progress_color = 'bg-primary';
+            if ($row_progress >= 90) {
+                $row_progress_color = 'bg-success';
+            } elseif ($row_progress >= 26) {
+                $row_progress_color = 'bg-primary';
             } else {
-                $progress_color = 'bg-danger';
+                $row_progress_color = 'bg-danger';
             }
         @endphp
-
         <tr>
             <td class="ps-0">{{ $index + 1 }}</td>
-            <td>{{ $r->level_name }}</td>
+            <td>{{ 'Kelas ' . $r->level }}</td>
             <td class="text-end">{{ number_format($r->total, 0, '', '.') }}</td>
             <td class="text-end">{{ number_format($r->paid, 0, '', '.') }}</td>
             <td class="text-end">{{ number_format($r->remaining, 0, '', '.') }}</td>
             <td style="width: 100px;">
                 <div class="progress" role="progressbar" aria-label="Animated striped example"
-                    aria-valuenow="{{ $progress }}" aria-valuemin="0" aria-valuemax="100">
-                    <div class="progress-bar {{ $progress_color }} progress-bar-striped progress-bar-animated"
-                        style="width: {{ $progress }}%"></div>
+                    aria-valuenow="{{ $row_progress }}" aria-valuemin="0" aria-valuemax="100">
+                    <div class="progress-bar {{ $row_progress_color }} progress-bar-striped progress-bar-animated"
+                        style="width: {{ $row_progress }}%"></div>
                 </div>
             </td>
             <td style="width: 80px;">
-                {{ Common::decimalFormat($progress) . '%' }}
+                {{ Common::decimalFormat($row_progress) . '%' }}
             </td>
         </tr>
     @endforeach
 </tbody>
-
 <tfoot>
     <tr>
         <th class="ps-0 fw-bold" colspan="2">{{ __('label.total') }}</th>
