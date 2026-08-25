@@ -13,7 +13,7 @@
         @endphp
         <tr>
             <td class="ps-0">{{ $index + 1 }}</td>
-            <td>{{ 'Kelas ' . $r->level }}</td>
+            <td>{{ $r->level_name }}</td>
             <td class="text-end">{{ number_format($r->total, 0, '', '.') }}</td>
             <td class="text-end">{{ number_format($r->paid, 0, '', '.') }}</td>
             <td class="text-end">{{ number_format($r->remaining, 0, '', '.') }}</td>
