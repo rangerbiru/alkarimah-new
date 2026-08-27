@@ -168,6 +168,410 @@ class ReportController extends Controller
         ]);
     }
 
+    public function billPerType()
+    {
+        $education_levels = Common::option('education_level');
+        $year = Year::select('id')->active()->first();
+        $years = Year::selectRaw('id, CONCAT("Thn. Ajaran : ", start_year, " - ", end_year) AS start_year')
+            ->orderBy('start_year', 'desc')
+            ->pluck('start_year', 'id');
+
+        $bill_types = Bill::pluck('name', 'id');
+
+        return view($this->path.'bill-per-type', [
+            'title' => __($this->title_prefix).' - Laporan Tagihan Per Jenis',
+            'icon' => $this->icon,
+            'education_levels' => $education_levels,
+            'year' => $year,
+            'years' => $years,
+            'bill_types' => $bill_types,
+        ]);
+    }
+
+    public function downloadPdfBillPerType(Request $request)
+    {
+        $yearId = $request->year;
+        $education = $request->education;
+        $classLevel = $request->class;
+        $billTypeId = $request->bill_type;
+
+        $billName = Bill::find($billTypeId)->name ?? 'Semua Tagihan';
+
+        $studentIdsWithBills = TransactionBill::query()
+            ->when($billTypeId, function ($query) use ($billTypeId) {
+                $query->where('id_bill', $billTypeId);
+            })
+            ->when($yearId, function ($query) use ($yearId) {
+                $query->whereHas('bill', function ($q) use ($yearId) {
+                    $q->where('id_year', $yearId);
+                });
+            })
+            ->select('id_student')->distinct();
+
+        $students = Student::select('id', 'id_class', 'nis', 'name')
+            ->with(['class' => fn ($qc) => $qc->select('id', 'name')])
+            ->whereIn('id', $studentIdsWithBills)
+            ->whereHas('class', function ($qc) use ($education, $classLevel) {
+                if (! empty($education)) {
+                    $qc->where('level_education', $education);
+                }
+                if (! empty($classLevel)) {
+                    $qc->where('level_class', $classLevel);
+                }
+            })
+            ->orderBy('name')->get();
+
+        $data_arr = [];
+        $grand_total = 0;
+        $grand_paid = 0;
+        $grand_remaining = 0;
+
+        foreach ($students as $s) {
+            $tbQuery = TransactionBill::where('id_student', $s->id)
+                ->when($billTypeId, function ($q) use ($billTypeId) {
+                    $q->where('id_bill', $billTypeId);
+                })
+                ->when($yearId, function ($q) use ($yearId) {
+                    $q->whereHas('bill', function ($qb) use ($yearId) {
+                        $qb->where('id_year', $yearId);
+                    });
+                });
+
+            $total_amount = (clone $tbQuery)->sum('total');
+            $total_paid = (clone $tbQuery)->where('status', 1)->sum('total');
+            $total_remaining = (clone $tbQuery)->where('status', 0)->sum('total');
+
+            $grand_total += $total_amount;
+            $grand_paid += $total_paid;
+            $grand_remaining += $total_remaining;
+
+            $data_arr[] = (object) [
+                'nis' => $s->nis ?? '-',
+                'name' => $s->name ?? '-',
+                'class_name' => $s->class->name ?? '-',
+                'total_amount' => $total_amount,
+                'total_paid' => $total_paid,
+                'total_remaining' => $total_remaining,
+            ];
+        }
+
+        $pdf = PDF::loadView($this->path.'pdf.bill-per-type', [
+            'education' => strtoupper($education),
+            'bill_name' => $billName,
+            'data' => $data_arr,
+            'grand_total' => $grand_total,
+            'grand_paid' => $grand_paid,
+            'grand_remaining' => $grand_remaining,
+        ]);
+
+        $pdf->setPaper('A4', 'landscape');
+
+        $filename = 'Laporan-Tagihan-Per-Jenis-'.date('YmdHis').'.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    public function getTotalBillPerType(Request $request)
+    {
+        $year = $request->year;
+        $education = $request->education;
+        $classLevel = $request->class;
+        $billTypeId = $request->bill_type;
+
+        $tbQuery = TransactionBill::query()
+            ->whereHas('student', function ($query) use ($education, $classLevel) {
+                $query->whereHas('class', function ($qc) use ($education, $classLevel) {
+                    if (! empty($education)) {
+                        $qc->where('level_education', $education);
+                    }
+                    if (! empty($classLevel)) {
+                        $qc->where('level_class', $classLevel);
+                    }
+                });
+            })
+            ->when($billTypeId, function ($query) use ($billTypeId) {
+                $query->where('id_bill', $billTypeId);
+            })
+            ->when($year, function ($query) use ($year) {
+                $query->whereHas('bill', function ($q) use ($year) {
+                    $q->where('id_year', $year);
+                });
+            });
+
+        $total = (clone $tbQuery)->sum('total');
+        $paid = (clone $tbQuery)->where('status', 1)->sum('total');
+        $remaining = (clone $tbQuery)->where('status', 0)->sum('total');
+
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'total' => $total,
+                'paid' => $paid,
+                'remaining' => $remaining,
+            ],
+        ]);
+    }
+
+    public function datatableBillPerType(Request $request)
+    {
+        $year = $request->year;
+        $education = $request->education;
+        $classLevel = $request->class;
+        $billTypeId = $request->bill_type;
+
+        $search = $request->input('search')['value'];
+        $limit = $request->input('length');
+        $start = $request->input('start');
+
+        $studentIdsWithBills = TransactionBill::query()
+            ->when($billTypeId, function ($query) use ($billTypeId) {
+                $query->where('id_bill', $billTypeId);
+            })
+            ->when($year, function ($query) use ($year) {
+                $query->whereHas('bill', function ($q) use ($year) {
+                    $q->where('id_year', $year);
+                });
+            })
+            ->select('id_student')
+            ->distinct();
+
+        $studentQuery = Student::select('id', 'id_class', 'nis', 'name')
+            ->with(['class' => fn ($qc) => $qc->select('id', 'name')])
+            ->whereIn('id', $studentIdsWithBills)
+            ->whereHas('class', function ($qc) use ($education, $classLevel) {
+                if (! empty($education)) {
+                    $qc->where('level_education', $education);
+                }
+                if (! empty($classLevel)) {
+                    $qc->where('level_class', $classLevel);
+                }
+            });
+
+        $recordsTotal = $studentQuery->count();
+
+        if (! empty($search)) {
+            $studentQuery->where(function ($q) use ($search) {
+                $q->where('nis', 'like', '%'.$search.'%')
+                    ->orWhere('name', 'like', '%'.$search.'%')
+                    ->orWhereHas('class', function ($qc) use ($search) {
+                        $qc->where('name', 'like', '%'.$search.'%');
+                    });
+            });
+        }
+
+        $recordsFiltered = $studentQuery->count();
+
+        $students = $studentQuery->limit($limit)
+            ->offset($start)
+            ->orderBy('name')
+            ->get();
+
+        $data_arr = [];
+        foreach ($students as $s) {
+            $tbQuery = TransactionBill::where('id_student', $s->id)
+                ->when($billTypeId, function ($q) use ($billTypeId) {
+                    $q->where('id_bill', $billTypeId);
+                })
+                ->when($year, function ($q) use ($year) {
+                    $q->whereHas('bill', function ($qb) use ($year) {
+                        $qb->where('id_year', $year);
+                    });
+                });
+
+            $total_amount = (clone $tbQuery)->sum('total');
+            $total_paid = (clone $tbQuery)->where('status', 1)->sum('total');
+            $total_remaining = (clone $tbQuery)->where('status', 0)->sum('total');
+
+            $data_arr[] = [
+                'nis' => $s->nis,
+                'student_name' => $s->name,
+                'class_name' => $s->class->name ?? '-',
+                'total_amount' => $total_amount,
+                'total_paid' => $total_paid,
+                'total_remaining' => $total_remaining,
+            ];
+        }
+
+        return response()->json([
+            'draw' => $request->input('draw'),
+            'recordsTotal' => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'data' => $data_arr,
+        ]);
+    }
+
+    public function downloadExcelBillPerType(Request $request)
+    {
+        $yearId = $request->year;
+        $education = $request->education;
+        $classLevel = $request->class;
+        $billTypeId = $request->bill_type;
+
+        $billName = Bill::find($billTypeId)->name ?? 'Semua Tagihan';
+
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $style_col = [
+            'font' => ['bold' => true],
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+            ],
+            'borders' => [
+                'top' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN],
+                'right' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN],
+                'bottom' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN],
+                'left' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN],
+            ],
+        ];
+
+        $style_row = [
+            'alignment' => ['vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER],
+            'borders' => [
+                'top' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN],
+                'right' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN],
+                'bottom' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN],
+                'left' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN],
+            ],
+        ];
+
+        $cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+        $last_col = end($cols);
+
+        $row = 1;
+        $sheet->setCellValue('A'.$row, 'LAPORAN TAGIHAN PER JENIS');
+        $sheet->mergeCells('A'.$row.':'.$last_col.$row);
+        $sheet->getStyle('A'.$row)->getFont()->setBold(true);
+
+        $row++;
+        $sheet->setCellValue('A'.$row, __('label.level_education').' : '.strtoupper($education));
+        $sheet->mergeCells('A'.$row.':'.$last_col.$row);
+
+        $row++;
+        $sheet->setCellValue('A'.$row, __('label.bill_name').' : '.$billName);
+        $sheet->mergeCells('A'.$row.':'.$last_col.$row);
+        $row += 2;
+
+        $sheet->setCellValue('A'.$row, __('label.no'));
+        $sheet->setCellValue('B'.$row, __('label.nis'));
+        $sheet->setCellValue('C'.$row, __('label.student_name'));
+        $sheet->setCellValue('D'.$row, __('label.class'));
+        $sheet->setCellValue('E'.$row, 'Total Tagihan');
+        $sheet->setCellValue('F'.$row, 'Sudah Dibayar');
+        $sheet->setCellValue('G'.$row, 'Sisa Tagihan');
+
+        foreach ($cols as $c) {
+            $sheet->getStyle($c.$row)->applyFromArray($style_col);
+        }
+        $row++;
+
+        $studentIdsWithBills = TransactionBill::query()
+            ->when($billTypeId, function ($query) use ($billTypeId) {
+                $query->where('id_bill', $billTypeId);
+            })
+            ->when($yearId, function ($query) use ($yearId) {
+                $query->whereHas('bill', function ($q) use ($yearId) {
+                    $q->where('id_year', $yearId);
+                });
+            })
+            ->select('id_student')->distinct();
+
+        $students = Student::select('id', 'id_class', 'nis', 'name')
+            ->with(['class' => fn ($qc) => $qc->select('id', 'name')])
+            ->whereIn('id', $studentIdsWithBills)
+            ->whereHas('class', function ($qc) use ($education, $classLevel) {
+                if (! empty($education)) {
+                    $qc->where('level_education', $education);
+                }
+                if (! empty($classLevel)) {
+                    $qc->where('level_class', $classLevel);
+                }
+            })
+            ->orderBy('name')->get();
+
+        $no = 1;
+        $grand_total = 0;
+        $grand_paid = 0;
+        $grand_remaining = 0;
+
+        foreach ($students as $s) {
+            $tbQuery = TransactionBill::where('id_student', $s->id)
+                ->when($billTypeId, function ($q) use ($billTypeId) {
+                    $q->where('id_bill', $billTypeId);
+                })
+                ->when($yearId, function ($q) use ($yearId) {
+                    $q->whereHas('bill', function ($qb) use ($yearId) {
+                        $qb->where('id_year', $yearId);
+                    });
+                });
+
+            $total_amount = (clone $tbQuery)->sum('total');
+            $total_paid = (clone $tbQuery)->where('status', 1)->sum('total');
+            $total_remaining = (clone $tbQuery)->where('status', 0)->sum('total');
+
+            $grand_total += $total_amount;
+            $grand_paid += $total_paid;
+            $grand_remaining += $total_remaining;
+
+            $sheet->setCellValue('A'.$row, $no);
+            $sheet->setCellValue('B'.$row, $s->nis ?? '-');
+            $sheet->setCellValue('C'.$row, $s->name ?? '-');
+            $sheet->setCellValue('D'.$row, $s->class->name ?? '-');
+            $sheet->setCellValue('E'.$row, $total_amount);
+            $sheet->setCellValue('F'.$row, $total_paid);
+            $sheet->setCellValue('G'.$row, $total_remaining);
+
+            foreach ($cols as $c) {
+                $sheet->getStyle($c.$row)->applyFromArray($style_row);
+            }
+
+            $sheet->getStyle('A'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('B'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('D'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('E'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle('F'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle('G'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
+
+            $row++;
+            $no++;
+        }
+
+        $sheet->setCellValue('A'.$row, __('label.total'));
+        $sheet->mergeCells('A'.$row.':D'.$row);
+        $sheet->setCellValue('E'.$row, $grand_total);
+        $sheet->setCellValue('F'.$row, $grand_paid);
+        $sheet->setCellValue('G'.$row, $grand_remaining);
+
+        foreach ($cols as $c) {
+            $sheet->getStyle($c.$row)->applyFromArray($style_col);
+        }
+        $sheet->getStyle('A'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle('E'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle('F'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle('G'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
+
+        $sheet->getColumnDimension('A')->setWidth(5);
+        $sheet->getColumnDimension('B')->setWidth(20);
+        $sheet->getColumnDimension('C')->setWidth(40);
+        $sheet->getColumnDimension('D')->setWidth(15);
+        $sheet->getColumnDimension('E')->setWidth(20);
+        $sheet->getColumnDimension('F')->setWidth(20);
+        $sheet->getColumnDimension('G')->setWidth(20);
+
+        $sheet->getDefaultRowDimension()->setRowHeight(20);
+        $sheet->setTitle('Laporan Tagihan Per Jenis');
+
+        $filename = 'Laporan-Tagihan-Per-Jenis-'.date('YmdHis').'.xlsx';
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="'.$filename.'"');
+        header('Cache-Control: max-age=0');
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('php://output');
+    }
+
     public function billTotal(Request $request)
     {
         $education_levels = Common::option('education_level');

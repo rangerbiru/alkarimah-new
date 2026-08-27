@@ -86,6 +86,7 @@ return [
     'bill_not_paid' => 'Tagihan Belum Lunas',
     'bill_progress' => 'Progress Tagihan',
     'bill_total' => 'Total Tagihan',
+    'bill_per_type' => 'Tagihan Per Jenis',
     'price' => 'Harga',
     'estimate_price' => 'Harga Perkiraan',
     'setup' => 'Setup',

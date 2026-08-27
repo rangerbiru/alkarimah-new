@@ -441,6 +441,11 @@ Breadcrumbs::for('finance/report/bill-total', function (BreadcrumbTrail $trail) 
     $trail->push(__('label.bill_total'), route('finance.report.bill-total'));
 });
 
+Breadcrumbs::for('finance/report/bill-per-type', function (BreadcrumbTrail $trail) {
+    $trail->parent('dashboard');
+    $trail->push(__('label.bill_per_type'), route('finance.report.bill-per-type'));
+});
+
 Breadcrumbs::for('finance/report/donation', function (BreadcrumbTrail $trail) {
     $trail->parent('dashboard');
     $trail->push(__('label.donation'), route('finance.report.donation'));

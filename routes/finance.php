@@ -97,6 +97,7 @@ Route::prefix('report')->group(function () {
     Route::get('bill-student', [FinanceReportController::class, 'billStudent'])->name('finance.report.bill-student')->middleware('role:kasir,bendahara');
     Route::get('bill-progress', [FinanceReportController::class, 'billProgress'])->name('finance.report.bill-progress')->middleware('role:kasir');
     Route::get('bill-total', [FinanceReportController::class, 'billTotal'])->name('finance.report.bill-total')->middleware('role:kasir,bendahara');
+    Route::get('bill-per-type', [FinanceReportController::class, 'billPerType'])->name('finance.report.bill-per-type')->middleware('role:kasir,bendahara');
     Route::get('outstanding-arrears', [FinanceReportController::class, 'outstandingArrears'])->name('finance.report.outstanding-arrears')->middleware('role:kasir');
     Route::get('payment-method', [FinanceReportController::class, 'paymentMethod'])->name('finance.report.payment-method')->middleware('role:kasir');
     Route::get('donation', [FinanceReportController::class, 'donation'])->name('finance.report.donation');
@@ -106,6 +107,7 @@ Route::prefix('report')->group(function () {
     Route::get('download/excel/bill-not-paid', [FinanceReportController::class, 'downloadExcelBillNotPaid'])->name('finance.report.download.excel.bill-not-paid')->middleware('role:kasir');
     Route::get('download/excel/bill-progress', [FinanceReportController::class, 'downloadExcelBillProgress'])->name('finance.report.download.excel.bill-progress')->middleware('role:kasir');
     Route::get('download/excel/bill-total', [FinanceReportController::class, 'downloadExcelBillTotal'])->name('finance.report.download.excel.bill-total')->middleware('role:kasir,bendahara');
+    Route::get('download/excel/bill-per-type', [FinanceReportController::class, 'downloadExcelBillPerType'])->name('finance.report.download.excel.bill-per-type')->middleware('role:kasir');
     Route::get('download/excel/outstanding-arrears', [FinanceReportController::class, 'downloadExcelOutstandingArrears'])->name('finance.report.download.excel.outstanding-arrears')->middleware('role:kasir');
     Route::get('download/excel/payment-method', [FinanceReportController::class, 'downloadExcelPaymentMethod'])->name('finance.report.download.excel.payment-method')->middleware('role:kasir');
     Route::get('download/excel/donation', [FinanceReportController::class, 'downloadExcelDonation'])->name('finance.report.download.excel.donation')->middleware('role:kasir');
@@ -115,6 +117,7 @@ Route::prefix('report')->group(function () {
     Route::get('download/pdf/bill-not-paid', [FinanceReportController::class, 'downloadPdfBillNotPaid'])->name('finance.report.download.pdf.bill-not-paid')->middleware('role:kasir');
     Route::get('download/pdf/bill-progress', [FinanceReportController::class, 'downloadPdfBillProgress'])->name('finance.report.download.pdf.bill-progress')->middleware('role:kasir');
     Route::get('download/pdf/bill-total', [FinanceReportController::class, 'downloadPdfBillTotal'])->name('finance.report.download.pdf.bill-total')->middleware('role:kasir,bendahara');
+    Route::get('download/pdf/bill-per-type', [FinanceReportController::class, 'downloadPdfBillPerType'])->name('finance.report.download.pdf.bill-per-type')->middleware('role:kasir');
     Route::get('download/pdf/outstanding-arrears', [FinanceReportController::class, 'downloadPdfOutstandingArrears'])->name('finance.report.download.pdf.outstanding-arrears')->middleware('role:kasir');
     Route::get('download/pdf/payment-method', [FinanceReportController::class, 'downloadPdfPaymentMethod'])->name('finance.report.download.pdf.payment-method')->middleware('role:kasir');
     Route::get('download/pdf/donation', [FinanceReportController::class, 'downloadPdfDonation'])->name('finance.report.download.pdf.donation')->middleware('role:kasir');
@@ -124,12 +127,15 @@ Route::prefix('report')->group(function () {
     Route::post('datatable/bill-not-paid', [FinanceReportController::class, 'datatableBillNotPaid'])->name('finance.report.datatable.bill-not-paid')->middleware('role:kasir');
     Route::post('datatable/bill-total', [FinanceReportController::class, 'datatableBillTotal'])->name('finance.report.datatable.bill-total')->middleware('role:kasir');
     Route::post('datatable/donation', [FinanceReportController::class, 'datatableDonation'])->name('finance.report.datatable.donation')->middleware('role:kasir');
+    Route::post('datatable/bill-per-type', [FinanceReportController::class, 'datatableBillPerType'])->name('finance.report.datatable.bill-per-type')->middleware('role:kasir');
 
     Route::post('get/total-bill', [FinanceReportController::class, 'getTotalBill'])->name('finance.report.get.total-bill')->middleware('role:kasir,bendahara');
     Route::post('get/total-bill-not-paid', [FinanceReportController::class, 'getTotalBillNotPaid'])->name('finance.report.get.total-bill-not-paid')->middleware('role:kasir');
     Route::post('get/outstanding-arrears', [FinanceReportController::class, 'getOutstandingArrears'])->name('finance.report.get.outstanding-arrears')->middleware('role:kasir');
     Route::post('get/ongoing-collection-spp', [FinanceReportController::class, 'getOngoingCollectionSpp'])->name('finance.report.get.ongoing-collection-spp')->middleware('role:kasir');
     Route::post('get/option/bill', [FinanceReportController::class, 'getOptionBill'])->name('finance.report.get.option.bill')->middleware('role:kasir');
+    Route::post('get/total-bill-per-type', [FinanceReportController::class, 'getTotalBillPerType'])->name('finance.report.get.total-bill-per-type');
+
 });
 
 Route::prefix('savings')->group(function () {
