@@ -33,7 +33,7 @@
             <a href="{{ route('finance.balance.index') }}" class="btn-icon text-grey">
                 <img src="{{ asset('images/icons/topup-saldo.svg') }}" />
 
-                <div class="mt-1 text">{{ __('label.topup_balance') }}</div>
+                <div class="mt-1 text">{{ __('label.topup') }}</div>
             </a>
         </div>
         <div class="col-3 text-center">
