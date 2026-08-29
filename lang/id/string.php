@@ -1,4 +1,5 @@
 <?php
+
 return [
     'sorry_error_occurred' => 'Maaf telah terjadi kesalahan, harap laporkan error ini',
     'something_went_wrong' => 'Maaf telah terjadi kesalahan, harap coba lagi dalam beberapa saat',
@@ -8,8 +9,8 @@ return [
     'confirm_delete' => 'Apakah Anda yakin ingin menghapus data ini?',
     'confirm_cancel_payment' => 'Apakah Anda yakin ingin membatalkan pembayaran ini?',
     'confirm_cancel_transaction' => 'Apakah Anda yakin ingin membatalkan transaksi ini?',
-    'confirm_pay_with_balance' => 'Apakah Anda yakin ingin melakukan pembayaran menggunakan Saldo TopUp?',
-    'confirm_deposit_with_balance' => 'Apakah Anda yakin ingin melakukan setor tabungan menggunakan Saldo TopUp?',
+    'confirm_pay_with_balance' => 'Apakah Anda yakin ingin melakukan pembayaran menggunakan Saldo Tabungan?',
+    'confirm_deposit_with_balance' => 'Apakah Anda yakin ingin melakukan setor tabungan menggunakan Saldo Tabungan?',
     'confirm_already_paid' => 'Apakah Anda yakin transaksi ini sudah dibayar?',
     'data_not_found' => 'Data tidak ditemukan',
     'student_data_not_found' => 'Data Siswa tidak ditemukan',
@@ -38,7 +39,7 @@ return [
     'you_have_savings_deposit_pending' => 'Anda memiliki <b>Setoran Tabungan yang Pending</b>. Harap selesaikan atau batalkan setoran tabungan tersebut agar bisa melakukan setoran tabungan yang lainnya',
     'you_not_registered_as_parent' => 'Anda belum terdaftar sebagai Orang Tua, silahkan hubungi Admin untuk melakukan pendaftaran terlebih dahulu',
     'you_has_been_registered' => 'Akun Anda sudah terdaftar, silahkan login menggunakan No. HP dan Password Anda. Jika lupa password, klik tombol Lupa Password',
-    'make_sure_transfer_3_digit' => 'Pastikan untuk transfer sampai <b>3 digit terakhir</b> (Kode Unik) agar bisa diverifikasi secara otomatis. Kode Unik akan otomatis masuk sebagai Saldo Topup Anda',
+    'make_sure_transfer_3_digit' => 'Pastikan untuk transfer sampai <b>3 digit terakhir</b> (Kode Unik) agar bisa diverifikasi secara otomatis. Kode Unik akan otomatis masuk sebagai Saldo Tabungan Anda',
     'please_transfer_to_rekening' => 'Silahkan transfer ke Nomor Rekening dibawah ini',
     'please_make_payment' => 'Harap segera lakukan pembayaran sebelum <b>Tgl. :date</b> dengan rincian berikut ini',
     'please_keep_this_slip' => 'NB: Simpan baik-baik slip ini. Slip ini sebagai Bukti Pembayaran yang sah',
@@ -46,8 +47,8 @@ return [
     'please_fill_your_password' => 'Silahkan masukan Password untuk Akun Anda',
     'payment_received' => 'Pembayaran telah kami terima',
     'payment_not_received' => 'Pembayaran belum kami terima',
-    'balance_more_then_zero' => 'Nominal Topup Saldo harus lebih dari Rp. 0',
-    'balance_insufficient' => 'Saldo Topup Anda tidak cukup',
+    'balance_more_then_zero' => 'Nominal Saldo Tabungan harus lebih dari Rp. 0',
+    'balance_insufficient' => 'Saldo Tabungan Anda tidak cukup',
     'total_savings_withdrawal_applications' => 'Total Pengajuan Pengambilan Tabungan',
     'number_of_savings_withdrawal_applications' => 'Jumlah Pengajuan Pengambilan Tabungan',
     'withdrawal_request_list' => 'Berikut ini adalah data pengajuan pengambilan yang <b>menunggu konfirmasi</b> dari kasir',
@@ -67,12 +68,12 @@ return [
     'todays_receipts_per_type' => 'Penerimaan Hari Ini Per Jenis',
     'todays_receipts_per_class' => 'Penerimaan Hari Ini Per Kelas',
     'total_savings_balance_all_student' => 'Total Saldo Tabungan Semua Siswa',
-    'total_topup_balance_has_not_been_used' => 'Total Saldo Topup belum dipakai',
+    'total_topup_balance_has_not_been_used' => 'Total Saldo Tabungan belum dipakai',
     'total_cash_not_yet_deposited' => 'Total Kas belum disetor',
     'total_unique_code_cash_not_yet_deposited' => 'Total Kas Kode Unik belum disetor',
     'whatsapp_bill_sent_successfully' => 'Whatsapp Tagihan berhasil dikirim',
     'filter_school_year' => 'Mohon maaf batas pencarian melebihi rentang tahun ajaran',
     'phone_required_if_you_want_to_create_account' => 'No. HP harus diisi apabila Anda ingin sekalian membuat akun untuk orang tua ini',
     'there_is_no_activity_yet' => 'Belum ada aktifitas',
-    'fill_in_with_numbers' => 'Isikan dengan angka'
+    'fill_in_with_numbers' => 'Isikan dengan angka',
 ];

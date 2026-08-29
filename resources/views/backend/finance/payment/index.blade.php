@@ -154,7 +154,7 @@
                                     style="height: 30px;" />
                             </div>
                         </div>
-                        <div class="d-flex align-items-center mb-2">
+                        {{-- <div class="d-flex align-items-center mb-2">
                             <div class="me-2">
                                 <div class="form-check form-check-md">
                                     <input type="radio" name="method" value="{{ $method->bni }}"
@@ -166,7 +166,7 @@
                                 <img src="{{ asset('images/payments/bni.png') }}" class="img-thumbnail"
                                     style="height: 30px;" />
                             </div>
-                        </div>
+                        </div> --}}
                     </div>
 
                     <!-- FITUR MENU CICILAN (BARU) -->
@@ -485,13 +485,13 @@
                 $(".rb-method-balance").attr("disabled", true)
                 $("#method-balance").addClass("text-muted")
                 $("#method-balance .label").html(
-                    'Saldo TopUp<br /><span class="text-danger" style="font-size: 10px;">Saldo Anda tidak mencukupi</span>'
+                    'Saldo Tabungan<br /><span class="text-danger" style="font-size: 10px;">Saldo Anda tidak mencukupi</span>'
                 )
             } else {
                 method = "{{ $method->balance }}"
                 $(".rb-method-balance").removeAttr("disabled").prop("checked", true)
                 $("#method-balance").removeClass("text-muted")
-                $("#method-balance .label").html('Saldo TopUp')
+                $("#method-balance .label").html('Saldo Tabungan')
             }
         }
 

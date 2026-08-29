@@ -33,7 +33,7 @@ Route::post('forgot-password', [AuthController::class, 'storeForgotPassword'])->
 Route::post('forgot-password/verification/{user}', [AuthController::class, 'storeForgotPasswordVerification'])->name('auth.store.forgot-password.verification');
 Route::post('reset-password/{user}', [AuthController::class, 'storeResetPassword'])->name('auth.store.reset-password');
 Route::post('authenticate', [AuthController::class, 'authenticate'])->name('auth.authenticate');
-Route::post('moota/notification/{bank}', [MootaController::class, 'notification'])->whereIn('bank', ['bsi', 'bni'])->name('moota.notification');
+Route::post('moota/notification/{bank}', [MootaController::class, 'notification'])->whereIn('bank', ['bsi'])->name('moota.notification');
 Route::get('captcha-refresh', [CaptchaController::class, 'refresh'])->name('captcha.refresh');
 
 Route::group(['middleware' => ['auth', 'initialize.backend']], function () {
