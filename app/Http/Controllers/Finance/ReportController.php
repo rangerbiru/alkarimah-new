@@ -178,6 +178,8 @@ class ReportController extends Controller
 
         $bill_types = Bill::pluck('name', 'id');
 
+        $classes = Classroom::select('id', 'name')->orderBy('name')->pluck('name', 'id');
+
         return view($this->path.'bill-per-type', [
             'title' => __($this->title_prefix).' - Laporan Tagihan Per Jenis',
             'icon' => $this->icon,
@@ -185,17 +187,131 @@ class ReportController extends Controller
             'year' => $year,
             'years' => $years,
             'bill_types' => $bill_types,
+            'classes' => $classes,
+        ]);
+    }
+
+    public function getTotalBillPerType(Request $request)
+    {
+        $year = $request->year;
+        $classId = $request->class;
+        $billTypeId = $request->bill_type;
+
+        $tbQuery = TransactionBill::query()
+            ->when($classId, function ($query) use ($classId) {
+                $query->whereHas('student', function ($q) use ($classId) {
+                    $q->where('id_class', $classId);
+                });
+            })
+            ->when($billTypeId, function ($query) use ($billTypeId) {
+                $query->where('id_bill', $billTypeId);
+            })
+            ->when($year, function ($query) use ($year) {
+                $query->whereHas('bill', function ($q) use ($year) {
+                    $q->where('id_year', $year);
+                });
+            });
+
+        $total = (clone $tbQuery)->sum('total');
+        $paid = (clone $tbQuery)->where('status', 1)->sum('total');
+        $remaining = (clone $tbQuery)->where('status', 0)->sum('total');
+
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'total' => $total,
+                'paid' => $paid,
+                'remaining' => $remaining,
+            ],
+        ]);
+    }
+
+    public function datatableBillPerType(Request $request)
+    {
+        $year = $request->year;
+        $classId = $request->class;
+        $billTypeId = $request->bill_type;
+
+        $search = $request->input('search')['value'];
+        $limit = $request->input('length');
+        $start = $request->input('start');
+
+        $studentIdsWithBills = TransactionBill::query()
+            ->when($billTypeId, function ($query) use ($billTypeId) {
+                $query->where('id_bill', $billTypeId);
+            })
+            ->when($year, function ($query) use ($year) {
+                $query->whereHas('bill', function ($q) use ($year) {
+                    $q->where('id_year', $year);
+                });
+            })
+            ->select('id_student')
+            ->distinct();
+
+        $studentQuery = Student::select('id', 'id_class', 'nis', 'name')
+            ->with(['class' => fn ($qc) => $qc->select('id', 'name')])
+            ->whereIn('id', $studentIdsWithBills)
+            ->when($classId, function ($q) use ($classId) {
+                $q->where('id_class', $classId);
+            });
+
+        $recordsTotal = $studentQuery->count();
+
+        if (! empty($search)) {
+            $studentQuery->where(function ($q) use ($search) {
+                $q->where('nis', 'like', '%'.$search.'%')
+                    ->orWhere('name', 'like', '%'.$search.'%')
+                    ->orWhereHas('class', function ($qc) use ($search) {
+                        $qc->where('name', 'like', '%'.$search.'%');
+                    });
+            });
+        }
+
+        $recordsFiltered = $studentQuery->count();
+
+        $students = $studentQuery->limit($limit)
+            ->offset($start)
+            ->orderBy('name')
+            ->get();
+
+        $data_arr = [];
+        foreach ($students as $s) {
+            $tbQuery = TransactionBill::where('id_student', $s->id)
+                ->when($billTypeId, function ($q) use ($billTypeId) {
+                    $q->where('id_bill', $billTypeId);
+                })
+                ->when($year, function ($q) use ($year) {
+                    $q->whereHas('bill', function ($qb) use ($year) {
+                        $qb->where('id_year', $year);
+                    });
+                });
+
+            $data_arr[] = [
+                'nis' => $s->nis,
+                'student_name' => $s->name,
+                'class_name' => $s->class->name ?? '-',
+                'total_amount' => (clone $tbQuery)->sum('total'),
+                'total_paid' => (clone $tbQuery)->where('status', 1)->sum('total'),
+                'total_remaining' => (clone $tbQuery)->where('status', 0)->sum('total'),
+            ];
+        }
+
+        return response()->json([
+            'draw' => $request->input('draw'),
+            'recordsTotal' => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'data' => $data_arr,
         ]);
     }
 
     public function downloadPdfBillPerType(Request $request)
     {
         $yearId = $request->year;
-        $education = $request->education;
-        $classLevel = $request->class;
+        $classId = $request->class;
         $billTypeId = $request->bill_type;
 
         $billName = Bill::find($billTypeId)->name ?? 'Semua Tagihan';
+        $className = Classroom::find($classId)->name ?? 'Semua Kelas';
 
         $studentIdsWithBills = TransactionBill::query()
             ->when($billTypeId, function ($query) use ($billTypeId) {
@@ -211,13 +327,8 @@ class ReportController extends Controller
         $students = Student::select('id', 'id_class', 'nis', 'name')
             ->with(['class' => fn ($qc) => $qc->select('id', 'name')])
             ->whereIn('id', $studentIdsWithBills)
-            ->whereHas('class', function ($qc) use ($education, $classLevel) {
-                if (! empty($education)) {
-                    $qc->where('level_education', $education);
-                }
-                if (! empty($classLevel)) {
-                    $qc->where('level_class', $classLevel);
-                }
+            ->when($classId, function ($q) use ($classId) {
+                $q->where('id_class', $classId);
             })
             ->orderBy('name')->get();
 
@@ -256,7 +367,7 @@ class ReportController extends Controller
         }
 
         $pdf = PDF::loadView($this->path.'pdf.bill-per-type', [
-            'education' => strtoupper($education),
+            'class_name' => $className,
             'bill_name' => $billName,
             'data' => $data_arr,
             'grand_total' => $grand_total,
@@ -265,149 +376,19 @@ class ReportController extends Controller
         ]);
 
         $pdf->setPaper('A4', 'landscape');
-
         $filename = 'Laporan-Tagihan-Per-Jenis-'.date('YmdHis').'.pdf';
 
         return $pdf->download($filename);
     }
 
-    public function getTotalBillPerType(Request $request)
-    {
-        $year = $request->year;
-        $education = $request->education;
-        $classLevel = $request->class;
-        $billTypeId = $request->bill_type;
-
-        $tbQuery = TransactionBill::query()
-            ->whereHas('student', function ($query) use ($education, $classLevel) {
-                $query->whereHas('class', function ($qc) use ($education, $classLevel) {
-                    if (! empty($education)) {
-                        $qc->where('level_education', $education);
-                    }
-                    if (! empty($classLevel)) {
-                        $qc->where('level_class', $classLevel);
-                    }
-                });
-            })
-            ->when($billTypeId, function ($query) use ($billTypeId) {
-                $query->where('id_bill', $billTypeId);
-            })
-            ->when($year, function ($query) use ($year) {
-                $query->whereHas('bill', function ($q) use ($year) {
-                    $q->where('id_year', $year);
-                });
-            });
-
-        $total = (clone $tbQuery)->sum('total');
-        $paid = (clone $tbQuery)->where('status', 1)->sum('total');
-        $remaining = (clone $tbQuery)->where('status', 0)->sum('total');
-
-        return response()->json([
-            'status' => true,
-            'data' => [
-                'total' => $total,
-                'paid' => $paid,
-                'remaining' => $remaining,
-            ],
-        ]);
-    }
-
-    public function datatableBillPerType(Request $request)
-    {
-        $year = $request->year;
-        $education = $request->education;
-        $classLevel = $request->class;
-        $billTypeId = $request->bill_type;
-
-        $search = $request->input('search')['value'];
-        $limit = $request->input('length');
-        $start = $request->input('start');
-
-        $studentIdsWithBills = TransactionBill::query()
-            ->when($billTypeId, function ($query) use ($billTypeId) {
-                $query->where('id_bill', $billTypeId);
-            })
-            ->when($year, function ($query) use ($year) {
-                $query->whereHas('bill', function ($q) use ($year) {
-                    $q->where('id_year', $year);
-                });
-            })
-            ->select('id_student')
-            ->distinct();
-
-        $studentQuery = Student::select('id', 'id_class', 'nis', 'name')
-            ->with(['class' => fn ($qc) => $qc->select('id', 'name')])
-            ->whereIn('id', $studentIdsWithBills)
-            ->whereHas('class', function ($qc) use ($education, $classLevel) {
-                if (! empty($education)) {
-                    $qc->where('level_education', $education);
-                }
-                if (! empty($classLevel)) {
-                    $qc->where('level_class', $classLevel);
-                }
-            });
-
-        $recordsTotal = $studentQuery->count();
-
-        if (! empty($search)) {
-            $studentQuery->where(function ($q) use ($search) {
-                $q->where('nis', 'like', '%'.$search.'%')
-                    ->orWhere('name', 'like', '%'.$search.'%')
-                    ->orWhereHas('class', function ($qc) use ($search) {
-                        $qc->where('name', 'like', '%'.$search.'%');
-                    });
-            });
-        }
-
-        $recordsFiltered = $studentQuery->count();
-
-        $students = $studentQuery->limit($limit)
-            ->offset($start)
-            ->orderBy('name')
-            ->get();
-
-        $data_arr = [];
-        foreach ($students as $s) {
-            $tbQuery = TransactionBill::where('id_student', $s->id)
-                ->when($billTypeId, function ($q) use ($billTypeId) {
-                    $q->where('id_bill', $billTypeId);
-                })
-                ->when($year, function ($q) use ($year) {
-                    $q->whereHas('bill', function ($qb) use ($year) {
-                        $qb->where('id_year', $year);
-                    });
-                });
-
-            $total_amount = (clone $tbQuery)->sum('total');
-            $total_paid = (clone $tbQuery)->where('status', 1)->sum('total');
-            $total_remaining = (clone $tbQuery)->where('status', 0)->sum('total');
-
-            $data_arr[] = [
-                'nis' => $s->nis,
-                'student_name' => $s->name,
-                'class_name' => $s->class->name ?? '-',
-                'total_amount' => $total_amount,
-                'total_paid' => $total_paid,
-                'total_remaining' => $total_remaining,
-            ];
-        }
-
-        return response()->json([
-            'draw' => $request->input('draw'),
-            'recordsTotal' => $recordsTotal,
-            'recordsFiltered' => $recordsFiltered,
-            'data' => $data_arr,
-        ]);
-    }
-
     public function downloadExcelBillPerType(Request $request)
     {
         $yearId = $request->year;
-        $education = $request->education;
-        $classLevel = $request->class;
+        $classId = $request->class;
         $billTypeId = $request->bill_type;
 
         $billName = Bill::find($billTypeId)->name ?? 'Semua Tagihan';
+        $className = Classroom::find($classId)->name ?? 'Semua Kelas';
 
         $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
@@ -438,17 +419,17 @@ class ReportController extends Controller
 
         $cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
         $last_col = end($cols);
-
         $row = 1;
+
         $sheet->setCellValue('A'.$row, 'LAPORAN TAGIHAN PER JENIS');
         $sheet->mergeCells('A'.$row.':'.$last_col.$row);
         $sheet->getStyle('A'.$row)->getFont()->setBold(true);
-
         $row++;
-        $sheet->setCellValue('A'.$row, __('label.level_education').' : '.strtoupper($education));
+
+        $sheet->setCellValue('A'.$row, __('label.class').' : '.$className);
         $sheet->mergeCells('A'.$row.':'.$last_col.$row);
-
         $row++;
+
         $sheet->setCellValue('A'.$row, __('label.bill_name').' : '.$billName);
         $sheet->mergeCells('A'.$row.':'.$last_col.$row);
         $row += 2;
@@ -480,13 +461,8 @@ class ReportController extends Controller
         $students = Student::select('id', 'id_class', 'nis', 'name')
             ->with(['class' => fn ($qc) => $qc->select('id', 'name')])
             ->whereIn('id', $studentIdsWithBills)
-            ->whereHas('class', function ($qc) use ($education, $classLevel) {
-                if (! empty($education)) {
-                    $qc->where('level_education', $education);
-                }
-                if (! empty($classLevel)) {
-                    $qc->where('level_class', $classLevel);
-                }
+            ->when($classId, function ($q) use ($classId) {
+                $q->where('id_class', $classId);
             })
             ->orderBy('name')->get();
 
@@ -546,6 +522,7 @@ class ReportController extends Controller
         foreach ($cols as $c) {
             $sheet->getStyle($c.$row)->applyFromArray($style_col);
         }
+
         $sheet->getStyle('A'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
         $sheet->getStyle('E'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
         $sheet->getStyle('F'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
@@ -558,10 +535,9 @@ class ReportController extends Controller
         $sheet->getColumnDimension('E')->setWidth(20);
         $sheet->getColumnDimension('F')->setWidth(20);
         $sheet->getColumnDimension('G')->setWidth(20);
-
         $sheet->getDefaultRowDimension()->setRowHeight(20);
-        $sheet->setTitle('Laporan Tagihan Per Jenis');
 
+        $sheet->setTitle('Laporan Tagihan Per Jenis');
         $filename = 'Laporan-Tagihan-Per-Jenis-'.date('YmdHis').'.xlsx';
 
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

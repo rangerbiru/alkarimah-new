@@ -45,12 +45,10 @@
 </head>
 
 <body>
-
     <h2 class="text-center mb-10">LAPORAN TAGIHAN PER JENIS</h2>
 
-    <span><b>Tingkat Pendidikan:</b> {{ $education ?: 'Semua Tingkatan' }}</span><br>
+    <span><b>Kelas:</b> {{ $class_name ?: 'Semua Kelas' }}</span><br>
     <span><b>Jenis Tagihan:</b> {{ $bill_name }}</span>
-
 
     <table>
         <thead>
@@ -90,7 +88,6 @@
             </tr>
         </tfoot>
     </table>
-
 </body>
 
 </html>

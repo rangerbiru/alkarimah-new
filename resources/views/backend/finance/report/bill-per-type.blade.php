@@ -8,28 +8,29 @@
 @section('content')
     <div class="card custom-card">
         <div class="card-body">
-            <div class="row g-3">
+            <div class="row g-3 align-items-end">
+
                 <div class="col-sm-6 col-md-3">
                     <label class="form-label">{{ __('label.school_year') }}</label>
                     <x-form.select id="year" :option="$years" :data-placeholder="__('label.choose_school_year')" :old="$year->id" />
                 </div>
+
                 <div class="col-sm-6 col-md-3">
-                    <label class="form-label">Tingkat Pendidikan</label>
-                    <x-form.select id="education-level" :option="$education_levels" :data-placeholder="__('label.choose_education_level')" />
+                    <label class="form-label">{{ __('label.class') }}</label>
+                    <x-form.select id="class" :option="$classes" :data-placeholder="__('label.choose') . ' ' . __('label.class')" data-allow-clear="true" />
                 </div>
-                <div class="col-sm-6 col-md-3">
-                    <label class="form-label">Kelas</label>
-                    <x-form.select id="class-level" :option="[]" :data-placeholder="__('label.choose_class_level')" loading />
-                </div>
+
                 <div class="col-sm-6 col-md-3">
                     <label class="form-label">Jenis Tagihan</label>
                     <x-form.select id="bill-type" :option="$bill_types" data-placeholder="Pilih Jenis Tagihan" />
                 </div>
-                <div class="col-sm-12 col-md-12 text-end">
-                    <button type="button" id="btn-search" class="btn btn-secondary px-4">
+
+                <div class="col-sm-6 col-md-3">
+                    <button type="button" id="btn-search" class="btn btn-secondary px-4 w-100">
                         <i class="fa-solid fa-search"></i> &nbsp;{{ __('label.search') }}
                     </button>
                 </div>
+
             </div>
         </div>
     </div>
@@ -93,8 +94,7 @@
     <script>
         window.LaravelDataTables = window.LaravelDataTables || {}
         let year = "{{ $year->id }}"
-        let education_level = ""
-        let class_level = ""
+        let class_id = ""
         let bill_type = ""
         let datatable = false
 
@@ -105,49 +105,41 @@
                 year = $(this).val();
                 load();
             })
+
             $("#bill-type").change(function() {
                 bill_type = $(this).val();
                 load();
             })
 
-            $("#education-level").change(function() {
-                education_level = $(this).val()
-                class_level = $("#class-level").val()
-                optionClassLevel()
-                load()
-            })
-
-            $("#class-level").change(function() {
-                class_level = $(this).val();
+            $("#class").change(function() {
+                class_id = $(this).val();
                 load();
             })
 
             $("#btn-search").click(function() {
                 year = $("#year").val()
-                education_level = $("#education-level").val()
-                class_level = $("#class-level").val()
+                class_id = $("#class").val()
                 bill_type = $("#bill-type").val()
                 load()
             })
 
             $("#btn-download-excel").click(function() {
                 window.location =
-                    `{{ route('finance.report.download.excel.bill-per-type') }}?year=${year}&education=${education_level}&class=${class_level}&bill_type=${bill_type}`
+                    `{{ route('finance.report.download.excel.bill-per-type') }}?year=${year}&class=${class_id}&bill_type=${bill_type}`
             })
 
             $("#btn-download-pdf").click(function() {
                 window.location =
-                    `{{ route('finance.report.download.pdf.bill-per-type') }}?year=${year}&education=${education_level}&class=${class_level}&bill_type=${bill_type}`
+                    `{{ route('finance.report.download.pdf.bill-per-type') }}?year=${year}&class=${class_id}&bill_type=${bill_type}`
             })
         })
 
         function load() {
-            if (class_level == "" || bill_type == "") return false
+            if (class_id == "" || bill_type == "") return false
 
             const formData = {
-                year,
-                education: education_level,
-                class: class_level,
+                year: year,
+                class: class_id,
                 bill_type: bill_type
             }
 
@@ -167,7 +159,6 @@
                 datatable = true
                 $("#start").hide()
                 $("#card-info").show()
-
                 window.LaravelDataTables["table-report"] = $("#table-report").DataTable({
                     language: {
                         search: "",
@@ -180,8 +171,7 @@
                         type: "POST",
                         data: (d) => {
                             d.year = year
-                            d.education = education_level
-                            d.class = class_level
+                            d.class = class_id
                             d.bill_type = bill_type
                             return d
                         }
@@ -231,28 +221,6 @@
                     ]
                 })
                 $($.fn.dataTable.tables(true)).css('width', '100%')
-            }
-        }
-
-        function optionClassLevel() {
-            if (education_level != "") {
-                $("#loading-class-level").show()
-                const formData = {
-                    level: education_level
-                }
-                $.ajax({
-                    type: "POST",
-                    url: "{{ route('academic.class.get.option.level') }}",
-                    data: formData,
-                    dataType: "json",
-                    success: function(response) {
-                        $("#loading-class-level").hide()
-                        $("#class-level").html(response.option).trigger("change.select2")
-                    },
-                    error: function(xhr, ajaxOptions, thrownError) {
-                        ajaxError(xhr.status)
-                    }
-                })
             }
         }
     </script>
