@@ -66,11 +66,17 @@ class TransactionController extends Controller
         $number = Transaction::generateNumber(TransactionFlag::Tagihan->value);
         $yesno = Common::option('yesno');
 
+        $methods = [
+            TransactionMethod::Cash->value => __('label.cash'),
+            'balance' => 'Tabungan / Saldo Orang Tua',
+        ];
+
         return view($this->path['bill'].'index', [
             'title' => __($this->title_prefix).' - '.__($this->title['payment']),
             'icon' => $this->icon,
             'number' => $number,
             'yesno' => $yesno,
+            'methods' => $methods,
         ]);
     }
 
@@ -751,6 +757,11 @@ class TransactionController extends Controller
     {
         $error = false;
         $bills = $request->bills;
+        $payment_method = $request->payment_method;
+
+        if (! $request->filled('payment_method')) {
+            return response()->json(['status' => false, 'message' => 'Silahkan pilih metode pembayaran terlebih dahulu!']);
+        }
 
         if (empty($bills)) {
             $error = __('string.not_bill_selected');
@@ -759,34 +770,46 @@ class TransactionController extends Controller
             $error = __('validation.required', ['attribute' => __('label.transaction_date')]);
         }
 
+        $is_cicilan = $request->is_cicilan == 1;
+        $cicilan_nominal = floatval($request->cicilan_nominal);
+        $total_selected_bills = 0;
+
+        foreach ($bills as $id => $nominal) {
+            $total_selected_bills += $nominal;
+        }
+
+        if ($is_cicilan && $cicilan_nominal > 0) {
+            $actual_subtotal = min($cicilan_nominal, $total_selected_bills);
+        } else {
+            $actual_subtotal = $total_selected_bills;
+        }
+
+        $donation = 0;
+        $id_donation = null;
+        if (! empty($request->id_donation)) {
+            $donation = (float) str_replace('.', '', $request->donation);
+            $id_donation = Crypt::decrypt($request->id_donation);
+        }
+
+        $actual_total = $actual_subtotal - $donation;
+
+        $student = Student::with('parent')->find($request->id_student);
+        $parent = $student ? $student->parent : null;
+
+        if ($payment_method == 'balance') {
+            if (! $parent) {
+                $error = 'Data orang tua tidak ditemukan, tidak bisa menggunakan saldo.';
+            } elseif ($parent->balance < $actual_total) {
+                $error = 'Saldo tabungan orang tua tidak mencukupi.';
+            }
+        }
+
         if ($error == false) {
-
-            DB::transaction(function () use ($request, $bills) {
-                $is_cicilan = $request->is_cicilan == 1;
-                $cicilan_nominal = floatval($request->cicilan_nominal);
-
-                $total_selected_bills = 0;
-                foreach ($bills as $id => $nominal) {
-                    $total_selected_bills += $nominal;
-                }
-
-                if ($is_cicilan && $cicilan_nominal > 0) {
-                    $actual_subtotal = min($cicilan_nominal, $total_selected_bills);
-                } else {
-                    $actual_subtotal = $total_selected_bills;
-                }
-
-                $donation = 0;
-                $id_donation = null;
-                if (! empty($request->id_donation)) {
-                    $donation = (float) str_replace('.', '', $request->donation);
-                    $id_donation = Crypt::decrypt($request->id_donation);
-                }
-
-                $actual_total = $actual_subtotal - $donation;
+            DB::transaction(function () use ($request, $bills, $actual_subtotal, $actual_total, $donation, $id_donation, $payment_method, $parent) {
 
                 $merge = [
-                    'payment_method' => TransactionMethod::Cash->value,
+                    'payment_method' => $payment_method == 'balance' ? TransactionMethod::TopupBalance->value : TransactionMethod::Cash->value,
+
                     'paid_at' => date('Y-m-d H:i:s'),
                     'paid_by' => Auth::id(),
                     'status' => TransactionStatus::Paid->value,
@@ -799,6 +822,19 @@ class TransactionController extends Controller
 
                 $request->merge($merge);
                 $transaction = Transaction::create($request->all());
+
+                if ($payment_method == 'balance' && $parent) {
+                    $parent->balance -= $actual_total;
+                    $parent->save();
+
+                    TopupHistory::create([
+                        'id_parent' => $parent->id,
+                        'id_transaction' => $transaction->id,
+                        'debit' => 0,
+                        'credit' => $actual_total,
+                        'balance' => $parent->balance,
+                    ]);
+                }
 
                 $remaining_payment = $actual_subtotal;
                 $processed_bills_ids = [];
@@ -829,7 +865,6 @@ class TransactionController extends Controller
                         } elseif ($trans_bill->bill->type->is_period_semiannual) {
                             $time = 'Semester '.$trans_bill->semester;
                         }
-
                         $partial_text = ($pay_amount < $trans_bill->total) ? ' (Sebagian/Cicilan)' : '';
                         array_push($donation_descr, [
                             'type' => $trans_bill->bill->type->name,
@@ -847,7 +882,6 @@ class TransactionController extends Controller
                     } else {
                         $original_total = $trans_bill->total;
                         $original_subtotal = $trans_bill->subtotal;
-
                         $trans_bill->update([
                             'total' => $pay_amount,
                             'subtotal' => $pay_amount,
@@ -1356,7 +1390,6 @@ class TransactionController extends Controller
             ],
         ]);
 
-        // $pdf->setPaper([0, 0, 529, 831], 'landscape');
         $pdf->setPaper([0, 0, 529, 600], 'landscape');
 
         return $pdf->stream($transaction->number.'-'.date('YmdHis').'.pdf');
@@ -1379,17 +1412,21 @@ class TransactionController extends Controller
 
     public function getBill(Request $request)
     {
-        // 1. Perbaikan pencarian NIS + Nama
         $searchData = explode(' - ', $request->search);
         $nisNumber = trim($searchData[0]);
 
-        $queryStudent = Student::select('id')->where('nis', $nisNumber);
+        $queryStudent = Student::select('id', 'id_parent')
+            ->with(['parent' => fn ($q) => $q->select('id', 'balance')])
+            ->where('nis', $nisNumber);
+
         if (isset($searchData[1])) {
             $queryStudent->where('name', trim($searchData[1]));
         }
 
         $student = $queryStudent->first();
         $student_id = (empty($student)) ? 0 : $student->id;
+
+        $parent_balance = (empty($student) || empty($student->parent)) ? 0 : $student->parent->balance;
 
         $transaction = TransactionBill::select('id', 'id_bill', 'semester', 'months', 'years', 'total', 'due_date')
             ->with(['bill' => fn ($query) => $query->select('id', 'id_type', 'name')->with(['type' => fn ($qt) => $qt->select('id', 'name', 'period')])])
@@ -1428,14 +1465,10 @@ class TransactionController extends Controller
                 }
 
                 $total = $t->total - $discount;
-
-                // --- INI ADALAH PERUBAHANNYA ---
-                // Kita simpan sebagai object/array yang berisi nominal dan id_type
                 $bills[$t->id] = [
                     'nominal' => $total,
-                    'id_type' => $t->bill->id_type, // Mengambil id_type dari relasi bill
+                    'id_type' => $t->bill->id_type,
                 ];
-                // -------------------------------
 
                 array_push($transactions, (object) [
                     'id' => $t->id,
@@ -1457,6 +1490,7 @@ class TransactionController extends Controller
                 'table' => $table,
                 'bills' => $bills,
                 'student' => $student_id,
+                'parent_balance' => $parent_balance,
             ],
         ];
 

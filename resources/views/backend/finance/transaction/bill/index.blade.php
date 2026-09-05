@@ -14,10 +14,14 @@
                         <div class="me-2">
                             <img src="{{ asset('images/icons/bill.png') }}" style="height: 50px;" />
                         </div>
-                        <div>
+                        <div class="w-100">
                             <h5 class="text-grey mb-0">{{ $number }}</h5>
-                            <span class="text-muted"> &nbsp;{{ __('label.payment_method') }} : {{ __('label.cash') }}
-                            </span>
+                            <div class="mt-2">
+                                <x-form.select id="payment_method" name="payment_method" :option="$methods" />
+                            </div>
+                            <div id="balance-info" class="mt-2 text-danger fw-bold" style="display: none; font-size: 13px;">
+                                Sisa Saldo: <span id="parent-balance">Rp 0</span>
+                            </div>
                         </div>
                     </div>
                     <div class="d-flex mt-3 align-items-center">
@@ -193,15 +197,26 @@
         let datatable_donatur = false
         let id_donatur = ""
         let id_student = ""
+        let parent_balance = 0;
+        let payment_method = "{{ App\Enums\TransactionMethod::Cash->value }}";
 
         $(document).ready(function() {
+            $("#payment_method").change(function() {
+                payment_method = $(this).val();
+                if (payment_method === 'balance') {
+                    $("#balance-info").show();
+                } else {
+                    $("#balance-info").hide();
+                }
+                setTotal();
+            });
+
             window.LaravelDataTables = window.LaravelDataTables || {}
             $("#loading, #table-bill, #btn-search-clear, .form-donation, .form-cicilan").hide()
             $(".nominal-mask").inputmask({
                 alias: "nominal"
             })
 
-            // Nonaktifkan toggle cicilan di awal
             $("#form-toggle-cicilan input").attr("disabled", true)
 
             $("#form-beasiswa input").click(function() {
@@ -269,7 +284,7 @@
                 cicilan_nominal = 0
 
                 $("#form-toggle-cicilan input[value='0']").prop("checked", true)
-                $("#form-toggle-cicilan input").attr("disabled", true) // Nonaktifkan kembali
+                $("#form-toggle-cicilan input").attr("disabled", true)
                 $(".form-cicilan").hide()
                 $("#cicilan-nominal").val("")
 
@@ -288,14 +303,13 @@
                     subtotal += bills[id].nominal
                     bills_selected[id] = bills[id].nominal
                 } else {
-                    // PERBAIKAN: Harus memanggil .nominal karena bills[id] adalah objek
                     subtotal -= bills[id].nominal
                     delete bills_selected[id]
                 }
 
                 $("#subtotal").val(subtotal)
 
-                checkCicilanStatus() // Cek apakah boleh nyicil berdasarkan pilihan
+                checkCicilanStatus()
 
                 if (is_cicilan) {
                     $("#cicilan-nominal").val(subtotal)
@@ -317,7 +331,7 @@
                     $("#table-bill tbody .form-check-bill").prop("checked", false)
                 }
 
-                checkCicilanStatus() // Cek apakah boleh nyicil
+                checkCicilanStatus()
 
                 if (is_cicilan) {
                     $("#cicilan-nominal").val(subtotal)
@@ -357,6 +371,8 @@
 
             $("#btn-submit").click(function() {
                 const btn = $(this)
+                const selected_method = $("#payment_method").val();
+
                 const formData = {
                     id_student,
                     id_donation: id_donatur,
@@ -364,7 +380,8 @@
                     bills: bills_selected,
                     donation,
                     is_cicilan: (is_cicilan ? 1 : 0),
-                    cicilan_nominal: cicilan_nominal
+                    cicilan_nominal: cicilan_nominal,
+                    payment_method: selected_method
                 }
 
                 btn.removeClass("btn-primary").addClass("btn-secondary btn-loader").html(
@@ -405,6 +422,7 @@
             }
             $("#table-bill, #start").hide()
             $("#loading").show()
+
             $.ajax({
                 type: "POST",
                 url: "{{ route('finance.transaction.get.bill') }}",
@@ -413,6 +431,10 @@
                 success: function(response) {
                     bills = response.data.bills
                     id_student = response.data.student
+
+                    parent_balance = response.data.parent_balance || 0;
+                    $("#parent-balance").html(`Rp ${moneyFormat(parent_balance)}`);
+
                     $("#table-bill tbody").html(response.data.table)
                     $("#loading").hide()
                     $("#table-bill, #btn-search-clear").show()
@@ -423,19 +445,15 @@
             })
         }
 
-        // --- FUNGSI BARU: Mengecek apakah tagihan yang dicentang boleh dicicil ---
         function checkCicilanStatus() {
             let isAllowed = true;
             const selectedIds = Object.keys(bills_selected);
 
-            // Jika tidak ada tagihan yang dicentang, nonaktifkan
             if (selectedIds.length === 0) {
                 isAllowed = false;
             } else {
-                // Cek setiap tagihan yang dicentang
                 for (let i = 0; i < selectedIds.length; i++) {
                     let id = selectedIds[i];
-                    // Jika ada id_type == 1, maka cicilan TIDAK diizinkan
                     if (bills[id].id_type == 1) {
                         isAllowed = false;
                         break;
@@ -444,15 +462,13 @@
             }
 
             if (!isAllowed) {
-                // Matikan cicilan secara paksa
                 is_cicilan = false;
                 cicilan_nominal = 0;
-                $("#form-toggle-cicilan input[value='0']").prop("checked", true); // Pindah ke radio 'Tidak'
-                $("#form-toggle-cicilan input").attr("disabled", true); // Kunci radio
+                $("#form-toggle-cicilan input[value='0']").prop("checked", true);
+                $("#form-toggle-cicilan input").attr("disabled", true);
                 $(".form-cicilan").hide();
                 $("#cicilan-nominal").val("");
             } else {
-                // Izinkan cicilan (buka kunci radio)
                 $("#form-toggle-cicilan input").removeAttr("disabled");
             }
         }
@@ -522,7 +538,18 @@
         function setTotal() {
             let primary_amount = is_cicilan && cicilan_nominal > 0 ? cicilan_nominal : subtotal
             const total = primary_amount - donation
-            if (subtotal > 0 && total >= 0 && (!is_cicilan || (is_cicilan && cicilan_nominal > 0))) {
+
+            let is_valid = true;
+            let selected_method = $("#payment_method").val();
+
+            if (selected_method === 'balance') {
+                if (total > parent_balance) {
+                    is_valid = false;
+                    setNotifInfo("Saldo tabungan orang tua tidak mencukupi untuk tagihan ini.");
+                }
+            }
+            if (subtotal > 0 && total >= 0 && (!is_cicilan || (is_cicilan && cicilan_nominal > 0)) && selected_method &&
+                selected_method !== "" && is_valid) {
                 $("#btn-submit").removeClass("btn-secondary").addClass("btn-primary").removeAttr("disabled")
             } else {
                 $("#btn-submit").removeClass("btn-primary").addClass("btn-secondary").attr("disabled", true)
