@@ -90,7 +90,6 @@
                 alias: "nominal"
             })
 
-            // 1. Arahkan Autocomplete ke Route Parent
             $("#search").autocomplete({
                 source: `{{ route('finance.balance.get.autocomplete.parent') }}`,
                 minLength: 2,
@@ -128,7 +127,6 @@
         })
 
         function search(value) {
-            // Mengirimkan data pencarian (Nama - NoHP)
             const formData = {
                 parent: value
             }
@@ -152,7 +150,6 @@
                     }
                     $("#loading").hide()
                     $("#btn-search-clear").show()
-                    // Tempatkan HTML detail parent ke dalam div #student
                     $("#student").html(response.data.html).show()
                 },
                 error: function(xhr, ajaxOptions, thrownError) {
@@ -182,7 +179,6 @@
                 data: formData,
                 dataType: "json",
                 success: function(response) {
-                    // Update tampilan saldo dengan saldo baru dari response
                     $("#student .balance").html(`Rp. ${moneyFormat(response.data.balance)}`)
                     $("#total").val("")
 

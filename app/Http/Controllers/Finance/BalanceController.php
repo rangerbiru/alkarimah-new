@@ -19,12 +19,6 @@ use Illuminate\Support\Facades\Redirect;
 
 class BalanceController extends Controller
 {
-    // private $title_prefix = 'label.savings';
-    // private $title = [
-    //     'deposit' => 'label.deposit',
-    //     'withdrawal' => 'label.withdrawal',
-    //     'mutation' => 'label.mutation',
-    // ];
     private $title = 'label.balance_topup';
 
     private $icon = 'bx bxs-wallet';
@@ -201,7 +195,6 @@ class BalanceController extends Controller
         ]);
     }
 
-    // 1. Fungsi Autocomplete untuk mencari Orang Tua
     public function getParentAutocomplete(Request $request)
     {
         $parentsData = [];
@@ -216,14 +209,13 @@ class BalanceController extends Controller
             array_push($parentsData, [
                 'id' => $p->id,
                 'label' => $p->name.' - '.$p->phone,
-                'value' => $p->name.' - '.$p->phone, // Value ini yang akan muncul di input saat dipilih
+                'value' => $p->name.' - '.$p->phone,
             ]);
         }
 
         return response()->json($parentsData);
     }
 
-    // 2. Fungsi untuk mengambil detail HTML Orang Tua setelah dipilih
     public function getParent(Request $request)
     {
         $parentValue = $request->parent ?? '';
@@ -233,12 +225,7 @@ class BalanceController extends Controller
         $parent = Parents::where('phone', $phone)->first();
 
         if ($parent) {
-            // Mengambil data User berdasarkan id_user dari tabel parents
-            // Pastikan namespace App\Models\User sudah sesuai dengan proyek Anda
             $user = User::find($parent->id_user);
-
-            // Menyuntikkan properti 'email' secara dinamis ke objek $parent
-            // agar bisa langsung dipanggil di view sebagai $parent->email
             $parent->email = $user ? $user->email : null;
         }
 
@@ -253,7 +240,6 @@ class BalanceController extends Controller
         ]);
     }
 
-    // 3. Fungsi Store Khusus Kasir (Uang Cash)
     public function storeCash(Request $request)
     {
         $error = false;
@@ -271,7 +257,6 @@ class BalanceController extends Controller
             }
 
             DB::transaction(function () use ($request, $nominal, $parent) {
-                // 1. Catat di tabel Transaction (sebagai status Paid/Selesai)
                 $transaction = Transaction::create([
                     'id_parent' => $parent->id,
                     'number' => Transaction::generateNumber(TransactionFlag::TopupSaldo->value),
@@ -286,11 +271,9 @@ class BalanceController extends Controller
                     'paid_by' => Auth::id(),
                 ]);
 
-                // 2. Tambah saldo orang tua langsung
                 $parent->balance += $nominal;
                 $parent->save();
 
-                // 3. Catat di TopupHistory
                 TopupHistory::create([
                     'id_parent' => $parent->id,
                     'id_transaction' => $transaction->id,
@@ -300,7 +283,6 @@ class BalanceController extends Controller
                 ]);
             });
 
-            // Ambil saldo terbaru untuk diupdate di frontend
             $newBalance = Parents::find($request->id_parent)->balance;
 
             return response()->json([
