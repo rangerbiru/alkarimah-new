@@ -13,13 +13,15 @@ class TopupHistory extends Model
     use HasFactory;
 
     protected $table = 'topup_history';
+
     protected $guarded = ['id', 'created_at', 'created_by'];
+
     protected $fillable = [];
 
     protected function encryptedId(): Attribute
     {
         return Attribute::make(
-            get: fn() => Crypt::encrypt($this->id)
+            get: fn () => Crypt::encrypt($this->id)
         );
     }
 

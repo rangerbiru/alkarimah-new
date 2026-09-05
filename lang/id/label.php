@@ -708,4 +708,5 @@ return [
     'other_data' => 'Data Lainnya',
 
     'total_payment' => 'Jumlah Bayar',
+    'saving_deposit' => 'Setoran Tabungan',
 ];

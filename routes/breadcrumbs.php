@@ -496,6 +496,11 @@ Breadcrumbs::for('finance/savings/withdrawal/history', function (BreadcrumbTrail
     $trail->push(__('label.history'), route('finance.savings.history.withdrawal'));
 });
 
+Breadcrumbs::for('finance/balance/topup', function (BreadcrumbTrail $trail) {
+    $trail->parent('dashboard');
+    $trail->push(__('label.topup'), route('finance.balance.topup'));
+});
+
 Breadcrumbs::for('hr/allowance', function (BreadcrumbTrail $trail) {
     $trail->parent('dashboard');
     $trail->push(__('label.allowance'), route('hr.allowance.index'));

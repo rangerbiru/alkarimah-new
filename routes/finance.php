@@ -14,11 +14,18 @@ Route::prefix('balance')->group(function () {
     Route::get('/', [FinanceBalanceController::class, 'index'])->name('finance.balance.index')->middleware('role:orang-tua');
     Route::get('history', [FinanceBalanceController::class, 'history'])->name('finance.balance.history')->middleware('role:orang-tua');
     Route::get('waiting/{transaction}', [FinanceBalanceController::class, 'waiting'])->name('finance.balance.waiting')->middleware('role:orang-tua');
-    Route::get('/{history}', [FinanceBalanceController::class, 'show'])->name('finance.balance.show')->middleware('role:orang-tua');
 
+    // Rute Kasir
+    Route::get('topup', [FinanceBalanceController::class, 'topup'])->name('finance.balance.topup')->middleware('role:kasir');
+    Route::get('get/autocomplete/parent', [FinanceBalanceController::class, 'getParentAutocomplete'])->name('finance.balance.get.autocomplete.parent')->middleware('role:kasir');
+
+    Route::post('get/parent', [FinanceBalanceController::class, 'getParent'])->name('finance.balance.get.parent')->middleware('role:kasir');
     Route::post('/', [FinanceBalanceController::class, 'store'])->name('finance.balance.store')->middleware('role:orang-tua');
     Route::post('get', [FinanceBalanceController::class, 'get'])->name('finance.balance.get')->middleware('role:orang-tua');
     Route::post('get/history', [FinanceBalanceController::class, 'getHistory'])->name('finance.balance.get.history')->middleware('role:orang-tua');
+    Route::post('storeCash', [FinanceBalanceController::class, 'storeCash'])->name('finance.balance.store.cash')->middleware('role:kasir');
+
+    Route::get('/{history}', [FinanceBalanceController::class, 'show'])->name('finance.balance.show')->middleware('role:orang-tua');
 });
 
 Route::prefix('bill')->group(function () {

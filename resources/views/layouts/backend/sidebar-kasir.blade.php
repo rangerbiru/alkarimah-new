@@ -7,6 +7,7 @@
     $set_finance_transaction_unique_code = $action == 'transaction' && $function == 'unique-code' ? ' active' : '';
     $set_finance_transaction_pending = $action == 'transaction' && $function == 'pending' ? ' active' : '';
     $set_finance_transaction_history = $action == 'transaction' && $function == 'history' ? ' active' : '';
+    $set_finance_balance_topup = $action == 'balance' && $function == 'topup' ? ' active' : '';
     $set_finance_savings_deposit = $action == 'savings' && $function == 'deposit' ? ' active' : '';
     $set_finance_savings_withdrawal = $action == 'savings' && $function == 'withdrawal' ? ' active' : '';
     $set_finance_savings_mutation = $action == 'savings' && $function == 'mutation' ? ' active' : '';
@@ -144,6 +145,24 @@
         </li>
     </ul>
 </li>
+<li class="slide has-sub{{ $set_finance_savings_open }}">
+    <a href="javascript:void(0);" class="side-menu__item{{ $set_finance_savings }}">
+        <span class="side-menu__icon">
+            <i class="bx bx-wallet"></i>
+        </span>
+        <span class="side-menu__label">{{ __('label.topup') }}</span>
+        <i class="fe fe-chevron-right side-menu__angle"></i>
+    </a>
+
+    <ul class="slide-menu child1">
+        <li class="slide">
+            <a href="{{ route('finance.balance.topup') }}" class="side-menu__item{{ $set_finance_balance_topup }}">
+                {{ __('label.deposit') }}
+            </a>
+        </li>
+    </ul>
+</li>
+
 <li class="slide has-sub{{ $set_finance_savings_open }}">
     <a href="javascript:void(0);" class="side-menu__item{{ $set_finance_savings }}">
         <span class="side-menu__icon">

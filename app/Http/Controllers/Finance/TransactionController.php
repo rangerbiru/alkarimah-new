@@ -1077,21 +1077,32 @@ class TransactionController extends Controller
 
         DB::transaction(function () use ($request, $transaction, &$message) {
             if ($request->status == 'paid') {
+
+                $original_unique_code = $transaction->unique_code;
+                $new_unique_code = $original_unique_code;
+                $new_total = $transaction->total;
+
+                if ($request->unique_code_status == '0') {
+                    $new_unique_code = 0;
+                    $new_total = $transaction->total - $original_unique_code;
+                } elseif ($request->unique_code_status == '2') {
+                    $custom_code = (int) $request->custom_unique_code;
+                    $new_unique_code = $custom_code;
+                    $new_total = ($transaction->total - $original_unique_code) + $custom_code;
+                }
+
                 $update = [
                     'status' => TransactionStatus::Paid->value,
                     'paid_at' => date('Y-m-d H:i:s'),
                     'paid_by' => Auth::id(),
+                    'unique_code' => $new_unique_code,
+                    'total' => $new_total,
                 ];
-
-                if ($request->unique_code == 0) { // Orang tua transfer tanpa kode unik
-                    $update['unique_code'] = 0;
-                    $update['total'] = $transaction->total - $transaction->unique_code;
-                }
 
                 $transaction->update($update);
 
-                if ($transaction->unique_code > 0) {
-                    TransactionPaymentCode::whereCode($transaction->unique_code)->delete();
+                if ($original_unique_code > 0) {
+                    TransactionPaymentCode::whereCode($original_unique_code)->delete();
                 }
 
                 if ($transaction->is_tagihan) {
@@ -1114,11 +1125,10 @@ class TransactionController extends Controller
 
                         TransactionBill::updateReport($trans_bill, $transaction->paid_at);
                     }
-
                     event(new TransactionBillPaid($transaction));
                 } elseif ($transaction->is_setor_tabungan) {
                     event(new SavingsDepositPaid($transaction));
-                } else { // Topup Saldo
+                } else {
                     $parent = Parents::select('id', 'balance')->whereId($transaction->id_parent)->first();
                     $parent->balance += $transaction->subtotal;
                     $parent->save();
@@ -1138,12 +1148,10 @@ class TransactionController extends Controller
             }
         });
 
-        $response = [
+        return response()->json([
             'status' => true,
             'message' => $message,
-        ];
-
-        return response()->json($response);
+        ]);
     }
 
     public function updateCash(TransactionCashRequest $request, CashDeposit $deposit)

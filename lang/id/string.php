@@ -27,6 +27,7 @@ return [
     'bill_can_not_delete' => 'Tagihan ini tidak bisa dihapus karena tagihan sudah dibayar',
     'payment_bill_check' => 'Harap pilih terlebih dahulu tagihan diatas yang akan dibayar untuk melakukan pembayaran',
     'type_nis_name_to_search' => 'Ketik NIS atau Nama Siswa',
+    'type_name_phone_to_search' => 'Ketik Nama atau Nomor HP',
     'no_transaction_yet' => 'Belum ada transaksi',
     'no_bill_yet' => 'Belum ada tagihan',
     'choose_month_year' => 'Pilih Bulan dan Tahun',

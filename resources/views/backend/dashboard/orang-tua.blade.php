@@ -5,7 +5,8 @@
     <div id="carouselExampleControls" class="carousel slide" data-bs-ride="carousel">
         <div class="carousel-inner">
             <div class="carousel-item active">
-                <img src="{{ asset('images/slides/banner1.jpeg') }}" class="d-block w-100" alt="...">
+                <img src="{{ asset('images/slides/banner1.jpeg') }}" class="d-block w-100"
+                    style="object-fit: cover; height: 250px" alt="...">
             </div>
             {{-- <div class="carousel-item">
             <img src="{{ asset('images/slides/2.png') }}" class="d-block w-100" alt="...">
@@ -21,7 +22,7 @@
         </button>
     </div>
 
-    <div class="row mt-4">
+    <div class="row mt-4 row-gap-3">
         <div class="col-3 text-center">
             <a href="{{ route('finance.payment.index') }}" class="btn-icon text-grey">
                 <img src="{{ asset('images/icons/pembayaran.svg') }}" />

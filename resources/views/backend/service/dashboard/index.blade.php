@@ -5,11 +5,12 @@
     <div id="carouselExampleControls" class="carousel slide" data-bs-ride="carousel">
         <div class="carousel-inner">
             <div class="carousel-item active">
-                <img src="{{ asset('images/slides/1.png') }}" class="d-block w-100" alt="...">
+                <img src="{{ asset('images/slides/banner1.jpeg') }}" class="d-block w-100"
+                    style="object-fit: cover; height: 250px" alt="...">
             </div>
-            <div class="carousel-item">
+            {{-- <div class="carousel-item">
                 <img src="{{ asset('images/slides/2.png') }}" class="d-block w-100" alt="...">
-            </div>
+            </div> --}}
         </div>
         <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="prev">
             <span class="carousel-control-prev-icon" aria-hidden="true"></span>
@@ -21,7 +22,7 @@
         </button>
     </div>
 
-    <div class="row mt-4">
+    <div class="row mt-4 row-gap-3">
         <div class="col-4 text-center">
             <a href="#" onclick="maintenance()" class="btn-icon text-grey">
                 <img src="{{ asset('images/icons/assessment-academic.png') }}" />
@@ -167,7 +168,7 @@
         }
 
         .btn-icon .text {
-            font-size: 12px;
+            font-size: 10px;
         }
 
         .btn-icon-small img {
