@@ -1,6 +1,7 @@
 @php
     $set_user_bendahara = $controller == 'user' && request()->render == 'bendahara' ? ' active' : '';
     $set_user_kasir = $controller == 'user' && request()->render == 'kasir' ? ' active' : '';
+    $set_user_kasirtabungan = $controller == 'user' && request()->render == 'kasir-tabungan' ? ' active' : '';
     $set_user_walikelas = $controller == 'user' && request()->render == 'wali-kelas' ? ' active' : '';
     $set_user_penanngungjawab =
         $controller == 'user' && request()->render == 'penanggung-jawab-tabungan' ? ' active' : '';
@@ -73,6 +74,11 @@
         <li class="slide">
             <a href="{{ route('user.index', 'kasir') }}" class="side-menu__item{{ $set_user_kasir }}">
                 {{ __('label.kasir') }}
+            </a>
+        </li>
+        <li class="slide">
+            <a href="{{ route('user.index', 'kasir-tabungan') }}" class="side-menu__item{{ $set_user_kasirtabungan }}">
+                {{ __('label.kasir_tabungan') }}
             </a>
         </li>
         <li class="slide">

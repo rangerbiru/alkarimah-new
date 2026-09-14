@@ -16,7 +16,7 @@
         @include($path . 'menu')
 
         <div class="p-3">
-            @if (Auth::user()->is_kasir)
+            @if (Auth::user()->is_kasir || Auth::user()->is_kasir_tabungan)
                 <div class="mb-3">
                     <a href="{{ route('finance.transaction.create.cash') }}" class="btn btn-primary label-btn">
                         <i class="bx bxs-plus-circle label-btn-icon me-2"></i>
@@ -33,7 +33,7 @@
                             <th>{{ __('label.deposit_number') }}</th>
                             <th>{{ __('label.deposit_date') }}</th>
                             <th>{{ __('label.total') }}</th>
-                            <th class="text-center" style="width: {{ (Auth::user()->is_kasir) ? '105px' : '35px' }};">#</th>
+                            <th class="text-center" style="width: {{ (Auth::user()->is_kasir || Auth::user()->is_kasir_tabungan) ? '105px' : '35px' }};">#</th>
                         </tr>
                     </thead>
                     <tbody></tbody>

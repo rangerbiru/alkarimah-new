@@ -8,6 +8,7 @@ enum UserRole: string
     case Admin = 'admin';
     case Bendahara = 'bendahara';
     case Kasir = 'kasir';
+    case KasirTabungan = 'kasir-tabungan';
     case PenanggungJawabTabungan = 'penanggung-jawab-tabungan';
     case OrangTua = 'orang-tua';
     case WaliKelas = 'wali-kelas';

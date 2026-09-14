@@ -117,6 +117,10 @@ class UserController extends Controller
                 case UserRole::Kasir->value:
                 $menu_user = UserMenu::Kasir;
                 break;
+
+                case UserRole::KasirTabungan->value:
+                $menu_user = UserMenu::KasirTabungan;
+                break;
             }
 
             $menu = Menu::select('id', 'actions', 'is_parent')->whereIn('id', $menu_user)->orderBy('sort')->get();

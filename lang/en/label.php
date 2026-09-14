@@ -42,6 +42,7 @@ return [
     'female' => 'Female',
     'bendahara' => 'Treasurer',
     'kasir' => 'Cashier',
+    'kasir_tabungan' => 'Savings Cashier',
     'wali_kelas' => 'Homeroom Teacher',
     'penanggung_jawab_tabungan' => 'Person Responsible',
     'academic' => 'Academic',

@@ -343,6 +343,41 @@ class MenuSeeder extends Seeder
                 'is_sidebar' => false,
                 'description' => 'Fitur untuk melakukan pembayaran tagihan'
             ],
+            [ // id: 29
+                'id_parent' => null,
+                'name' => 'Saldo Tabungan',
+                'icon' => 'bx bx-wallet',
+                'route' => null,
+                'group' => GroupMenu::Keuangan,
+                'sort' => 12,
+                'is_parent' => true,
+                'is_sidebar' => true,
+                'description' => 'Fitur untuk mengelola saldo tabungan orang tua'
+            ],
+            [ // id: 30
+                'id_parent' => 29,
+                'name' => 'Setoran',
+                'icon' => null,
+                'route' => ['name' => 'finance.balance.topup'],
+                'group' => GroupMenu::Keuangan,
+                'actions' => ['deposit', 'history'],
+                'sort' => 1,
+                'is_parent' => false,
+                'is_sidebar' => true,
+                'description' => 'Fitur untuk mengelola data setoran saldo tabungan'
+            ],
+            [ // id: 31
+                'id_parent' => 29,
+                'name' => 'Pengambilan',
+                'icon' => null,
+                'route' => ['name' => 'finance.balance.withdrawal'],
+                'group' => GroupMenu::Keuangan,
+                'actions' => ['process', 'history'],
+                'sort' => 2,
+                'is_parent' => false,
+                'is_sidebar' => true,
+                'description' => 'Fitur untuk mengelola data pengambilan saldo tabungan'
+            ],
         ];
 
         foreach ($menus as $m)

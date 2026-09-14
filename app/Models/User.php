@@ -97,6 +97,13 @@ class User extends Authenticatable
         );
     }
 
+    protected function isKasirTabungan(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => Auth::user()->role == UserRole::KasirTabungan
+        );
+    }
+
     protected function isOrangTua(): Attribute
     {
         return Attribute::make(

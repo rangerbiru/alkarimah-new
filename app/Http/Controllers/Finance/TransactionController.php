@@ -607,7 +607,7 @@ class TransactionController extends Controller
             ])
             ->whereStatus($status);
 
-        if (Auth::user()->is_kasir) {
+        if (Auth::user()->is_kasir || Auth::user()->is_kasir_tabungan) {
             $deposit = $deposit->whereCreatedBy(Auth::id());
         }
 
@@ -674,7 +674,7 @@ class TransactionController extends Controller
             ])
             ->whereStatus($status);
 
-        if (Auth::user()->is_kasir) {
+        if (Auth::user()->is_kasir || Auth::user()->is_kasir_tabungan) {
             $deposit = $deposit->whereCreatedBy(Auth::id());
         }
 

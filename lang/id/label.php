@@ -46,6 +46,7 @@ return [
     'female' => 'Perempuan',
     'bendahara' => 'Bendahara',
     'kasir' => 'Kasir',
+    'kasir_tabungan' => 'Kasir Tabungan',
     'wali_kelas' => 'Wali Kelas',
     'penanggung_jawab_tabungan' => 'Penanggung Jawab',
     'academic' => 'Akademik',

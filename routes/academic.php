@@ -95,7 +95,7 @@ Route::prefix('student')->group(function () {
     Route::get('set/excul', [AcademicStudentController::class, 'setExcul'])->name('academic.student.set.excul')->middleware('role:admin');
     Route::get('change', [AcademicStudentController::class, 'change'])->name('academic.student.change')->middleware('role:admin');
     Route::get('history/displacement/{student}', [AcademicStudentController::class, 'historyDisplacement'])->name('academic.student.history.displacement')->middleware('role:admin');
-    Route::get('get/autocomplete', [AcademicStudentController::class, 'getAutocomplete'])->name('academic.student.get.autocomplete')->middleware('role:kasir,penanggung-jawab-tabungan');
+    Route::get('get/autocomplete', [AcademicStudentController::class, 'getAutocomplete'])->name('academic.student.get.autocomplete')->middleware('role:kasir,kasir-tabungan,penanggung-jawab-tabungan');
     Route::get('/{student}/edit', [AcademicStudentController::class, 'edit'])->name('academic.student.edit')->middleware('role:admin,orang-tua');
     Route::get('/{student}', [AcademicStudentController::class, 'show'])->name('academic.student.show')->middleware('role:orang-tua');
 

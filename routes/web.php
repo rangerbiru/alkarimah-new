@@ -67,9 +67,9 @@ Route::group(['middleware' => ['auth', 'initialize.backend']], function () {
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard.index');
         Route::post('datatable/withdrawal', [DashboardController::class, 'datatableWithdrawal'])->name('dashboard.datatable.withdrawal');
         Route::post('datatable/bill-not-paid', [DashboardController::class, 'datatableBillNotPaid'])->name('dashboard.datatable.bill-not-paid');
-        Route::post('get/count', [DashboardController::class, 'getCount'])->name('dashboard.get.count')->middleware('role:kasir');
-        Route::post('get/payment-progress', [DashboardController::class, 'getPaymentProgress'])->name('dashboard.get.payment-progress')->middleware('role:kasir');
-        Route::post('get/receipt', [DashboardController::class, 'getReceipt'])->name('dashboard.get.receipt')->middleware('role:kasir');
+        Route::post('get/count', [DashboardController::class, 'getCount'])->name('dashboard.get.count')->middleware('role:kasir,kasir-tabungan');
+        Route::post('get/payment-progress', [DashboardController::class, 'getPaymentProgress'])->name('dashboard.get.payment-progress')->middleware('role:kasir,kasir-tabungan');
+        Route::post('get/receipt', [DashboardController::class, 'getReceipt'])->name('dashboard.get.receipt')->middleware('role:kasir,kasir-tabungan');
 
         Route::post('datatable/employee', [DashboardController::class, 'datatableAttendance'])->name('dashboard.datatable.attendance');
         Route::get('/attendance-summary/data', [DashboardController::class, 'getData'])->name('attendance.summary.data');
@@ -103,8 +103,8 @@ Route::group(['middleware' => ['auth', 'initialize.backend']], function () {
     });
 
     Route::prefix('user')->group(function () {
-        Route::get('{role}', [UserController::class, 'index'])->where('role', '[bendahara|kasir|wali\-kelas|penanggung\-jawab\-tabungan]+')->name('user.index');
-        Route::get('create/{role}', [UserController::class, 'create'])->where('role', '[bendahara|kasir|wali\-kelas|penanggung\-jawab\-tabungan]+')->name('user.create');
+        Route::get('{role}', [UserController::class, 'index'])->where('role', 'bendahara|kasir|kasir\-tabungan|wali\-kelas|penanggung\-jawab\-tabungan')->name('user.index');
+        Route::get('create/{role}', [UserController::class, 'create'])->where('role', 'bendahara|kasir|kasir\-tabungan|wali\-kelas|penanggung\-jawab\-tabungan')->name('user.create');
         Route::post('datatable', [UserController::class, 'datatable'])->name('user.datatable');
     });
     Route::resource('user', UserController::class)->except(['index', 'create', 'show']);
