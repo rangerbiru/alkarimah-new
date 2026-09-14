@@ -189,6 +189,8 @@ return [
     'withdrawal' => 'Withdrawal',
     'withdrawal_number' => 'No. Withdrawal',
     'withdrawal_date' => 'Withdrawal Date',
+    'withdrawal_amount' => 'Withdrawal Amount',
+    'balance_withdrawal' => 'Balance Withdrawal',
     'student_or_parent_or_person' => 'Student / Parent / Person Responsible',
     'print' => 'Print',
     'print_proof_payment' => 'Print Proof of Payment',

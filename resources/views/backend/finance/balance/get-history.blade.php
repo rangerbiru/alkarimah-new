@@ -18,7 +18,11 @@
                 {{ $t->transaction->number }}<br />
                 <small class="text-muted">
                     {{ $date }}<br />
-                    {{ $t->transaction->method->name }}
+                    @if ($t->transaction->is_pengambilan_saldo)
+                        {{ __('label.balance_withdrawal') }} ({{ $t->transaction->method->name }})
+                    @else
+                        {{ $t->transaction->method->name }}
+                    @endif
 
                     &nbsp;|&nbsp;
                     <a href="{{ $url }}" class="text-primary"><small>Detail <i class="fa-solid fa-angle-right"></i></small></a>
@@ -33,7 +37,11 @@
                     @endif
                 </div>
                 <div class="mb-1">
-                    {!! $t->transaction->status_badge !!}
+                    @if ($t->transaction->is_pengambilan_saldo)
+                        <span class="badge bg-success text-uppercase"><i class="fa-solid fa-check-circle"></i>&nbsp; {{ __('label.success') }}</span>
+                    @else
+                        {!! $t->transaction->status_badge !!}
+                    @endif
                 </div>
             </div>
         </div>

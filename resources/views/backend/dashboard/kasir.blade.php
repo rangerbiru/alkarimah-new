@@ -279,6 +279,7 @@
         const type_topup = "{{ $type_topup }}"
         const type_bill = "{{ $type_bill }}"
         const type_withdrawal = "{{ $type_withdrawal }}"
+        const type_balance_withdrawal = "{{ $type_balance_withdrawal }}"
 
         let id_year = "{{ $year->id }}"
         let chart_progress
@@ -343,7 +344,7 @@
                     {
                         class: "align-top",
                         render: (data, type, row, meta) => {
-                            if (row.flag == type_topup) {
+                            if (row.flag == type_topup || row.flag == type_balance_withdrawal) {
                                 return `${htmlEntities(row.parent.name)}
                             <div class="mt-3">
                                 <small><b>{{ __('label.phone_number') }}</b></small><br />

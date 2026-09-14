@@ -27,7 +27,7 @@
                 <div class="row">
                     <div class="col-sm-6">
                         <table class="table-padding">
-                            @if ($transaction->is_topup_saldo)
+                            @if ($transaction->is_topup_saldo || $transaction->is_pengambilan_saldo)
                                 <tr>
                                     <td class="fw-bold" style="width: 120px;">{{ __('label.parent_name') }}</td>
                                     <td class="divide">:</td>

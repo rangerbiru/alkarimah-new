@@ -148,7 +148,7 @@ class BalanceController extends Controller
         $parent = Auth::user()->parent->id;
         $transaction = TopupHistory::select('id', 'id_transaction', 'debit', 'credit', 'balance', 'created_at')
             ->with([
-                'transaction' => fn ($query) => $query->select('id', 'number', 'payment_method', 'paid_at', 'total', 'created_at', 'status'),
+                'transaction' => fn ($query) => $query->select('id', 'number', 'payment_method', 'paid_at', 'total', 'created_at', 'status', 'flag'),
             ])
             ->whereIdParent($parent);
 
@@ -235,6 +235,7 @@ class BalanceController extends Controller
             'status' => true,
             'data' => [
                 'id' => $parent ? $parent->id : null,
+                'balance' => $parent ? $parent->balance : 0,
                 'html' => $html,
             ],
         ]);
@@ -298,5 +299,90 @@ class BalanceController extends Controller
             'status' => false,
             'message' => $error,
         ], 422);
+    }
+
+    public function withdrawal() // Role: Kasir
+    {
+        $number = Transaction::generateNumber(TransactionFlag::PengambilanSaldo->value);
+
+        return view($this->path.'withdrawal', [
+            'title' => __($this->title).' - '.__('label.withdrawal'),
+            'icon' => $this->icon,
+            'number' => $number,
+        ]);
+    }
+
+    public function storeWithdrawal(Request $request) // Role: Kasir
+    {
+        $error = false;
+        $balance = 0;
+        $nominal = (empty($request->nominal)) ? 0 : (int) str_replace('.', '', $request->nominal);
+
+        if ($nominal < 1) {
+            $error = __('string.balance_more_then_zero');
+        }
+
+        if ($error == false) {
+            DB::transaction(function () use ($request, $nominal, &$error, &$balance) {
+                $parent = Parents::whereId($request->id_parent)->lockForUpdate()->first();
+
+                if (! $parent) {
+                    $error = __('string.parent_invalid');
+
+                    return;
+                }
+
+                if ($nominal > $parent->balance) {
+                    $error = __('string.parent_balance_insufficient', ['balance' => number_format($parent->balance, 0, '', '.')]);
+
+                    return;
+                }
+
+                $transaction = Transaction::create([
+                    'id_parent' => $parent->id,
+                    'dates' => (empty($request->dates)) ? date('Y-m-d') : date('Y-m-d', strtotime($request->dates)),
+                    'flag' => TransactionFlag::PengambilanSaldo->value,
+                    'subtotal' => $nominal,
+                    'total' => $nominal,
+                    'unique_code' => 0,
+                    'payment_method' => TransactionMethod::Cash->value,
+                    'status' => TransactionStatus::Paid->value,
+                    'paid_at' => date('Y-m-d H:i:s'),
+                    'paid_by' => Auth::id(),
+                ]);
+
+                $parent->balance -= $nominal;
+                $parent->save();
+
+                TopupHistory::create([
+                    'id_parent' => $parent->id,
+                    'id_transaction' => $transaction->id,
+                    'description' => 'Pengambilan Saldo #'.$transaction->number,
+                    'debit' => 0,
+                    'credit' => $nominal,
+                    'balance' => $parent->balance,
+                ]);
+
+                $balance = $parent->balance;
+            });
+        }
+
+        if ($error == false) {
+            $response = [
+                'status' => true,
+                'message' => __('message.process_success', ['label' => __('label.balance_withdrawal')]),
+                'data' => [
+                    'balance' => $balance,
+                    'number' => Transaction::generateNumber(TransactionFlag::PengambilanSaldo->value),
+                ],
+            ];
+        } else {
+            $response = [
+                'status' => false,
+                'message' => $error,
+            ];
+        }
+
+        return response()->json($response);
     }
 }

@@ -359,6 +359,7 @@ class DashboardController extends Controller
         $type_bill = TransactionFlag::Tagihan->value;
         $type_topup = TransactionFlag::TopupSaldo->value;
         $type_withdrawal = TransactionFlag::PengambilanTabungan->value;
+        $type_balance_withdrawal = TransactionFlag::PengambilanSaldo->value;
         $years = Year::selectRaw('id, CONCAT("Thn. Ajaran : ", start_year, " - ", end_year) AS start_year')->orderBy('start_year', 'desc')->pluck('start_year', 'id');
         $year = Year::select('id')->active()->first();
 
@@ -368,6 +369,7 @@ class DashboardController extends Controller
             'type_bill' => $type_bill,
             'type_topup' => $type_topup,
             'type_withdrawal' => $type_withdrawal,
+            'type_balance_withdrawal' => $type_balance_withdrawal,
             'years' => $years,
             'year' => $year,
         ]);

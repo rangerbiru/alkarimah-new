@@ -201,6 +201,8 @@ return [
     'withdrawal' => 'Pengambilan',
     'withdrawal_number' => 'No. Pengambilan',
     'withdrawal_date' => 'Tgl. Pengambilan',
+    'withdrawal_amount' => 'Jumlah Pengambilan',
+    'balance_withdrawal' => 'Pengambilan Tabungan',
     'student_or_parent_or_person' => 'Siswa / Orang Tua / Penanggung Jawab',
     'print' => 'Cetak',
     'print_proof_payment' => 'Cetak Bukti Pembayaran',

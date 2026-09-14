@@ -129,11 +129,13 @@ class TransactionController extends Controller
             TransactionFlag::SetorTabungan->value => __('label.savings_deposit'),
             TransactionFlag::PengambilanTabungan->value => __('label.savings_withdrawal'),
             TransactionFlag::TopupSaldo->value => __('label.topup_balance'),
+            TransactionFlag::PengambilanSaldo->value => __('label.balance_withdrawal'),
         ];
 
         $type_bill = TransactionFlag::Tagihan->value;
         $type_topup = TransactionFlag::TopupSaldo->value;
         $type_withdrawal = TransactionFlag::PengambilanTabungan->value;
+        $type_balance_withdrawal = TransactionFlag::PengambilanSaldo->value;
 
         return view($this->path['transaction'].'history', [
             'title' => __($this->title_prefix).' - '.__('label.history'),
@@ -142,6 +144,7 @@ class TransactionController extends Controller
             'type_bill' => $type_bill,
             'type_topup' => $type_topup,
             'type_withdrawal' => $type_withdrawal,
+            'type_balance_withdrawal' => $type_balance_withdrawal,
             'filter' => (object) [
                 'start' => $filter_start,
                 'end' => $filter_end,

@@ -25,6 +25,10 @@ Route::prefix('balance')->group(function () {
     Route::post('get/history', [FinanceBalanceController::class, 'getHistory'])->name('finance.balance.get.history')->middleware('role:orang-tua');
     Route::post('storeCash', [FinanceBalanceController::class, 'storeCash'])->name('finance.balance.store.cash')->middleware('role:kasir');
 
+    // Pengambilan Saldo - Rute Kasir
+    Route::get('withdrawal', [FinanceBalanceController::class, 'withdrawal'])->name('finance.balance.withdrawal')->middleware('role:kasir');
+    Route::post('withdrawal', [FinanceBalanceController::class, 'storeWithdrawal'])->name('finance.balance.store.withdrawal')->middleware('role:kasir');
+
     Route::get('/{history}', [FinanceBalanceController::class, 'show'])->name('finance.balance.show')->middleware('role:orang-tua');
 });
 

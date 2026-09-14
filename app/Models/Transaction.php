@@ -135,6 +135,15 @@ class Transaction extends Model
                         ];
                         break;
 
+                    case TransactionFlag::PengambilanSaldo->value:
+                        $flag = [
+                            'name' => __('label.balance_withdrawal'),
+                            'type' => __('label.balance'),
+                            'icon' => 'ti ti-moneybag',
+                            'color' => 'danger'
+                        ];
+                        break;
+
                     default:
                         $flag = [
                             'name' => __('label.bill'),
@@ -290,6 +299,13 @@ class Transaction extends Model
     {
         return Attribute::make(
             get: fn() => $this->flag->value == TransactionFlag::TopupSaldo->value
+        );
+    }
+
+    protected function isPengambilanSaldo(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => $this->flag->value == TransactionFlag::PengambilanSaldo->value
         );
     }
 
@@ -466,6 +482,10 @@ class Transaction extends Model
 
             case TransactionFlag::TopupSaldo->value:
             $prefix = 'TS';
+            break;
+
+            case TransactionFlag::PengambilanSaldo->value:
+            $prefix = 'PS';
             break;
 
             default:

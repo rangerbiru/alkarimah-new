@@ -75,5 +75,8 @@ return [
     'filter_school_year' => 'Sorry, the search limit exceeds the academic year range',
     'phone_required_if_you_want_to_create_account' => 'Phone Number is required if you also want to create an account for this parent',
     'there_is_no_activity_yet' => 'There is no activity yet',
-    'fill_in_with_numbers' => 'fill in with numbers'
+    'fill_in_with_numbers' => 'fill in with numbers',
+    'parent_invalid' => 'Invalid parent data',
+    'parent_balance_insufficient' => 'Parent balance is insufficient. Remaining balance: Rp. :balance',
+    'confirm_balance_withdrawal' => 'Process cash balance withdrawal of Rp. :total for :parent? The parent balance will be deducted immediately.',
 ];

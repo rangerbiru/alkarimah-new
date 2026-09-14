@@ -77,4 +77,7 @@ return [
     'phone_required_if_you_want_to_create_account' => 'No. HP harus diisi apabila Anda ingin sekalian membuat akun untuk orang tua ini',
     'there_is_no_activity_yet' => 'Belum ada aktifitas',
     'fill_in_with_numbers' => 'Isikan dengan angka',
+    'parent_invalid' => 'Data Orang Tua tidak valid',
+    'parent_balance_insufficient' => 'Saldo Tabungan orang tua tidak mencukupi. Sisa saldo: Rp. :balance',
+    'confirm_balance_withdrawal' => 'Proses pengambilan Tabungan tunai sebesar Rp. :total untuk :parent? Saldo orang tua akan langsung dikurangi.',
 ];

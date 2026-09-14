@@ -8,4 +8,5 @@ enum TransactionFlag: string
     case SetorTabungan = '2';
     case PengambilanTabungan = '3';
     case TopupSaldo = '4';
+    case PengambilanSaldo = '5';
 }

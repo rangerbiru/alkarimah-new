@@ -501,6 +501,12 @@ Breadcrumbs::for('finance/balance/topup', function (BreadcrumbTrail $trail) {
     $trail->push(__('label.topup'), route('finance.balance.topup'));
 });
 
+Breadcrumbs::for('finance/balance/withdrawal', function (BreadcrumbTrail $trail) {
+    $trail->parent('dashboard');
+    $trail->push(__('label.topup'));
+    $trail->push(__('label.withdrawal'), route('finance.balance.withdrawal'));
+});
+
 Breadcrumbs::for('hr/allowance', function (BreadcrumbTrail $trail) {
     $trail->parent('dashboard');
     $trail->push(__('label.allowance'), route('hr.allowance.index'));

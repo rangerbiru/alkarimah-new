@@ -74,6 +74,7 @@
 const type_topup = "{{ $type_topup }}"
 const type_bill = "{{ $type_bill }}"
 const type_withdrawal = "{{ $type_withdrawal }}"
+const type_balance_withdrawal = "{{ $type_balance_withdrawal }}"
 
 let start_date = "{{ $filter->start }}"
 let end_date = "{{ $filter->end }}"
@@ -138,7 +139,7 @@ $(document).ready(function() {
             {
                 class: "align-top",
                 render: (data, type, row, meta) => {
-                    if (row.flag == type_topup) {
+                    if (row.flag == type_topup || row.flag == type_balance_withdrawal) {
                         return `${htmlEntities(row.parent.name)}
                             <div class="mt-3">
                                 <small><b>{{ __('label.phone_number') }}</b></small><br />

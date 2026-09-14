@@ -8,6 +8,7 @@
     $set_finance_transaction_pending = $action == 'transaction' && $function == 'pending' ? ' active' : '';
     $set_finance_transaction_history = $action == 'transaction' && $function == 'history' ? ' active' : '';
     $set_finance_balance_topup = $action == 'balance' && $function == 'topup' ? ' active' : '';
+    $set_finance_balance_withdrawal = $action == 'balance' && $function == 'withdrawal' ? ' active' : '';
     $set_finance_savings_deposit = $action == 'savings' && $function == 'deposit' ? ' active' : '';
     $set_finance_savings_withdrawal = $action == 'savings' && $function == 'withdrawal' ? ' active' : '';
     $set_finance_savings_mutation = $action == 'savings' && $function == 'mutation' ? ' active' : '';
@@ -45,6 +46,14 @@
     } else {
         $set_finance_savings = '';
         $set_finance_savings_open = '';
+    }
+
+    if ($action == 'balance') {
+        $set_finance_balance = ' active';
+        $set_finance_balance_open = ' open';
+    } else {
+        $set_finance_balance = '';
+        $set_finance_balance_open = '';
     }
 
     if ($action == 'report') {
@@ -145,8 +154,8 @@
         </li>
     </ul>
 </li>
-<li class="slide has-sub{{ $set_finance_savings_open }}">
-    <a href="javascript:void(0);" class="side-menu__item{{ $set_finance_savings }}">
+<li class="slide has-sub{{ $set_finance_balance_open }}">
+    <a href="javascript:void(0);" class="side-menu__item{{ $set_finance_balance }}">
         <span class="side-menu__icon">
             <i class="bx bx-wallet"></i>
         </span>
@@ -158,6 +167,11 @@
         <li class="slide">
             <a href="{{ route('finance.balance.topup') }}" class="side-menu__item{{ $set_finance_balance_topup }}">
                 {{ __('label.deposit') }}
+            </a>
+        </li>
+        <li class="slide">
+            <a href="{{ route('finance.balance.withdrawal') }}" class="side-menu__item{{ $set_finance_balance_withdrawal }}">
+                {{ __('label.withdrawal') }}
             </a>
         </li>
     </ul>
