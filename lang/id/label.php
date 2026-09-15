@@ -311,7 +311,7 @@ return [
     'produk' => 'Produk',
     'academic_assessment' => 'Penilaian Akademik',
     'tahfidz_assessment' => 'Penilaian Tahfidz',
-    'ibbas_mart' => 'Ibbas Mart',
+    'alkamart' => 'Alkamart',
     'alquran' => 'Al-Qur\'an',
     'dzikir_and_doa' => 'Dzikir & Doa',
     'poster_dakwah' => 'Poster Dakwah',

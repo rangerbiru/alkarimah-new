@@ -1,4 +1,5 @@
 <?php
+
 return [
     'no' => 'No',
     'success' => 'Success',
@@ -294,7 +295,7 @@ return [
     'service' => 'Service',
     'academic_assessment' => 'Academic Assessment',
     'tahfidz_assessment' => 'Tahfidz Assessment',
-    'ibbas_mart' => 'Ibbas Mart',
+    'alkamart' => 'Alkamart',
     'alquran' => 'Al-Qur\'an',
     'dzikir_and_doa' => 'Dzikir & Doa',
     'poster_dakwah' => 'Poster Dakwah',

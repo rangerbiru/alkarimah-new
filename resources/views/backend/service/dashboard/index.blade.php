@@ -60,9 +60,9 @@
         </div>
         <div class="col-4 text-center">
             <a href="#" onclick="maintenance()" class="btn-icon text-grey">
-                <img src="{{ asset('images/icons/ibbas-mart.png') }}" />
+                <img src="{{ asset('images/icons/alka-mart.png') }}" />
 
-                <div class="mt-1 text">{{ __('label.ibbas_mart') }}</div>
+                <div class="mt-1 text">{{ __('label.alkamart') }}</div>
             </a>
         </div>
     </div>
