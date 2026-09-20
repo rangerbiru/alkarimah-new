@@ -3,6 +3,7 @@
     $set_user_kasir = $controller == 'user' && request()->render == 'kasir' ? ' active' : '';
     $set_user_kasirtabungan = $controller == 'user' && request()->render == 'kasir-tabungan' ? ' active' : '';
     $set_user_walikelas = $controller == 'user' && request()->render == 'wali-kelas' ? ' active' : '';
+    $set_user_kepalasekolah = $controller == 'user' && request()->render == 'kepala-sekolah' ? ' active' : '';
     $set_user_penanngungjawab =
         $controller == 'user' && request()->render == 'penanggung-jawab-tabungan' ? ' active' : '';
     $set_academic_asrama = $controller == 'academic' && $action == 'asrama' ? ' active' : '';
@@ -79,6 +80,11 @@
         <li class="slide">
             <a href="{{ route('user.index', 'kasir-tabungan') }}" class="side-menu__item{{ $set_user_kasirtabungan }}">
                 {{ __('label.kasir_tabungan') }}
+            </a>
+        </li>
+        <li class="slide">
+            <a href="{{ route('user.index', 'kepala-sekolah') }}" class="side-menu__item{{ $set_user_kepalasekolah }}">
+                {{ __('label.kepala_sekolah') }}
             </a>
         </li>
         <li class="slide">

@@ -153,7 +153,7 @@
                     <div class="label">{{ __('label.home') }}</div>
                 </a>
             </li>
-            @if (Auth::user()->hasRole('pegawai'))
+            @if (Auth::user()->hasRole('pegawai') || Auth::user()->hasRole('kepala-sekolah'))
                 <li class="nav-item">
                     <a class="nav-link{{ $set_bt_dakwah }}" href="#" onclick="maintenance()">
                         <i class="fa-solid fa-mosque"></i>

@@ -41,7 +41,7 @@ class StudentPermitGroupController extends Controller
     {
         $ustadz_list = Employee::with('user')
             ->whereHas('user', function ($query) {
-                $query->whereIn('role', ['pegawai', 'admin']);
+                $query->whereIn('role', ['pegawai', 'kepala-sekolah', 'admin']);
             })
             ->select('id', 'name')
             ->orderBy('id')
@@ -122,7 +122,7 @@ class StudentPermitGroupController extends Controller
 
         $ustadz_list = Employee::with('user')
             ->whereHas('user', function ($query) {
-                $query->whereIn('role', ['pegawai', 'admin']);
+                $query->whereIn('role', ['pegawai', 'kepala-sekolah', 'admin']);
             })
             ->select('id', 'name')
             ->orderBy('id')

@@ -1,4 +1,4 @@
-@if (Auth::user()->role->value == 'pegawai')
+@if (in_array(Auth::user()->role->value, ['pegawai', 'kepala-sekolah']))
     <li class="slide">
         <a href="{{ route('employee.tahfidz.index') }}" class="side-menu__item">
             <span class=" side-menu__icon">

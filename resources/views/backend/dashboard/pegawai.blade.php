@@ -523,6 +523,16 @@
                     </div>
                 @endif
 
+                @if ($isPimpinan)
+                    <div class="col-3 text-center">
+                        <a href="{{ route('finance.report.bill-per-type') }}" class="btn-icon text-grey">
+                            <img src="{{ asset('images/icons/report.png') }}" />
+
+                            <div class="mt-1 text">{{ __('label.bill_student') }}</div>
+                        </a>
+                    </div>
+                @endif
+
                 <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel"
                     aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered">

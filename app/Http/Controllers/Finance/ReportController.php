@@ -7,6 +7,7 @@ use App\Enums\BillPeriod;
 use App\Enums\BillType;
 use App\Enums\EducationLevel;
 use App\Enums\TransactionStatus;
+use App\Enums\UserRole;
 use App\Helpers\Common;
 use App\Http\Controllers\Controller;
 use App\Models\Bill;
@@ -21,6 +22,7 @@ use App\Models\TransactionBill;
 use App\Models\Year;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -178,7 +180,14 @@ class ReportController extends Controller
 
         $bill_types = Bill::pluck('name', 'id');
 
-        $classes = Classroom::select('id', 'name')->orderBy('name')->pluck('name', 'id');
+        $allowedClassIds = $this->billPerTypeAllowedClassIds();
+
+        $classes = Classroom::select('id', 'name')
+            ->when($allowedClassIds !== null, fn ($q) => $q->whereIn('id', $allowedClassIds))
+            ->orderBy('name')
+            ->pluck('name', 'id');
+
+        $default_class = $allowedClassIds !== null && $classes->count() == 1 ? $classes->keys()->first() : '';
 
         return view($this->path.'bill-per-type', [
             'title' => __($this->title_prefix).' - Laporan Tagihan Per Jenis',
@@ -188,7 +197,31 @@ class ReportController extends Controller
             'years' => $years,
             'bill_types' => $bill_types,
             'classes' => $classes,
+            'default_class' => $default_class,
         ]);
+    }
+
+    /**
+     * Kelas yang boleh dilihat pada laporan tagihan per jenis.
+     * null = semua kelas (kasir, bendahara, pimpinan), array = hanya kelas tersebut (wali kelas).
+     */
+    private function billPerTypeAllowedClassIds(): ?array
+    {
+        $user = Auth::user();
+
+        if ($user->hasPimpinanAccess()) {
+            return null;
+        }
+
+        if ($user->role == UserRole::WaliKelas) {
+            return Classroom::where('id_wali_kelas', $user->id)->pluck('id')->toArray();
+        }
+
+        if (in_array($user->role, [UserRole::Pegawai, UserRole::KepalaSekolah])) {
+            abort(403);
+        }
+
+        return null;
     }
 
     public function getTotalBillPerType(Request $request)
@@ -197,10 +230,17 @@ class ReportController extends Controller
         $classId = $request->class;
         $billTypeId = $request->bill_type;
 
+        $allowedClassIds = $this->billPerTypeAllowedClassIds();
+
         $tbQuery = TransactionBill::query()
             ->when($classId, function ($query) use ($classId) {
                 $query->whereHas('student', function ($q) use ($classId) {
                     $q->where('id_class', $classId);
+                });
+            })
+            ->when($allowedClassIds !== null, function ($query) use ($allowedClassIds) {
+                $query->whereHas('student', function ($q) use ($allowedClassIds) {
+                    $q->whereIn('id_class', $allowedClassIds);
                 });
             })
             ->when($billTypeId, function ($query) use ($billTypeId) {
@@ -228,6 +268,8 @@ class ReportController extends Controller
 
     public function datatableBillPerType(Request $request)
     {
+        $allowedClassIds = $this->billPerTypeAllowedClassIds();
+
         $year = $request->year;
         $classId = $request->class;
         $billTypeId = $request->bill_type;
@@ -253,6 +295,9 @@ class ReportController extends Controller
             ->whereIn('id', $studentIdsWithBills)
             ->when($classId, function ($q) use ($classId) {
                 $q->where('id_class', $classId);
+            })
+            ->when($allowedClassIds !== null, function ($q) use ($allowedClassIds) {
+                $q->whereIn('id_class', $allowedClassIds);
             });
 
         $recordsTotal = $studentQuery->count();
@@ -306,6 +351,8 @@ class ReportController extends Controller
 
     public function downloadPdfBillPerType(Request $request)
     {
+        $allowedClassIds = $this->billPerTypeAllowedClassIds();
+
         $yearId = $request->year;
         $classId = $request->class;
         $billTypeId = $request->bill_type;
@@ -329,6 +376,9 @@ class ReportController extends Controller
             ->whereIn('id', $studentIdsWithBills)
             ->when($classId, function ($q) use ($classId) {
                 $q->where('id_class', $classId);
+            })
+            ->when($allowedClassIds !== null, function ($q) use ($allowedClassIds) {
+                $q->whereIn('id_class', $allowedClassIds);
             })
             ->orderBy('name')->get();
 
@@ -383,6 +433,8 @@ class ReportController extends Controller
 
     public function downloadExcelBillPerType(Request $request)
     {
+        $allowedClassIds = $this->billPerTypeAllowedClassIds();
+
         $yearId = $request->year;
         $classId = $request->class;
         $billTypeId = $request->bill_type;
@@ -463,6 +515,9 @@ class ReportController extends Controller
             ->whereIn('id', $studentIdsWithBills)
             ->when($classId, function ($q) use ($classId) {
                 $q->where('id_class', $classId);
+            })
+            ->when($allowedClassIds !== null, function ($q) use ($allowedClassIds) {
+                $q->whereIn('id_class', $allowedClassIds);
             })
             ->orderBy('name')->get();
 

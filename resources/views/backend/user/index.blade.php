@@ -109,9 +109,15 @@ $(document).ready(function() {
                     url_edit = url_edit.replace(":id", row.encrypted_id)
                     url_destroy = url_destroy.replace("0", row.encrypted_id)
 
-                    return `<a href="${url_edit}" class="btn btn-dark btn-xs set-tooltip" title="${label_edit}">
+                    let btn_edit = `<a href="${url_edit}" class="btn btn-dark btn-xs set-tooltip" title="${label_edit}">
                             <i class="bx bx-pencil"></i>
-                        </a>
+                        </a>`
+
+                    // Data kepala sekolah diubah lewat menu Pegawai (HR)
+                    if ("{{ $role }}" == "kepala-sekolah")
+                        btn_edit = ""
+
+                    return `${btn_edit}
                         <a href="javascript:void(0)" class="btn btn-danger btn-xs set-tooltip" title="${label_delete}" onclick="deleteConfirm('${url_destroy}', false, 'table-device')">
                             <i class="bx bx-trash"></i>
                         </a>`

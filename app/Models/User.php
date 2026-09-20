@@ -118,6 +118,33 @@ class User extends Authenticatable
         );
     }
 
+    protected function isKepalaSekolah(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => $this->role == UserRole::KepalaSekolah
+        );
+    }
+
+    /**
+     * Akses setara pimpinan: role kepala sekolah, atau pegawai yang tergabung
+     * di grup absensi pimpinan (position 10).
+     */
+    public function hasPimpinanAccess(): bool
+    {
+        if ($this->role == UserRole::KepalaSekolah) {
+            return true;
+        }
+
+        if (! $this->employee) {
+            return false;
+        }
+
+        return AttendanceGroupMembers::where('employee_id', $this->employee->id)
+            ->whereHas('attendanceGroup', function ($query) {
+                $query->where('position', 10);
+            })->exists();
+    }
+
     public static function boot()
     {
         parent::boot();

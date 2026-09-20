@@ -8,6 +8,7 @@ use App\Helpers\Common;
 use App\Http\Requests\UserPasswordRequest;
 use App\Http\Requests\UserProfileRequest;
 use App\Http\Requests\UserRequest;
+use App\Models\Employee;
 use App\Models\Menu;
 use App\Models\User;
 use App\Models\UserRights;
@@ -19,7 +20,9 @@ use Illuminate\Support\Facades\Redirect;
 class UserController extends Controller
 {
     private $title = 'label.user';
+
     private $icon = 'bx bx-user';
+
     private $path = 'backend.user.';
 
     public function index($role)
@@ -28,8 +31,8 @@ class UserController extends Controller
             ->whereBranchId(Auth::user()->branch_id)
             ->count();
 
-        return view($this->path . 'index', [
-            'title' => __($this->title) . ' - ' . __('label.' . str_replace('-', '_', $role)),
+        return view($this->path.'index', [
+            'title' => __($this->title).' - '.__('label.'.str_replace('-', '_', $role)),
             'icon' => $this->icon,
             'role' => $role,
             'count' => $count,
@@ -48,13 +51,13 @@ class UserController extends Controller
 
         $user_count = $user->count();
 
-        if (empty($search))
+        if (empty($search)) {
             $user_filter = $user;
-        else {
+        } else {
             $user_filter = $user->where(function ($query) use ($search) {
-                $query->where('name', 'like', '%' . $search . '%')
-                ->orWhere('phone', 'like', '%' . $search . '%')
-                ->orWhere('email', 'like', '%' . $search . '%');
+                $query->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('phone', 'like', '%'.$search.'%')
+                    ->orWhere('email', 'like', '%'.$search.'%');
             });
         }
 
@@ -78,7 +81,7 @@ class UserController extends Controller
             'draw' => $request->input('draw'),
             'recordsTotal' => $user_count,
             'recordsFiltered' => $user_count_filter,
-            'data' => $user_arr
+            'data' => $user_arr,
         ];
 
         return response()->json($response);
@@ -86,41 +89,86 @@ class UserController extends Controller
 
     public function create($role)
     {
+        if ($role == UserRole::KepalaSekolah->value) {
+            return $this->createKepalaSekolah();
+        }
+
         $genders = Common::option('gender');
 
-        return view($this->path . 'create', [
-            'title' => __($this->title) . ' - ' . __('label.' . str_replace('-', '_', $role)),
+        return view($this->path.'create', [
+            'title' => __($this->title).' - '.__('label.'.str_replace('-', '_', $role)),
             'icon' => $this->icon,
             'role' => $role,
             'genders' => $genders,
         ]);
     }
 
+    private function createKepalaSekolah()
+    {
+        $role = UserRole::KepalaSekolah->value;
+
+        $employees = Employee::select('id', 'nip', 'name')
+            ->whereStatus(1)
+            ->whereHas('user', function ($query) {
+                $query->whereRole(UserRole::Pegawai)
+                    ->whereBranchId(Auth::user()->branch_id);
+            })
+            ->orderBy('name')
+            ->get()
+            ->mapWithKeys(fn ($e) => [$e->id => $e->nip.' - '.$e->name]);
+
+        return view($this->path.'create-kepala-sekolah', [
+            'title' => __($this->title).' - '.__('label.kepala_sekolah'),
+            'icon' => $this->icon,
+            'role' => $role,
+            'employees' => $employees,
+        ]);
+    }
+
+    public function storeKepalaSekolah(Request $request)
+    {
+        $request->validate([
+            'employee' => 'required|exists:employee,id',
+        ], [], [
+            'employee' => __('label.employee'),
+        ]);
+
+        $employee = Employee::with('user')->findOrFail($request->employee);
+
+        if (! $employee->user || $employee->user->role != UserRole::Pegawai || $employee->user->branch_id != Auth::user()->branch_id) {
+            return Redirect::back()->with('error', __('string.kepala_sekolah_employee_invalid'));
+        }
+
+        $employee->user->update(['role' => UserRole::KepalaSekolah]);
+
+        return Redirect::route('user.index', UserRole::KepalaSekolah->value)->with('success', __('message.create_success', ['label' => __('label.kepala_sekolah')]));
+    }
+
     public function store(UserRequest $request)
     {
-        DB::transaction(function() use($request) {
+        DB::transaction(function () use ($request) {
             $user = User::create($request->all());
 
             switch ($user->role->value) {
                 case UserRole::Bendahara->value:
-                $menu_user = UserMenu::Bendahara;
-                break;
+                    $menu_user = UserMenu::Bendahara;
+                    break;
 
                 case UserRole::PenanggungJawabTabungan->value:
-                $menu_user = UserMenu::PenanggungJawab;
-                break;
+                    $menu_user = UserMenu::PenanggungJawab;
+                    break;
 
                 case UserRole::WaliKelas->value:
-                $menu_user = UserMenu::WaliKelas;
-                break;
+                    $menu_user = UserMenu::WaliKelas;
+                    break;
 
                 case UserRole::Kasir->value:
-                $menu_user = UserMenu::Kasir;
-                break;
+                    $menu_user = UserMenu::Kasir;
+                    break;
 
                 case UserRole::KasirTabungan->value:
-                $menu_user = UserMenu::KasirTabungan;
-                break;
+                    $menu_user = UserMenu::KasirTabungan;
+                    break;
             }
 
             $menu = Menu::select('id', 'actions', 'is_parent')->whereIn('id', $menu_user)->orderBy('sort')->get();
@@ -143,8 +191,8 @@ class UserController extends Controller
         $role = $user->role->value;
         $genders = Common::option('gender');
 
-        return view($this->path . 'edit', [
-            'title' => __($this->title) . ' - ' . __('label.' . str_replace('-', '_', $role)),
+        return view($this->path.'edit', [
+            'title' => __($this->title).' - '.__('label.'.str_replace('-', '_', $role)),
             'icon' => $this->icon,
             'user' => $user,
             'role' => $role,
@@ -154,8 +202,9 @@ class UserController extends Controller
 
     public function update(UserRequest $request, User $user)
     {
-        if (empty($request->password))
+        if (empty($request->password)) {
             unset($request->password);
+        }
 
         $user->update($request->all());
 
@@ -164,11 +213,21 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
+        // Akun kepala sekolah adalah akun pegawai, jadi cukup dikembalikan ke role pegawai
+        if ($user->role == UserRole::KepalaSekolah) {
+            $user->update(['role' => UserRole::Pegawai]);
+
+            return response()->json([
+                'status' => true,
+                'message' => __('string.kepala_sekolah_reverted'),
+            ]);
+        }
+
         $user->delete();
 
         $response = [
             'status' => true,
-            'message' => __('message.delete_success', ['label' => __($this->title)])
+            'message' => __('message.delete_success', ['label' => __($this->title)]),
         ];
 
         return response()->json($response);
@@ -178,7 +237,8 @@ class UserController extends Controller
     {
         // dd(Auth::user()->lastlogin_at);
         $genders = Common::option('gender');
-        return view($this->path . 'profile', [
+
+        return view($this->path.'profile', [
             'title' => __('label.profile'),
             'icon' => $this->icon,
             'user' => Auth::user(),
@@ -197,7 +257,7 @@ class UserController extends Controller
 
     public function editPassword()
     {
-        return view($this->path . 'change-password', [
+        return view($this->path.'change-password', [
             'title' => __('label.change_password'),
             'icon' => $this->icon,
             'user' => Auth::user(),

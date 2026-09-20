@@ -79,4 +79,7 @@ return [
     'parent_invalid' => 'Invalid parent data',
     'parent_balance_insufficient' => 'Parent balance is insufficient. Remaining balance: Rp. :balance',
     'confirm_balance_withdrawal' => 'Process cash balance withdrawal of Rp. :total for :parent? The parent balance will be deducted immediately.',
+    'kepala_sekolah_info' => 'Choose the employee to assign as Principal. The employee keeps the same login; only the role changes to Principal.',
+    'kepala_sekolah_employee_invalid' => 'Invalid employee or the employee already has another role.',
+    'kepala_sekolah_reverted' => 'Principal role revoked, the account is back to Employee.',
 ];

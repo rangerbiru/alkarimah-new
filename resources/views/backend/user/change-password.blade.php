@@ -1,4 +1,4 @@
-@extends((Auth::user()->isOrangTua or Auth::user()->isPegawai) ? 'layouts.mobile.index' : 'layouts.backend.index')
+@extends((Auth::user()->isOrangTua or Auth::user()->isPegawai or Auth::user()->isKepalaSekolah) ? 'layouts.mobile.index' : 'layouts.backend.index')
 
 @section('title', $title)
 @section('header')

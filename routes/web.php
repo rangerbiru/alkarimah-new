@@ -77,8 +77,8 @@ Route::group(['middleware' => ['auth', 'initialize.backend']], function () {
         Route::get('/attendance/export', [DashboardController::class, 'exportExcel'])->name('attendance.export');
 
         // Employee Attendance
-        Route::post('attendance/in', [AttendanceController::class, 'attendanceIn'])->name('dashboard.employee.attendanceIn')->middleware('role:kasir,pegawai,wali-kelas,admin,penanggungJawabTabungan');
-        Route::post('attendance/out', [AttendanceController::class, 'attendanceOut'])->name('dashboard.employee.attendanceOut')->middleware('role:kasir,pegawai,wali-kelas,admin,penanggungJawabTabungan');
+        Route::post('attendance/in', [AttendanceController::class, 'attendanceIn'])->name('dashboard.employee.attendanceIn')->middleware('role:kasir,pegawai,kepala-sekolah,wali-kelas,admin,penanggungJawabTabungan');
+        Route::post('attendance/out', [AttendanceController::class, 'attendanceOut'])->name('dashboard.employee.attendanceOut')->middleware('role:kasir,pegawai,kepala-sekolah,wali-kelas,admin,penanggungJawabTabungan');
         Route::post('attendance/reason', [AttendanceController::class, 'storeReason'])->name('dashboard.employee.attendance.reason');
     });
 
@@ -103,9 +103,10 @@ Route::group(['middleware' => ['auth', 'initialize.backend']], function () {
     });
 
     Route::prefix('user')->group(function () {
-        Route::get('{role}', [UserController::class, 'index'])->where('role', 'bendahara|kasir|kasir\-tabungan|wali\-kelas|penanggung\-jawab\-tabungan')->name('user.index');
-        Route::get('create/{role}', [UserController::class, 'create'])->where('role', 'bendahara|kasir|kasir\-tabungan|wali\-kelas|penanggung\-jawab\-tabungan')->name('user.create');
+        Route::get('{role}', [UserController::class, 'index'])->where('role', 'bendahara|kasir|kasir\-tabungan|wali\-kelas|penanggung\-jawab\-tabungan|kepala\-sekolah')->name('user.index');
+        Route::get('create/{role}', [UserController::class, 'create'])->where('role', 'bendahara|kasir|kasir\-tabungan|wali\-kelas|penanggung\-jawab\-tabungan|kepala\-sekolah')->name('user.create');
         Route::post('datatable', [UserController::class, 'datatable'])->name('user.datatable');
+        Route::post('kepala-sekolah', [UserController::class, 'storeKepalaSekolah'])->name('user.store.kepala-sekolah')->middleware('role:admin');
     });
     Route::resource('user', UserController::class)->except(['index', 'create', 'show']);
 

@@ -80,4 +80,7 @@ return [
     'parent_invalid' => 'Data Orang Tua tidak valid',
     'parent_balance_insufficient' => 'Saldo Tabungan orang tua tidak mencukupi. Sisa saldo: Rp. :balance',
     'confirm_balance_withdrawal' => 'Proses pengambilan Tabungan tunai sebesar Rp. :total untuk :parent? Saldo orang tua akan langsung dikurangi.',
+    'kepala_sekolah_info' => 'Pilih pegawai yang akan dijadikan Kepala Sekolah. Akun login pegawai tersebut tetap sama, hanya role-nya yang berubah menjadi Kepala Sekolah.',
+    'kepala_sekolah_employee_invalid' => 'Pegawai tidak valid atau sudah memiliki role lain.',
+    'kepala_sekolah_reverted' => 'Role Kepala Sekolah dicabut, akun dikembalikan menjadi Pegawai.',
 ];

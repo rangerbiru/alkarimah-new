@@ -47,6 +47,7 @@ return [
     'bendahara' => 'Bendahara',
     'kasir' => 'Kasir',
     'kasir_tabungan' => 'Kasir Tabungan',
+    'kepala_sekolah' => 'Kepala Sekolah',
     'wali_kelas' => 'Wali Kelas',
     'penanggung_jawab_tabungan' => 'Penanggung Jawab',
     'academic' => 'Akademik',

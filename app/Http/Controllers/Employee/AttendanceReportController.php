@@ -34,11 +34,7 @@ class AttendanceReportController extends Controller
         $employeeId = $user->employee->id;
         $today = Carbon::now()->format('Y-m-d');
 
-        $isPimpinan = AttendanceGroupMembers::with('attendanceGroup')
-            ->where('employee_id', $employeeId)
-            ->whereHas('attendanceGroup', function ($query) {
-                $query->where('position', 10);
-            })->exists();
+        $isPimpinan = $user->hasPimpinanAccess();
 
         $userPositionIds = Departments::where('employee_id', $employeeId)
             ->pluck('position_id')
@@ -146,11 +142,7 @@ class AttendanceReportController extends Controller
         $employeeId = $user->employee->id;
         $today = Carbon::now()->format('Y-m-d');
 
-        $isPimpinan = AttendanceGroupMembers::with('attendanceGroup')
-            ->where('employee_id', $employeeId)
-            ->whereHas('attendanceGroup', function ($query) {
-                $query->where('position', 10);
-            })->exists();
+        $isPimpinan = $user->hasPimpinanAccess();
 
         $search = $request->input('search')['value'] ?? '';
         $limit = $request->input('length') ?? 10;
@@ -239,11 +231,7 @@ class AttendanceReportController extends Controller
 
         $employeeId = $user->employee->id;
 
-        $isPimpinan = AttendanceGroupMembers::with('attendanceGroup')
-            ->where('employee_id', $employeeId)
-            ->whereHas('attendanceGroup', function ($query) {
-                $query->where('position', 10);
-            })->exists();
+        $isPimpinan = $user->hasPimpinanAccess();
 
         $userGroupIds = AttendanceGroupMembers::where('employee_id', $employeeId)
             ->pluck('attendance_group_id')
@@ -320,11 +308,7 @@ class AttendanceReportController extends Controller
         $employeeId = $user->employee->id;
 
         // Cek apakah user adalah pimpinan (mudir/wadir)
-        $isPimpinan = AttendanceGroupMembers::with('attendanceGroup')
-            ->where('employee_id', $employeeId)
-            ->whereHas('attendanceGroup', function ($query) {
-                $query->where('position', 10);
-            })->exists();
+        $isPimpinan = $user->hasPimpinanAccess();
 
         // Ambil semua attendance_group_id yang dimiliki user
         $userGroupIds = AttendanceGroupMembers::where('employee_id', $employeeId)

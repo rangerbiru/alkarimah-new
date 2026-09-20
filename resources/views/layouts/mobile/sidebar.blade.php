@@ -21,7 +21,7 @@
                 $set_dashboard = $controller == 'dashboard' ? ' active' : '';
                 $set_absensi = $controller == 'employee.tahfidz.index' ? ' active' : '';
             @endphp
-            @if (Auth::user()->role->value == 'pegawai')
+            @if (in_array(Auth::user()->role->value, ['pegawai', 'kepala-sekolah']))
                 <li class="slide">
                     <a href="{{ route('dashboard.index') }}" class="side-menu__item{{ $set_dashboard }}">
                         <span class=" side-menu__icon">

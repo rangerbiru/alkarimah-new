@@ -72,7 +72,7 @@ class PayrollController extends Controller
 
     public function showSlip(Payroll $payroll)
     {
-        $view = (Auth::user()->role == UserRole::Pegawai) ? 'show-pegawai' : 'show';
+        $view = in_array(Auth::user()->role, [UserRole::Pegawai, UserRole::KepalaSekolah]) ? 'show-pegawai' : 'show';
 
         return view($this->path['slip'] . $view, [
             'title' => __($this->title['slip']),
