@@ -121,7 +121,7 @@ class EmployeeController extends Controller
     {
         DB::transaction(function () use ($request) {
             $user = User::create([
-                'name' => $request->phone,
+                'name' => $request->name,
                 'email' => $request->email,
                 'password' => $request->password,
                 'role' => UserRole::Pegawai,
