@@ -62,9 +62,12 @@ class UserController extends Controller
         }
 
         $user_count_filter = $user_filter->count();
+        $is_kepala_sekolah = $request->role == UserRole::KepalaSekolah->value;
+
         $user_data = $user_filter->limit($limit)
             ->offset($start)
             ->orderBy('created_at', 'desc')
+            ->when($is_kepala_sekolah, fn ($query) => $query->with('educationLevels'))
             ->get();
 
         $user_arr = [];
@@ -73,6 +76,10 @@ class UserController extends Controller
             $push = $u->toArray();
             $push['encrypted_id'] = $u->encrypted_id;
             $push['gender'] = $u->gender_name;
+
+            if ($is_kepala_sekolah) {
+                $push['education_levels'] = array_map('strtoupper', $u->educationLevelValues());
+            }
 
             array_push($user_arr, $push);
         }
@@ -117,11 +124,14 @@ class UserController extends Controller
             ->get()
             ->mapWithKeys(fn ($e) => [$e->id => $e->nip.' - '.$e->name]);
 
+        $educations = Common::option('education_level');
+
         return view($this->path.'create-kepala-sekolah', [
             'title' => __($this->title).' - '.__('label.kepala_sekolah'),
             'icon' => $this->icon,
             'role' => $role,
             'employees' => $employees,
+            'educations' => $educations,
         ]);
     }
 
@@ -129,8 +139,12 @@ class UserController extends Controller
     {
         $request->validate([
             'employee' => 'required|exists:employee,id',
+            'level_education' => 'required|array|min:1',
+            'level_education.*' => 'in:'.implode(',', array_keys(Common::option('education_level'))),
         ], [], [
             'employee' => __('label.employee'),
+            'level_education' => __('label.level_education'),
+            'level_education.*' => __('label.level_education'),
         ]);
 
         $employee = Employee::with('user')->findOrFail($request->employee);
@@ -139,9 +153,52 @@ class UserController extends Controller
             return Redirect::back()->with('error', __('string.kepala_sekolah_employee_invalid'));
         }
 
-        $employee->user->update(['role' => UserRole::KepalaSekolah]);
+        DB::transaction(function () use ($request, $employee) {
+            $employee->user->update(['role' => UserRole::KepalaSekolah]);
+            $employee->user->syncEducationLevels($request->level_education);
+        });
 
         return Redirect::route('user.index', UserRole::KepalaSekolah->value)->with('success', __('message.create_success', ['label' => __('label.kepala_sekolah')]));
+    }
+
+    public function editKepalaSekolah(User $user)
+    {
+        if ($user->role != UserRole::KepalaSekolah || $user->branch_id != Auth::user()->branch_id) {
+            abort(404);
+        }
+
+        $role = UserRole::KepalaSekolah->value;
+        $educations = Common::option('education_level');
+
+        return view($this->path.'edit-kepala-sekolah', [
+            'title' => __($this->title).' - '.__('label.kepala_sekolah'),
+            'icon' => $this->icon,
+            'user' => $user,
+            'role' => $role,
+            'educations' => $educations,
+            'selected_educations' => $user->educationLevelValues(),
+        ]);
+    }
+
+    public function updateKepalaSekolah(Request $request, User $user)
+    {
+        if ($user->role != UserRole::KepalaSekolah || $user->branch_id != Auth::user()->branch_id) {
+            abort(404);
+        }
+
+        $request->validate([
+            'level_education' => 'required|array|min:1',
+            'level_education.*' => 'in:'.implode(',', array_keys(Common::option('education_level'))),
+        ], [], [
+            'level_education' => __('label.level_education'),
+            'level_education.*' => __('label.level_education'),
+        ]);
+
+        DB::transaction(function () use ($request, $user) {
+            $user->syncEducationLevels($request->level_education);
+        });
+
+        return Redirect::route('user.index', UserRole::KepalaSekolah->value)->with('success', __('message.update_success', ['label' => __('label.kepala_sekolah')]));
     }
 
     public function store(UserRequest $request)
@@ -215,7 +272,10 @@ class UserController extends Controller
     {
         // Akun kepala sekolah adalah akun pegawai, jadi cukup dikembalikan ke role pegawai
         if ($user->role == UserRole::KepalaSekolah) {
-            $user->update(['role' => UserRole::Pegawai]);
+            DB::transaction(function () use ($user) {
+                $user->update(['role' => UserRole::Pegawai]);
+                $user->syncEducationLevels([]);
+            });
 
             return response()->json([
                 'status' => true,

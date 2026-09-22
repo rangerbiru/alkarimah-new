@@ -216,6 +216,37 @@ class User extends Authenticatable
         return $this->belongsTo(Branch::class, 'branch_id');
     }
 
+    /**
+     * Jenjang (TK/SD/SMP/SMA) yang dipegang kepala sekolah.
+     */
+    public function educationLevels(): HasMany
+    {
+        return $this->hasMany(UserEducationLevel::class);
+    }
+
+    /**
+     * Nilai jenjang yang dipegang, misal ['sd', 'smp'] — siap dipakai untuk
+     * filter whereIn('level_education', ...) pada data kelas/siswa.
+     */
+    public function educationLevelValues(): array
+    {
+        return $this->educationLevels->map(fn ($e) => $e->level_education->value)->all();
+    }
+
+    /**
+     * Ganti seluruh jenjang user dengan daftar yang diberikan (seperti sync).
+     */
+    public function syncEducationLevels(array $levels): void
+    {
+        $this->educationLevels()->delete();
+
+        foreach (array_unique($levels) as $level) {
+            $this->educationLevels()->create(['level_education' => $level]);
+        }
+
+        $this->unsetRelation('educationLevels');
+    }
+
     public function scopePenanggungJawabTabungan($query)
     {
         return $query->whereRole(UserRole::PenanggungJawabTabungan->value);

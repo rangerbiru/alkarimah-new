@@ -29,6 +29,9 @@
                         <th>{{ __('label.phone_number') }}</th>
                         <th>{{ __('label.email') }}</th>
                         <th>{{ __('label.gender') }}</th>
+                        @if ($role == 'kepala-sekolah')
+                            <th>{{ __('label.level_education') }}</th>
+                        @endif
                         <th style="width: 70px;">#</th>
                     </tr>
                 </thead>
@@ -99,6 +102,14 @@ $(document).ready(function() {
                 class: "align-middle",
                 render: (data, type, row, meta) => htmlEntities(row.gender)
             },
+            @if ($role == 'kepala-sekolah')
+            {
+                class: "align-middle",
+                render: (data, type, row, meta) => (row.education_levels || [])
+                    .map((level) => `<span class="badge bg-primary me-1">${htmlEntities(level)}</span>`)
+                    .join("")
+            },
+            @endif
             {
                 class: "align-middle text-center",
                 searchable: false,
@@ -109,13 +120,13 @@ $(document).ready(function() {
                     url_edit = url_edit.replace(":id", row.encrypted_id)
                     url_destroy = url_destroy.replace("0", row.encrypted_id)
 
+                    // Data pribadi kepala sekolah diubah lewat menu Pegawai (HR), di sini hanya jenjangnya
+                    if ("{{ $role }}" == "kepala-sekolah")
+                        url_edit = "{{ route('user.edit.kepala-sekolah', ':id') }}".replace(":id", row.encrypted_id)
+
                     let btn_edit = `<a href="${url_edit}" class="btn btn-dark btn-xs set-tooltip" title="${label_edit}">
                             <i class="bx bx-pencil"></i>
                         </a>`
-
-                    // Data kepala sekolah diubah lewat menu Pegawai (HR)
-                    if ("{{ $role }}" == "kepala-sekolah")
-                        btn_edit = ""
 
                     return `${btn_edit}
                         <a href="javascript:void(0)" class="btn btn-danger btn-xs set-tooltip" title="${label_delete}" onclick="deleteConfirm('${url_destroy}', false, 'table-device')">

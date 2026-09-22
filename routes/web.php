@@ -107,6 +107,8 @@ Route::group(['middleware' => ['auth', 'initialize.backend']], function () {
         Route::get('create/{role}', [UserController::class, 'create'])->where('role', 'bendahara|kasir|kasir\-tabungan|wali\-kelas|penanggung\-jawab\-tabungan|kepala\-sekolah')->name('user.create');
         Route::post('datatable', [UserController::class, 'datatable'])->name('user.datatable');
         Route::post('kepala-sekolah', [UserController::class, 'storeKepalaSekolah'])->name('user.store.kepala-sekolah')->middleware('role:admin');
+        Route::get('kepala-sekolah/{user}/edit', [UserController::class, 'editKepalaSekolah'])->name('user.edit.kepala-sekolah')->middleware('role:admin');
+        Route::put('kepala-sekolah/{user}', [UserController::class, 'updateKepalaSekolah'])->name('user.update.kepala-sekolah')->middleware('role:admin');
     });
     Route::resource('user', UserController::class)->except(['index', 'create', 'show']);
 

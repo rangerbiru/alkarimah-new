@@ -722,6 +722,11 @@ Breadcrumbs::for('user/edit', function (BreadcrumbTrail $trail, $data) {
     $trail->push(__('label.edit'), route('user.edit', $data->id));
 });
 
+Breadcrumbs::for('user/edit/kepala-sekolah', function (BreadcrumbTrail $trail, $data) {
+    $trail->parent('user', $data->role);
+    $trail->push(__('label.edit'), route('user.edit.kepala-sekolah', $data->id));
+});
+
 Breadcrumbs::for('setting', function (BreadcrumbTrail $trail) {
     $trail->parent('dashboard');
     $trail->push(__('label.setting'), route('setting.index'));
