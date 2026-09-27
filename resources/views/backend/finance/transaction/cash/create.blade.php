@@ -213,7 +213,7 @@ function datatableTransaction()
         serverSide: true,
         deferRender: true,
         ordering: false,
-        aLengthMenu: [[5, 10, 25, 50, 100],[5, 10, 25, 50, 100]],
+        aLengthMenu: [[5, 10, 25, 50, 100, -1],[5, 10, 25, 50, 100, "{{ __('label.all') }}"]],
         drawCallback: function() {
             $(".set-tooltip").tooltip({
                 container: "body"

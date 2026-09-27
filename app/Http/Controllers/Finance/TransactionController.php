@@ -332,10 +332,13 @@ class TransactionController extends Controller
         }
 
         $transaction_count_filter = $transaction_filter->count();
-        $transaction_data = $transaction_filter->limit($limit)
-            ->offset($start)
-            ->orderBy('created_at', 'desc')
-            ->get();
+
+        // length -1 = opsi "Semua" pada DataTables, tampilkan tanpa limit
+        if ($limit != -1) {
+            $transaction_filter = $transaction_filter->limit($limit)->offset($start);
+        }
+
+        $transaction_data = $transaction_filter->orderBy('created_at', 'desc')->get();
 
         $transaction_arr = [];
 

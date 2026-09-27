@@ -106,8 +106,8 @@
                 deferRender: true,
                 ordering: false,
                 aLengthMenu: [
-                    [10, 50, 100, 500, 1000],
-                    [10, 50, 100, 500, "Semua"]
+                    [5, 10, 25, 50, 100, -1],
+                    [5, 10, 25, 50, 100, "{{ __('label.all') }}"]
                 ],
                 drawCallback: function() {
                     $(".set-tooltip").tooltip({

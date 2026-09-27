@@ -189,6 +189,7 @@ return [
     'pending_payment' => 'Pembayaran Pending',
     'all_transaction' => 'Semua Transaksi',
     'all_status' => 'Semua Status',
+    'all' => 'Semua',
     'already_paid' => 'Sudah Dibayar',
     'cancel_it' => 'Batalkan?',
     'verification' => 'Verifikasi',

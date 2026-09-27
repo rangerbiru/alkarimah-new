@@ -178,6 +178,7 @@ return [
     'pending_payment' => 'Pending Payment',
     'all_transaction' => 'All Transaction',
     'all_status' => 'All Status',
+    'all' => 'All',
     'already_paid' => 'Already Paid',
     'cancel_it' => 'Cancel?',
     'verification' => 'Verification',
