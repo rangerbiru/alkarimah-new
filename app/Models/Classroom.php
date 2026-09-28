@@ -89,6 +89,15 @@ class Classroom extends Model
         return $this->belongsTo(User::class, 'id_wali_kelas')->withTrashed();
     }
 
+    /**
+     * Batasi ke kelas tertentu. null = tanpa batas
+     * (dipakai bersama User::allowedClassIds() / educationLevelClassIds()).
+     */
+    public function scopeInClasses($query, ?array $classIds)
+    {
+        return $query->when($classIds !== null, fn ($q) => $q->whereIn('id', $classIds));
+    }
+
     public function students() {
         return $this->hasMany(Student::class, 'id_class')->withTrashed();
     }

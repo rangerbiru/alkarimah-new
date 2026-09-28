@@ -234,6 +234,47 @@ class User extends Authenticatable
     }
 
     /**
+     * Id kelas dalam jenjang yang dipegang kepala sekolah.
+     * null = tidak dibatasi jenjang (semua role selain kepala sekolah).
+     * Kepala sekolah tanpa jenjang mendapat [] (tidak melihat kelas apa pun).
+     */
+    public function educationLevelClassIds(): ?array
+    {
+        if ($this->role != UserRole::KepalaSekolah) {
+            return null;
+        }
+
+        return Classroom::whereIn('level_education', $this->educationLevelValues())->pluck('id')->all();
+    }
+
+    /**
+     * Id kelas yang boleh dilihat user pada data kelas/siswa/tagihan.
+     * null = semua kelas, array = hanya kelas tersebut
+     * (kepala sekolah: kelas di jenjangnya, wali kelas: kelas yang diwalikan).
+     */
+    public function allowedClassIds(): ?array
+    {
+        if ($this->role == UserRole::KepalaSekolah) {
+            return $this->educationLevelClassIds();
+        }
+
+        if ($this->role == UserRole::WaliKelas) {
+            return Classroom::where('id_wali_kelas', $this->id)->pluck('id')->all();
+        }
+
+        return null;
+    }
+
+    /**
+     * Cek id kelas terhadap daftar id kelas yang diizinkan (null = semua boleh).
+     */
+    public static function classIdAllowed($classId, ?array $allowedClassIds): bool
+    {
+        return $allowedClassIds === null
+            || in_array((string) $classId, array_map('strval', $allowedClassIds), true);
+    }
+
+    /**
      * Ganti seluruh jenjang user dengan daftar yang diberikan (seperti sync).
      */
     public function syncEducationLevels(array $levels): void
