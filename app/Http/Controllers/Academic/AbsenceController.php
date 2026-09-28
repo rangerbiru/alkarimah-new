@@ -15,6 +15,7 @@ use App\Models\Activity;
 use App\Models\Student;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -455,16 +456,19 @@ class AbsenceController extends Controller
     public function getStudent(Request $request)
     {
         $type = AbsenceType::select('id', 'id_excul', 'flag')->whereId($request->type)->first();
+        $classIds = Auth::user()->educationLevelClassIds();
 
         if ($type->is_umum) {
             $student = Student::select('id', 'id_class', 'nis', 'name')
                 ->with(['class' => fn($query) => $query->select('id', 'name')])
+                ->inClasses($classIds)
                 ->orderBy('id_class')
                 ->orderBy('name')
                 ->get();
         } else {
             $student = Student::select('id', 'id_class', 'nis', 'name')
                 ->with(['class' => fn($query) => $query->select('id', 'name')])
+                ->inClasses($classIds)
                 ->where('exculs', 'like', '%"' . $type->id_excul . '"%')
                 ->orderBy('id_class')
                 ->orderBy('name')

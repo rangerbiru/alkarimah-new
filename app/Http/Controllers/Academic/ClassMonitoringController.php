@@ -9,6 +9,7 @@ use App\Models\ClassHours;
 use App\Models\Classroom;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class ClassMonitoringController extends Controller
 {
@@ -39,6 +40,18 @@ class ClassMonitoringController extends Controller
             }
         }
 
+        // Kepala sekolah hanya boleh melihat kelas di jenjangnya
+        $classIds = Auth::user()->educationLevelClassIds();
+
+        if ($classIds !== null && $levelEducation !== null) {
+            $classAllowed = Classroom::inClasses($classIds)
+                ->where('level_education', $levelEducation)
+                ->where('level_class', $levelClass)
+                ->exists();
+
+            abort_unless($classAllowed, 403);
+        }
+
         // Ambil data jam pelajaran dengan relasi yang diperlukan
         $classHours = ClassHours::with([
             'details' => function ($q) use ($day, $searchDate) {
@@ -54,8 +67,9 @@ class ClassMonitoringController extends Controller
             ->whereHas('details', function ($q) use ($day) {
                 $q->where('day', $day);
             })
-            ->whereHas('class', function ($q) use ($levelEducation, $levelClass) {
-                $q->when($levelEducation, fn($q) => $q->where('level_education', $levelEducation))
+            ->whereHas('class', function ($q) use ($levelEducation, $levelClass, $classIds) {
+                $q->inClasses($classIds)
+                    ->when($levelEducation, fn($q) => $q->where('level_education', $levelEducation))
                     ->when($levelClass, fn($q) => $q->where('level_class', $levelClass));
             })
             ->get();
@@ -157,9 +171,11 @@ class ClassMonitoringController extends Controller
         }
 
         // Daftar kelas untuk filter
+        // Kepala sekolah: semua kelas di jenjangnya, role lain: kelas 1-3 SMP/SMA
         $classList = Classroom::query()
-            ->whereIn('level_education', ['smp', 'sma'])
-            ->whereIn('level_class', [1, 2, 3])
+            ->when($classIds !== null, fn($q) => $q->inClasses($classIds), fn($q) => $q
+                ->whereIn('level_education', ['smp', 'sma'])
+                ->whereIn('level_class', [1, 2, 3]))
             ->orderBy('level_education')
             ->orderBy('level_class')
             ->get()

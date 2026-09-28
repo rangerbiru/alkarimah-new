@@ -25,6 +25,17 @@ class StudentViolations extends Model
         return $this->belongsTo(Student::class);
     }
 
+    /**
+     * Batasi ke pelanggaran siswa di kelas tertentu. null = tanpa batas.
+     */
+    public function scopeInClasses($query, ?array $classIds)
+    {
+        return $query->when($classIds !== null, fn ($q) => $q->whereIn(
+            'student_id',
+            Student::withTrashed()->select('id')->whereIn('id_class', $classIds)
+        ));
+    }
+
     public function violation()
     {
         return $this->belongsTo(ViolationTypes::class);

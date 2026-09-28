@@ -31,11 +31,13 @@ class StudentPermitController extends Controller
 
     public function index()
     {
+        $classIds = Auth::user()->educationLevelClassIds();
 
         $permits = DB::table('student_permits')
             ->join('student_permit_groups', 'student_permits.student_permit_group_id', '=', 'student_permit_groups.group_id')
             // ->where('student_permit_groups.ustadz_id', $ustadzId)
             ->whereColumn('student_permit_groups.student_id', 'student_permits.student_id')
+            ->when($classIds !== null, fn ($q) => $q->whereIn('student_permits.student_id', Student::withTrashed()->select('id')->whereIn('id_class', $classIds)))
             ->select(
                 'student_permits.*',
                 'student_permit_groups.group_name',
@@ -178,6 +180,7 @@ class StudentPermitController extends Controller
         $start = $request->input('start', 0);
 
         $ustadzId = $this->ustadzId();
+        $classIds = Auth::user()->educationLevelClassIds();
 
         // $group = StudentPermitGroup::where('ustadz_id', $ustadzId)->first();
 
@@ -194,6 +197,7 @@ class StudentPermitController extends Controller
             ->join('student_permit_groups', 'student_permits.student_permit_group_id', '=', 'student_permit_groups.group_id')
             // ->where('student_permit_groups.ustadz_id', $ustadzId)
             ->whereColumn('student_permit_groups.student_id', 'student_permits.student_id')
+            ->when($classIds !== null, fn ($q) => $q->whereIn('student_permits.student_id', Student::withTrashed()->select('id')->whereIn('id_class', $classIds)))
             ->select(
                 'student_permits.*',
                 'student_permit_groups.group_name',
