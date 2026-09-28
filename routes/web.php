@@ -65,7 +65,7 @@ Route::group(['middleware' => ['auth', 'initialize.backend']], function () {
 
     Route::prefix('dashboard')->group(function () {
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard.index');
-        Route::post('datatable/withdrawal', [DashboardController::class, 'datatableWithdrawal'])->name('dashboard.datatable.withdrawal');
+        Route::post('datatable/withdrawal', [DashboardController::class, 'datatableWithdrawal'])->name('dashboard.datatable.withdrawal')->middleware('role:penanggung-jawab-tabungan');
         Route::post('datatable/bill-not-paid', [DashboardController::class, 'datatableBillNotPaid'])->name('dashboard.datatable.bill-not-paid');
         Route::post('get/count', [DashboardController::class, 'getCount'])->name('dashboard.get.count')->middleware('role:kasir,kasir-tabungan');
         Route::post('get/payment-progress', [DashboardController::class, 'getPaymentProgress'])->name('dashboard.get.payment-progress')->middleware('role:kasir,kasir-tabungan');
