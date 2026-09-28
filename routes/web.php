@@ -38,23 +38,23 @@ Route::get('captcha-refresh', [CaptchaController::class, 'refresh'])->name('capt
 
 Route::group(['middleware' => ['auth', 'initialize.backend']], function () {
     Route::prefix('academic')->group(function () {
-        require_once __DIR__.'/academic.php';
+        require __DIR__.'/academic.php';
     });
 
     Route::prefix('employee')->group(function () {
-        require_once __DIR__.'/employee.php';
+        require __DIR__.'/employee.php';
     });
 
     Route::prefix('finance')->group(function () {
-        require_once __DIR__.'/finance.php';
+        require __DIR__.'/finance.php';
     });
 
     Route::prefix('hr')->group(function () {
-        require_once __DIR__.'/hr.php';
+        require __DIR__.'/hr.php';
     });
 
     Route::prefix('service')->group(function () {
-        require_once __DIR__.'/service.php';
+        require __DIR__.'/service.php';
     });
 
     Route::prefix('attachment')->group(function () {
