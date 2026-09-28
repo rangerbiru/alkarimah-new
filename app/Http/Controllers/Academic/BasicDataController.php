@@ -32,7 +32,7 @@ class BasicDataController extends Controller
     {
         $employee = Employee::with('user')
             ->whereHas('user', function ($query) {
-                $query->whereIn('role', ['pegawai', 'admin']);
+                $query->whereIn('role', ['pegawai', 'kepala-sekolah', 'admin']);
             })
             ->select('id', 'name')
             ->orderBy('id')

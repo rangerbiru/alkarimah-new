@@ -3,7 +3,6 @@
 namespace App\Http\Middleware;
 
 use App\Models\AllowedSubmissionEmployee;
-use App\Models\AttendanceGroupMembers;
 use App\Models\Departments;
 use Closure;
 use Illuminate\Http\Request;
@@ -22,11 +21,7 @@ class CheckPimpinanEmployee
 
         $inDepartment = Departments::where('employee_id', $employeeId)->exists();
 
-        $isPimpinan = AttendanceGroupMembers::with('attendanceGroup')
-            ->where('employee_id', $employeeId)
-            ->whereHas('attendanceGroup', function ($query) {
-                $query->where('position', 10);
-            })->exists();
+        $isPimpinan = Auth::user()->hasPimpinanAccess();
 
         if (!$inDepartment && !$isPimpinan) {
             return abort(403, 'Hanya anggota departemen atau Mudir yang dapat mengakses fitur ini.');

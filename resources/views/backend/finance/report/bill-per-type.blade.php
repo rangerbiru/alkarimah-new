@@ -12,12 +12,12 @@
 
                 <div class="col-sm-6 col-md-3">
                     <label class="form-label">{{ __('label.school_year') }}</label>
-                    <x-form.select id="year" :option="$years" :data-placeholder="__('label.choose_school_year')" :old="$year->id" />
+                    <x-form.select id="year" :option="$years" :data-placeholder="__('label.choose_school_year')" :selected="$year->id" />
                 </div>
 
                 <div class="col-sm-6 col-md-3">
                     <label class="form-label">{{ __('label.class') }}</label>
-                    <x-form.select id="class" :option="$classes" :data-placeholder="__('label.choose') . ' ' . __('label.class')" data-allow-clear="true" />
+                    <x-form.select id="class" :option="$classes" :data-placeholder="__('label.choose') . ' ' . __('label.class')" :selected="$default_class" data-allow-clear="true" />
                 </div>
 
                 <div class="col-sm-6 col-md-3">
@@ -94,7 +94,7 @@
     <script>
         window.LaravelDataTables = window.LaravelDataTables || {}
         let year = "{{ $year->id }}"
-        let class_id = ""
+        let class_id = "{{ $default_class }}"
         let bill_type = ""
         let datatable = false
 

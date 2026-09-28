@@ -60,7 +60,7 @@ class DashboardController extends Controller
             return $this->waliKelas();
         } elseif ($user->role == UserRole::Kasir || $user->role == UserRole::KasirTabungan) {
             return $this->kasir();
-        } elseif ($user->role == UserRole::Pegawai) {
+        } elseif ($user->role == UserRole::Pegawai || $user->role == UserRole::KepalaSekolah) {
             return $this->pegawai();
         } else {
             return $this->admin();
@@ -486,12 +486,22 @@ class DashboardController extends Controller
             return back()->with('error', 'Data pegawai tidak ditemukan untuk akun ini.');
         }
 
-        $employee = AttendanceGroupMembers::where('employee_id', $user->employee->id)->first();
+        $employeeId = $user->employee->id;
 
-        $allowedSubmissionEmployeeIds = AllowedSubmissionEmployee::pluck('employee_id')->toArray();
-        if ($employee) {
-            $allowedSubmission = in_array($employee->employee_id, $allowedSubmissionEmployeeIds);
-        }
+        // Data menu tidak bergantung pada grup absensi, jadi selalu dikirim ke view
+        $menu = [
+            'allowedSubmission' => AllowedSubmissionEmployee::where('employee_id', $employeeId)->exists(),
+            'totalUnreadSubmission' => $user->employee->unreadNotifications()->where('data->type', 'submission')->count(),
+            'totalUnreadPermit' => $user->employee->unreadNotifications()->where('data->type', 'permit')->count(),
+            'totalUnreadIndividualActivity' => $user->employee->unreadNotifications()->where('data->type', 'individual_activity')->count(),
+            'isLogistik' => AllowedSubmissionEmployee::where('employee_id', $employeeId)->where('position', 'like', '%logistik%')->exists(),
+            'inDepartment' => Departments::where('employee_id', $employeeId)->exists(),
+            'isPimpinan' => $user->hasPimpinanAccess(),
+            'isMudir' => AllowedSubmissionEmployee::where('employee_id', $employeeId)->where('position', 'like', '%mudir%')->exists(),
+            'isWadir' => AllowedSubmissionEmployee::where('employee_id', $employeeId)->where('position', 'like', '%wadir%')->exists(),
+        ];
+
+        $employee = AttendanceGroupMembers::where('employee_id', $employeeId)->first();
 
         if (! $employee) {
             return view($this->path.'pegawai', [
@@ -507,7 +517,8 @@ class DashboardController extends Controller
                 'selectedShift' => null,
                 'groupAttendance' => null,
                 'shifts' => [],
-                'allowedSubmission' => null,
+                'lunchReq' => null,
+                ...$menu,
             ]);
         }
 
@@ -536,34 +547,6 @@ class DashboardController extends Controller
 
         $lunchReq = LunchRequest::where('employee_id', $employee->employee_id)->whereDate('created_at', $todayDate)->first();
 
-        $totalUnreadSubmission = Auth::user()
-            ->employee->unreadNotifications()
-            ->where('data->type', 'submission')
-            ->count();
-
-        $totalUnreadPermit = Auth::user()
-            ->employee->unreadNotifications()
-            ->where('data->type', 'permit')
-            ->count();
-
-        $totalUnreadIndividualActivity = Auth::user()
-            ->employee->unreadNotifications()
-            ->where('data->type', 'individual_activity')
-            ->count();
-
-        $isLogistik = AllowedSubmissionEmployee::where('employee_id', $user->employee->id)->where('position', 'like', '%logistik%')->exists();
-
-        $inDepartment = Departments::where('employee_id', $user->employee->id)->exists();
-
-        $isPimpinan = AttendanceGroupMembers::with('attendanceGroup')
-            ->where('employee_id', $user->employee->id)
-            ->whereHas('attendanceGroup', function ($query) {
-                $query->where('position', 10);
-            })->exists();
-
-        $isMudir = AllowedSubmissionEmployee::where('employee_id', $user->employee->id)->where('position', 'like', '%mudir%')->exists();
-        $isWadir = AllowedSubmissionEmployee::where('employee_id', $user->employee->id)->where('position', 'like', '%wadir%')->exists();
-
         return view($this->path.'pegawai', [
             'title' => $this->title,
             'module_rights' => $module_rights,
@@ -577,16 +560,8 @@ class DashboardController extends Controller
             'groupAttendance' => $groupAttendance->shift_work,
             'selectedShift' => $selectedShift,
             'shifts' => $shifts,
-            'allowedSubmission' => $allowedSubmission,
             'lunchReq' => $lunchReq,
-            'totalUnreadSubmission' => $totalUnreadSubmission,
-            'totalUnreadPermit' => $totalUnreadPermit,
-            'totalUnreadIndividualActivity' => $totalUnreadIndividualActivity,
-            'isLogistik' => $isLogistik,
-            'inDepartment' => $inDepartment,
-            'isPimpinan' => $isPimpinan,
-            'isMudir' => $isMudir,
-            'isWadir' => $isWadir,
+            ...$menu,
         ]);
     }
 

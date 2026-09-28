@@ -118,6 +118,33 @@ class User extends Authenticatable
         );
     }
 
+    protected function isKepalaSekolah(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => $this->role == UserRole::KepalaSekolah
+        );
+    }
+
+    /**
+     * Akses setara pimpinan: role kepala sekolah, atau pegawai yang tergabung
+     * di grup absensi pimpinan (position 10).
+     */
+    public function hasPimpinanAccess(): bool
+    {
+        if ($this->role == UserRole::KepalaSekolah) {
+            return true;
+        }
+
+        if (! $this->employee) {
+            return false;
+        }
+
+        return AttendanceGroupMembers::where('employee_id', $this->employee->id)
+            ->whereHas('attendanceGroup', function ($query) {
+                $query->where('position', 10);
+            })->exists();
+    }
+
     public static function boot()
     {
         parent::boot();
@@ -187,6 +214,37 @@ class User extends Authenticatable
     public function branch()
     {
         return $this->belongsTo(Branch::class, 'branch_id');
+    }
+
+    /**
+     * Jenjang (TK/SD/SMP/SMA) yang dipegang kepala sekolah.
+     */
+    public function educationLevels(): HasMany
+    {
+        return $this->hasMany(UserEducationLevel::class);
+    }
+
+    /**
+     * Nilai jenjang yang dipegang, misal ['sd', 'smp'] — siap dipakai untuk
+     * filter whereIn('level_education', ...) pada data kelas/siswa.
+     */
+    public function educationLevelValues(): array
+    {
+        return $this->educationLevels->map(fn ($e) => $e->level_education->value)->all();
+    }
+
+    /**
+     * Ganti seluruh jenjang user dengan daftar yang diberikan (seperti sync).
+     */
+    public function syncEducationLevels(array $levels): void
+    {
+        $this->educationLevels()->delete();
+
+        foreach (array_unique($levels) as $level) {
+            $this->educationLevels()->create(['level_education' => $level]);
+        }
+
+        $this->unsetRelation('educationLevels');
     }
 
     public function scopePenanggungJawabTabungan($query)

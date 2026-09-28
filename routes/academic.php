@@ -19,14 +19,14 @@ use App\Http\Controllers\Academic\TahfidzController as AcademicTahfidzController
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('absence')->group(function () {
-    Route::get('create', [AcademicAbsenceController::class, 'create'])->name('academic.absence.create')->middleware(['role:pegawai', 'accessRights:1']);
+    Route::get('create', [AcademicAbsenceController::class, 'create'])->name('academic.absence.create')->middleware(['role:pegawai,kepala-sekolah', 'accessRights:1']);
     Route::get('report', [AcademicAbsenceController::class, 'report'])->name('academic.absence.report')->middleware('role:admin');
     Route::get('download/excel/report', [AcademicAbsenceController::class, 'downloadExcelReport'])->name('academic.absence.download.excel.report')->middleware('role:admin');
     Route::get('download/pdf/report', [AcademicAbsenceController::class, 'downloadPdfReport'])->name('academic.absence.download.pdf.report')->middleware('role:admin');
 
-    Route::post('/', [AcademicAbsenceController::class, 'store'])->name('academic.absence.store')->middleware(['role:pegawai', 'accessRights:1']);
+    Route::post('/', [AcademicAbsenceController::class, 'store'])->name('academic.absence.store')->middleware(['role:pegawai,kepala-sekolah', 'accessRights:1']);
     Route::post('datatable/report', [AcademicAbsenceController::class, 'datatableReport'])->name('academic.absence.datatable.report')->middleware('role:admin');
-    Route::post('get/student', [AcademicAbsenceController::class, 'getStudent'])->name('academic.absence.get.student')->middleware('role:pegawai');
+    Route::post('get/student', [AcademicAbsenceController::class, 'getStudent'])->name('academic.absence.get.student')->middleware('role:pegawai,kepala-sekolah');
 
     Route::prefix('type')->group(function () {
         Route::get('/', [AcademicAbsenceController::class, 'type'])->name('academic.absence.type.index')->middleware('role:admin');

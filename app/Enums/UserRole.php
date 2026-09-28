@@ -13,4 +13,5 @@ enum UserRole: string
     case OrangTua = 'orang-tua';
     case WaliKelas = 'wali-kelas';
     case Pegawai = 'pegawai';
+    case KepalaSekolah = 'kepala-sekolah';
 }
