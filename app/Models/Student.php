@@ -203,6 +203,15 @@ class Student extends Model
         return $query->whereStatus(true);
     }
 
+    /**
+     * Batasi ke siswa di kelas tertentu. null = tanpa batas
+     * (dipakai bersama User::allowedClassIds() / educationLevelClassIds()).
+     */
+    public function scopeInClasses($query, ?array $classIds)
+    {
+        return $query->when($classIds !== null, fn ($q) => $q->whereIn('id_class', $classIds));
+    }
+
     public function attendanceStudents()
     {
         return $this->hasMany(AttendanceStudents::class, 'id_student');

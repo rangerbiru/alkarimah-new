@@ -18,7 +18,7 @@ class StudentViolationController extends Controller
 
     public function index()
     {
-        $count = StudentViolations::count();
+        $count = StudentViolations::query()->inClasses(Auth::user()->educationLevelClassIds())->count();
         return view($this->path . 'index', [
             'title' => __($this->title),
             'icon' => $this->icon,
@@ -145,9 +145,12 @@ class StudentViolationController extends Controller
     {
         $search = $request->get('q');
         $students = Student::with(['class', 'asrama'])
+            ->inClasses(Auth::user()->educationLevelClassIds())
             ->when($search, function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('nis', 'like', "%{$search}%");
+                $q->where(function ($qs) use ($search) {
+                    $qs->where('name', 'like', "%{$search}%")
+                        ->orWhere('nis', 'like', "%{$search}%");
+                });
             })
             ->limit(10)
             ->get()
@@ -180,6 +183,7 @@ class StudentViolationController extends Controller
         $search = $request->input('search.value');
         $limit = $request->input('length', 10);
         $start = $request->input('start', 0);
+        $classIds = Auth::user()->educationLevelClassIds();
 
         $query = StudentViolations::with([
             'student' => function ($q) {
@@ -192,7 +196,7 @@ class StudentViolationController extends Controller
             'employee' => function ($q) {
                 $q->select('id', 'name');
             },
-        ]);
+        ])->inClasses($classIds);
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -208,7 +212,7 @@ class StudentViolationController extends Controller
             });
         }
 
-        $totalRecords = StudentViolations::count();
+        $totalRecords = StudentViolations::query()->inClasses($classIds)->count();
         $filteredRecords = $query->count();
         $data = $query->skip($start)
             ->take($limit)

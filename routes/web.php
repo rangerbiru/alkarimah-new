@@ -38,23 +38,23 @@ Route::get('captcha-refresh', [CaptchaController::class, 'refresh'])->name('capt
 
 Route::group(['middleware' => ['auth', 'initialize.backend']], function () {
     Route::prefix('academic')->group(function () {
-        require_once __DIR__.'/academic.php';
+        require __DIR__.'/academic.php';
     });
 
     Route::prefix('employee')->group(function () {
-        require_once __DIR__.'/employee.php';
+        require __DIR__.'/employee.php';
     });
 
     Route::prefix('finance')->group(function () {
-        require_once __DIR__.'/finance.php';
+        require __DIR__.'/finance.php';
     });
 
     Route::prefix('hr')->group(function () {
-        require_once __DIR__.'/hr.php';
+        require __DIR__.'/hr.php';
     });
 
     Route::prefix('service')->group(function () {
-        require_once __DIR__.'/service.php';
+        require __DIR__.'/service.php';
     });
 
     Route::prefix('attachment')->group(function () {
@@ -65,7 +65,7 @@ Route::group(['middleware' => ['auth', 'initialize.backend']], function () {
 
     Route::prefix('dashboard')->group(function () {
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard.index');
-        Route::post('datatable/withdrawal', [DashboardController::class, 'datatableWithdrawal'])->name('dashboard.datatable.withdrawal');
+        Route::post('datatable/withdrawal', [DashboardController::class, 'datatableWithdrawal'])->name('dashboard.datatable.withdrawal')->middleware('role:penanggung-jawab-tabungan');
         Route::post('datatable/bill-not-paid', [DashboardController::class, 'datatableBillNotPaid'])->name('dashboard.datatable.bill-not-paid');
         Route::post('get/count', [DashboardController::class, 'getCount'])->name('dashboard.get.count')->middleware('role:kasir,kasir-tabungan');
         Route::post('get/payment-progress', [DashboardController::class, 'getPaymentProgress'])->name('dashboard.get.payment-progress')->middleware('role:kasir,kasir-tabungan');

@@ -19,6 +19,7 @@ use App\Models\ReportBillMethod;
 use App\Models\Student;
 use App\Models\TempFile;
 use App\Models\TransactionBill;
+use App\Models\User;
 use App\Models\Year;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -201,27 +202,27 @@ class ReportController extends Controller
         ]);
     }
 
-    /**
-     * Kelas yang boleh dilihat pada laporan tagihan per jenis.
-     * null = semua kelas (kasir, bendahara, pimpinan), array = hanya kelas tersebut (wali kelas).
-     */
-    private function billPerTypeAllowedClassIds(): ?array
+    private function billPerTypeAllowedClassIds(?Request $request = null): ?array
     {
         $user = Auth::user();
 
-        if ($user->hasPimpinanAccess()) {
-            return null;
+        if ($user->role == UserRole::KepalaSekolah) {
+            $allowedClassIds = $user->allowedClassIds();
+        } elseif ($user->hasPimpinanAccess()) {
+            $allowedClassIds = null;
+        } elseif ($user->role == UserRole::WaliKelas) {
+            $allowedClassIds = $user->allowedClassIds();
+        } elseif ($user->role == UserRole::Pegawai) {
+            abort(403);
+        } else {
+            $allowedClassIds = null;
         }
 
-        if ($user->role == UserRole::WaliKelas) {
-            return Classroom::where('id_wali_kelas', $user->id)->pluck('id')->toArray();
-        }
-
-        if (in_array($user->role, [UserRole::Pegawai, UserRole::KepalaSekolah])) {
+        if ($request?->filled('class') && ! User::classIdAllowed($request->class, $allowedClassIds)) {
             abort(403);
         }
 
-        return null;
+        return $allowedClassIds;
     }
 
     public function getTotalBillPerType(Request $request)
@@ -230,7 +231,7 @@ class ReportController extends Controller
         $classId = $request->class;
         $billTypeId = $request->bill_type;
 
-        $allowedClassIds = $this->billPerTypeAllowedClassIds();
+        $allowedClassIds = $this->billPerTypeAllowedClassIds($request);
 
         $tbQuery = TransactionBill::query()
             ->when($classId, function ($query) use ($classId) {
@@ -268,7 +269,7 @@ class ReportController extends Controller
 
     public function datatableBillPerType(Request $request)
     {
-        $allowedClassIds = $this->billPerTypeAllowedClassIds();
+        $allowedClassIds = $this->billPerTypeAllowedClassIds($request);
 
         $year = $request->year;
         $classId = $request->class;
@@ -351,7 +352,7 @@ class ReportController extends Controller
 
     public function downloadPdfBillPerType(Request $request)
     {
-        $allowedClassIds = $this->billPerTypeAllowedClassIds();
+        $allowedClassIds = $this->billPerTypeAllowedClassIds($request);
 
         $yearId = $request->year;
         $classId = $request->class;
@@ -433,7 +434,7 @@ class ReportController extends Controller
 
     public function downloadExcelBillPerType(Request $request)
     {
-        $allowedClassIds = $this->billPerTypeAllowedClassIds();
+        $allowedClassIds = $this->billPerTypeAllowedClassIds($request);
 
         $yearId = $request->year;
         $classId = $request->class;

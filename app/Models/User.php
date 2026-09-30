@@ -19,7 +19,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class User extends Authenticatable
 {
-    use HasFactory, SoftDeletes, Notifiable, LogsActivity;
+    use HasFactory, LogsActivity, Notifiable, SoftDeletes;
 
     protected $guarded = ['id', 'created_at', 'created_by', 'updated_at', 'updated_by', 'deleted_at', 'deleted_by'];
 
@@ -58,70 +58,70 @@ class User extends Authenticatable
     protected function encryptedId(): Attribute
     {
         return Attribute::make(
-            get: fn() => Crypt::encrypt($this->id)
+            get: fn () => Crypt::encrypt($this->id)
         );
     }
 
     protected function photo(): Attribute
     {
         return Attribute::make(
-            get: fn() => asset('images/avatar-' . $this->gender->value . '.png')
+            get: fn () => asset('images/avatar-'.$this->gender->value.'.png')
         );
     }
 
     protected function genderName(): Attribute
     {
         return Attribute::make(
-            get: fn() => __('label.' . $this->gender->value)
+            get: fn () => __('label.'.$this->gender->value)
         );
     }
 
     protected function isAdmin(): Attribute
     {
         return Attribute::make(
-            get: fn() => Auth::user()->role == UserRole::Admin
+            get: fn () => Auth::user()->role == UserRole::Admin
         );
     }
 
     protected function isBendahara(): Attribute
     {
         return Attribute::make(
-            get: fn() => Auth::user()->role == UserRole::Bendahara
+            get: fn () => Auth::user()->role == UserRole::Bendahara
         );
     }
 
     protected function isKasir(): Attribute
     {
         return Attribute::make(
-            get: fn() => Auth::user()->role == UserRole::Kasir
+            get: fn () => Auth::user()->role == UserRole::Kasir
         );
     }
 
     protected function isKasirTabungan(): Attribute
     {
         return Attribute::make(
-            get: fn() => Auth::user()->role == UserRole::KasirTabungan
+            get: fn () => Auth::user()->role == UserRole::KasirTabungan
         );
     }
 
     protected function isOrangTua(): Attribute
     {
         return Attribute::make(
-            get: fn() => Auth::user()->role == UserRole::OrangTua
+            get: fn () => Auth::user()->role == UserRole::OrangTua
         );
     }
 
     protected function isPegawai(): Attribute
     {
         return Attribute::make(
-            get: fn() => Auth::user()->role == UserRole::Pegawai
+            get: fn () => Auth::user()->role == UserRole::Pegawai
         );
     }
 
     protected function isKepalaSekolah(): Attribute
     {
         return Attribute::make(
-            get: fn() => $this->role == UserRole::KepalaSekolah
+            get: fn () => $this->role == UserRole::KepalaSekolah
         );
     }
 
@@ -154,8 +154,9 @@ class User extends Authenticatable
                 $model->branch_id = Auth::user()->branch_id;
                 $model->created_by = Auth::id();
             } else {
-                if (empty($model->branch_id))
+                if (empty($model->branch_id)) {
                     $model->branch_id = 0;
+                }
 
                 $model->created_by = 0;
             }
@@ -184,7 +185,7 @@ class User extends Authenticatable
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->setDescriptionForEvent(fn(string $eventName) => "This model has been {$eventName}")
+            ->setDescriptionForEvent(fn (string $eventName) => "This model has been {$eventName}")
             ->logOnly([
                 'name',
                 'email',
@@ -231,6 +232,37 @@ class User extends Authenticatable
     public function educationLevelValues(): array
     {
         return $this->educationLevels->map(fn ($e) => $e->level_education->value)->all();
+    }
+
+    public function educationLevelClassIds(): ?array
+    {
+        if ($this->role != UserRole::KepalaSekolah) {
+            return null;
+        }
+
+        return Classroom::whereIn('level_education', $this->educationLevelValues())->pluck('id')->all();
+    }
+
+    public function allowedClassIds(): ?array
+    {
+        if ($this->role == UserRole::KepalaSekolah) {
+            return $this->educationLevelClassIds();
+        }
+
+        if ($this->role == UserRole::WaliKelas) {
+            return Classroom::where('id_wali_kelas', $this->id)->pluck('id')->all();
+        }
+
+        return null;
+    }
+
+    /**
+     * Cek id kelas terhadap daftar id kelas yang diizinkan (null = semua boleh).
+     */
+    public static function classIdAllowed($classId, ?array $allowedClassIds): bool
+    {
+        return $allowedClassIds === null
+            || in_array((string) $classId, array_map('strval', $allowedClassIds), true);
     }
 
     /**
