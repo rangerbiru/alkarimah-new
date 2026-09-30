@@ -422,6 +422,7 @@ class DashboardController extends Controller
                     array_push($transactions, (object) [
                         'icon' => $t->flag_detail->icon,
                         'flag' => $t->flag_detail->name,
+                        'student_name' => $t->student->name ?? '-',
                         'name' => $name,
                         'total' => $b->total,
                         'total_class' => 'text-danger',
@@ -435,6 +436,7 @@ class DashboardController extends Controller
                 array_push($transactions, (object) [
                     'icon' => $t->flag_detail->icon,
                     'flag' => $t->flag_detail->type,
+                    'student_name' => $t->student->name ?? '-',
                     'name' => $t->flag_detail->name,
                     'total' => $t->total,
                     'total_class' => ($t->flag->value == TransactionFlag::PengambilanTabungan->value) ? 'text-danger' : 'text-success',

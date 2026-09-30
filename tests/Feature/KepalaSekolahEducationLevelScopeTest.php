@@ -31,6 +31,8 @@ class KepalaSekolahEducationLevelScopeTest extends TestCase
 
     private int $billId;
 
+    private int $billTypeId;
+
     private int $waliKelasSdId;
 
     protected function setUp(): void
@@ -46,8 +48,12 @@ class KepalaSekolahEducationLevelScopeTest extends TestCase
             'status' => 1, 'branch_id' => self::BRANCH_ID, 'created_by' => 0,
         ]);
 
+        $this->billTypeId = DB::table('bill_type')->insertGetId([
+            'name' => 'SPP Test', 'period' => 2, 'spp' => 1, 'branch_id' => self::BRANCH_ID, 'created_by' => 0,
+        ]);
+
         $this->billId = DB::table('bill')->insertGetId([
-            'id_year' => $yearId, 'id_type' => 1, 'name' => 'SPP Test', 'nominal' => 100000,
+            'id_year' => $yearId, 'id_type' => $this->billTypeId, 'name' => 'SPP Test', 'nominal' => 100000,
             'branch_id' => self::BRANCH_ID, 'created_by' => 0,
         ]);
 
@@ -122,7 +128,7 @@ class KepalaSekolahEducationLevelScopeTest extends TestCase
     {
         return $this->post(route('finance.report.datatable.bill-per-type'), array_merge([
             'draw' => 1, 'start' => 0, 'length' => 50, 'search' => ['value' => ''],
-            'year' => '', 'class' => '', 'bill_type' => $this->billId,
+            'year' => '', 'class' => '', 'bill_type' => $this->billTypeId,
         ], $params));
     }
 
@@ -136,7 +142,7 @@ class KepalaSekolahEducationLevelScopeTest extends TestCase
     private function totalBill(array $params = [])
     {
         return $this->post(route('finance.report.get.total-bill-per-type'), array_merge([
-            'year' => '', 'class' => '', 'bill_type' => $this->billId,
+            'year' => '', 'class' => '', 'bill_type' => $this->billTypeId,
         ], $params));
     }
 
@@ -150,7 +156,7 @@ class KepalaSekolahEducationLevelScopeTest extends TestCase
     {
         ob_start();
         $this->get(route('finance.report.download.excel.bill-per-type', array_merge([
-            'year' => '', 'class' => '', 'bill_type' => $this->billId,
+            'year' => '', 'class' => '', 'bill_type' => $this->billTypeId,
         ], $params)))->assertOk();
         $content = ob_get_clean();
 
@@ -182,7 +188,7 @@ class KepalaSekolahEducationLevelScopeTest extends TestCase
         $this->actingAsRole('kepala-sekolah', ['smp']);
 
         foreach (['sd', 'sma'] as $level) {
-            $params = ['year' => '', 'class' => $this->classes[$level], 'bill_type' => $this->billId];
+            $params = ['year' => '', 'class' => $this->classes[$level], 'bill_type' => $this->billTypeId];
 
             $this->datatable(['class' => $this->classes[$level]])->assertForbidden();
             $this->totalBill(['class' => $this->classes[$level]])->assertForbidden();
@@ -199,7 +205,7 @@ class KepalaSekolahEducationLevelScopeTest extends TestCase
         $this->assertEquals(200000, $this->totalBill()->assertOk()->json('data.total'));
         $this->assertSame($this->namesOf(['smp']), $this->excelStudentNames());
 
-        $this->get(route('finance.report.download.pdf.bill-per-type', ['year' => '', 'class' => '', 'bill_type' => $this->billId]))
+        $this->get(route('finance.report.download.pdf.bill-per-type', ['year' => '', 'class' => '', 'bill_type' => $this->billTypeId]))
             ->assertOk()
             ->assertHeader('content-type', 'application/pdf');
 

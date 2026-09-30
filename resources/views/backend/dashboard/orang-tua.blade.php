@@ -64,11 +64,12 @@
             @foreach ($transaction as $t)
                 <div class="card card-history mb-2">
                     <div class="card-body p-2">
-                        <div class="d-flex">
+                        <div class="d-flex align-items-center">
                             <div class="icon">
                                 <i class="{{ $t->icon }}"></i>
                             </div>
                             <div class="text">
+                                <b>{{ $t->student_name }}</b><br />
                                 {{ $t->name }}<br />
                                 <small
                                     class="text-muted">{{ $t->flag . ' - ' . Common::dateFormat($t->paid_at, 'dd mmm yyyy, hh:ii WIB') }}</small>
@@ -117,7 +118,12 @@
         .card-history .icon {
             background: var(--input-border);
             border-radius: 50%;
-            padding: 6px 10px;
+            width: 32px;
+            height: 32px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-size: 14px;
             margin-right: 7px;
         }

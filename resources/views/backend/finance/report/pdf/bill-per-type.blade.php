@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Laporan Tagihan Per Jenis</title>
+    <title>Tagihan Per Jenis</title>
     <style>
         body {
             font-family: sans-serif;

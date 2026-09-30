@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Finance;
 
 use App\Constants\EducationLevel as ConstantsEducationLevel;
 use App\Enums\BillPeriod;
+use App\Enums\BillStatus;
 use App\Enums\BillType;
 use App\Enums\EducationLevel;
 use App\Enums\TransactionStatus;
@@ -11,6 +12,7 @@ use App\Enums\UserRole;
 use App\Helpers\Common;
 use App\Http\Controllers\Controller;
 use App\Models\Bill;
+use App\Models\BillType as BillTypeModel;
 use App\Models\Classroom;
 use App\Models\Donation;
 use App\Models\DonationHistory;
@@ -179,7 +181,8 @@ class ReportController extends Controller
             ->orderBy('start_year', 'desc')
             ->pluck('start_year', 'id');
 
-        $bill_types = Bill::pluck('name', 'id');
+        // Urutan mengikuti halaman master jenis tagihan (finance.bill.type)
+        $bill_types = BillTypeModel::orderBy('created_at', 'desc')->pluck('name', 'id');
 
         $allowedClassIds = $this->billPerTypeAllowedClassIds();
 
@@ -191,7 +194,7 @@ class ReportController extends Controller
         $default_class = $allowedClassIds !== null && $classes->count() == 1 ? $classes->keys()->first() : '';
 
         return view($this->path.'bill-per-type', [
-            'title' => __($this->title_prefix).' - Laporan Tagihan Per Jenis',
+            'title' => __($this->title_prefix).' - Tagihan Per Jenis',
             'icon' => $this->icon,
             'education_levels' => $education_levels,
             'year' => $year,
@@ -225,6 +228,50 @@ class ReportController extends Controller
         return $allowedClassIds;
     }
 
+    /**
+     * Tagihan siswa yang termasuk jenis tagihan (bill_type.id) dan tahun ajaran terpilih.
+     */
+    private function billPerTypeTransactionQuery($yearId, $billTypeId)
+    {
+        return TransactionBill::query()
+            ->when($billTypeId || $yearId, function ($query) use ($billTypeId, $yearId) {
+                $query->whereHas('bill', function ($q) use ($billTypeId, $yearId) {
+                    $q->when($billTypeId, fn ($qb) => $qb->where('id_type', $billTypeId))
+                        ->when($yearId, fn ($qb) => $qb->where('id_year', $yearId));
+                });
+            });
+    }
+
+    private function billPerTypeStudentQuery($yearId, $classId, $billTypeId, ?array $allowedClassIds)
+    {
+        return Student::select('id', 'id_class', 'nis', 'name')
+            ->with(['class' => fn ($qc) => $qc->select('id', 'name')])
+            ->whereIn('id', $this->billPerTypeTransactionQuery($yearId, $billTypeId)->select('id_student'))
+            ->when($classId, function ($q) use ($classId) {
+                $q->where('id_class', $classId);
+            })
+            ->when($allowedClassIds !== null, function ($q) use ($allowedClassIds) {
+                $q->whereIn('id_class', $allowedClassIds);
+            });
+    }
+
+    /**
+     * Jumlah tagihan per siswa; semua tagihan dalam satu jenis digabung jadi satu baris.
+     * Sudah Dibayar hanya menghitung status Paid.
+     */
+    private function billPerTypeSums($yearId, $billTypeId, $studentIds)
+    {
+        return $this->billPerTypeTransactionQuery($yearId, $billTypeId)
+            ->whereIn('id_student', $studentIds)
+            ->selectRaw('id_student, SUM(total) AS total_amount, SUM(CASE WHEN status = ? THEN total ELSE 0 END) AS total_paid, SUM(CASE WHEN status = ? THEN total ELSE 0 END) AS total_remaining', [
+                BillStatus::Paid->value,
+                BillStatus::NotPaid->value,
+            ])
+            ->groupBy('id_student')
+            ->get()
+            ->keyBy('id_student');
+    }
+
     public function getTotalBillPerType(Request $request)
     {
         $year = $request->year;
@@ -233,29 +280,12 @@ class ReportController extends Controller
 
         $allowedClassIds = $this->billPerTypeAllowedClassIds($request);
 
-        $tbQuery = TransactionBill::query()
-            ->when($classId, function ($query) use ($classId) {
-                $query->whereHas('student', function ($q) use ($classId) {
-                    $q->where('id_class', $classId);
-                });
-            })
-            ->when($allowedClassIds !== null, function ($query) use ($allowedClassIds) {
-                $query->whereHas('student', function ($q) use ($allowedClassIds) {
-                    $q->whereIn('id_class', $allowedClassIds);
-                });
-            })
-            ->when($billTypeId, function ($query) use ($billTypeId) {
-                $query->where('id_bill', $billTypeId);
-            })
-            ->when($year, function ($query) use ($year) {
-                $query->whereHas('bill', function ($q) use ($year) {
-                    $q->where('id_year', $year);
-                });
-            });
+        $studentIds = $this->billPerTypeStudentQuery($year, $classId, $billTypeId, $allowedClassIds)->select('id');
+        $sums = $this->billPerTypeSums($year, $billTypeId, $studentIds);
 
-        $total = (clone $tbQuery)->sum('total');
-        $paid = (clone $tbQuery)->where('status', 1)->sum('total');
-        $remaining = (clone $tbQuery)->where('status', 0)->sum('total');
+        $total = $sums->sum('total_amount');
+        $paid = $sums->sum('total_paid');
+        $remaining = $sums->sum('total_remaining');
 
         return response()->json([
             'status' => true,
@@ -279,27 +309,7 @@ class ReportController extends Controller
         $limit = $request->input('length');
         $start = $request->input('start');
 
-        $studentIdsWithBills = TransactionBill::query()
-            ->when($billTypeId, function ($query) use ($billTypeId) {
-                $query->where('id_bill', $billTypeId);
-            })
-            ->when($year, function ($query) use ($year) {
-                $query->whereHas('bill', function ($q) use ($year) {
-                    $q->where('id_year', $year);
-                });
-            })
-            ->select('id_student')
-            ->distinct();
-
-        $studentQuery = Student::select('id', 'id_class', 'nis', 'name')
-            ->with(['class' => fn ($qc) => $qc->select('id', 'name')])
-            ->whereIn('id', $studentIdsWithBills)
-            ->when($classId, function ($q) use ($classId) {
-                $q->where('id_class', $classId);
-            })
-            ->when($allowedClassIds !== null, function ($q) use ($allowedClassIds) {
-                $q->whereIn('id_class', $allowedClassIds);
-            });
+        $studentQuery = $this->billPerTypeStudentQuery($year, $classId, $billTypeId, $allowedClassIds);
 
         $recordsTotal = $studentQuery->count();
 
@@ -320,25 +330,19 @@ class ReportController extends Controller
             ->orderBy('name')
             ->get();
 
+        $sums = $this->billPerTypeSums($year, $billTypeId, $students->pluck('id'));
+
         $data_arr = [];
         foreach ($students as $s) {
-            $tbQuery = TransactionBill::where('id_student', $s->id)
-                ->when($billTypeId, function ($q) use ($billTypeId) {
-                    $q->where('id_bill', $billTypeId);
-                })
-                ->when($year, function ($q) use ($year) {
-                    $q->whereHas('bill', function ($qb) use ($year) {
-                        $qb->where('id_year', $year);
-                    });
-                });
+            $sum = $sums->get($s->id);
 
             $data_arr[] = [
                 'nis' => $s->nis,
                 'student_name' => $s->name,
                 'class_name' => $s->class->name ?? '-',
-                'total_amount' => (clone $tbQuery)->sum('total'),
-                'total_paid' => (clone $tbQuery)->where('status', 1)->sum('total'),
-                'total_remaining' => (clone $tbQuery)->where('status', 0)->sum('total'),
+                'total_amount' => $sum->total_amount ?? 0,
+                'total_paid' => $sum->total_paid ?? 0,
+                'total_remaining' => $sum->total_remaining ?? 0,
             ];
         }
 
@@ -358,30 +362,12 @@ class ReportController extends Controller
         $classId = $request->class;
         $billTypeId = $request->bill_type;
 
-        $billName = Bill::find($billTypeId)->name ?? 'Semua Tagihan';
+        $billName = BillTypeModel::find($billTypeId)->name ?? 'Semua Jenis Tagihan';
         $className = Classroom::find($classId)->name ?? 'Semua Kelas';
 
-        $studentIdsWithBills = TransactionBill::query()
-            ->when($billTypeId, function ($query) use ($billTypeId) {
-                $query->where('id_bill', $billTypeId);
-            })
-            ->when($yearId, function ($query) use ($yearId) {
-                $query->whereHas('bill', function ($q) use ($yearId) {
-                    $q->where('id_year', $yearId);
-                });
-            })
-            ->select('id_student')->distinct();
-
-        $students = Student::select('id', 'id_class', 'nis', 'name')
-            ->with(['class' => fn ($qc) => $qc->select('id', 'name')])
-            ->whereIn('id', $studentIdsWithBills)
-            ->when($classId, function ($q) use ($classId) {
-                $q->where('id_class', $classId);
-            })
-            ->when($allowedClassIds !== null, function ($q) use ($allowedClassIds) {
-                $q->whereIn('id_class', $allowedClassIds);
-            })
+        $students = $this->billPerTypeStudentQuery($yearId, $classId, $billTypeId, $allowedClassIds)
             ->orderBy('name')->get();
+        $sums = $this->billPerTypeSums($yearId, $billTypeId, $students->pluck('id'));
 
         $data_arr = [];
         $grand_total = 0;
@@ -389,19 +375,11 @@ class ReportController extends Controller
         $grand_remaining = 0;
 
         foreach ($students as $s) {
-            $tbQuery = TransactionBill::where('id_student', $s->id)
-                ->when($billTypeId, function ($q) use ($billTypeId) {
-                    $q->where('id_bill', $billTypeId);
-                })
-                ->when($yearId, function ($q) use ($yearId) {
-                    $q->whereHas('bill', function ($qb) use ($yearId) {
-                        $qb->where('id_year', $yearId);
-                    });
-                });
+            $sum = $sums->get($s->id);
 
-            $total_amount = (clone $tbQuery)->sum('total');
-            $total_paid = (clone $tbQuery)->where('status', 1)->sum('total');
-            $total_remaining = (clone $tbQuery)->where('status', 0)->sum('total');
+            $total_amount = $sum->total_amount ?? 0;
+            $total_paid = $sum->total_paid ?? 0;
+            $total_remaining = $sum->total_remaining ?? 0;
 
             $grand_total += $total_amount;
             $grand_paid += $total_paid;
@@ -440,7 +418,7 @@ class ReportController extends Controller
         $classId = $request->class;
         $billTypeId = $request->bill_type;
 
-        $billName = Bill::find($billTypeId)->name ?? 'Semua Tagihan';
+        $billName = BillTypeModel::find($billTypeId)->name ?? 'Semua Jenis Tagihan';
         $className = Classroom::find($classId)->name ?? 'Semua Kelas';
 
         $spreadsheet = new Spreadsheet;
@@ -483,7 +461,7 @@ class ReportController extends Controller
         $sheet->mergeCells('A'.$row.':'.$last_col.$row);
         $row++;
 
-        $sheet->setCellValue('A'.$row, __('label.bill_name').' : '.$billName);
+        $sheet->setCellValue('A'.$row, 'Jenis Tagihan : '.$billName);
         $sheet->mergeCells('A'.$row.':'.$last_col.$row);
         $row += 2;
 
@@ -500,27 +478,9 @@ class ReportController extends Controller
         }
         $row++;
 
-        $studentIdsWithBills = TransactionBill::query()
-            ->when($billTypeId, function ($query) use ($billTypeId) {
-                $query->where('id_bill', $billTypeId);
-            })
-            ->when($yearId, function ($query) use ($yearId) {
-                $query->whereHas('bill', function ($q) use ($yearId) {
-                    $q->where('id_year', $yearId);
-                });
-            })
-            ->select('id_student')->distinct();
-
-        $students = Student::select('id', 'id_class', 'nis', 'name')
-            ->with(['class' => fn ($qc) => $qc->select('id', 'name')])
-            ->whereIn('id', $studentIdsWithBills)
-            ->when($classId, function ($q) use ($classId) {
-                $q->where('id_class', $classId);
-            })
-            ->when($allowedClassIds !== null, function ($q) use ($allowedClassIds) {
-                $q->whereIn('id_class', $allowedClassIds);
-            })
+        $students = $this->billPerTypeStudentQuery($yearId, $classId, $billTypeId, $allowedClassIds)
             ->orderBy('name')->get();
+        $sums = $this->billPerTypeSums($yearId, $billTypeId, $students->pluck('id'));
 
         $no = 1;
         $grand_total = 0;
@@ -528,19 +488,11 @@ class ReportController extends Controller
         $grand_remaining = 0;
 
         foreach ($students as $s) {
-            $tbQuery = TransactionBill::where('id_student', $s->id)
-                ->when($billTypeId, function ($q) use ($billTypeId) {
-                    $q->where('id_bill', $billTypeId);
-                })
-                ->when($yearId, function ($q) use ($yearId) {
-                    $q->whereHas('bill', function ($qb) use ($yearId) {
-                        $qb->where('id_year', $yearId);
-                    });
-                });
+            $sum = $sums->get($s->id);
 
-            $total_amount = (clone $tbQuery)->sum('total');
-            $total_paid = (clone $tbQuery)->where('status', 1)->sum('total');
-            $total_remaining = (clone $tbQuery)->where('status', 0)->sum('total');
+            $total_amount = $sum->total_amount ?? 0;
+            $total_paid = $sum->total_paid ?? 0;
+            $total_remaining = $sum->total_remaining ?? 0;
 
             $grand_total += $total_amount;
             $grand_paid += $total_paid;
