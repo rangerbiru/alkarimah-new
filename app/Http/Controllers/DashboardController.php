@@ -58,7 +58,7 @@ class DashboardController extends Controller
             return $this->penanggungJawabTabungan();
         } elseif ($user->role == UserRole::WaliKelas) {
             return $this->waliKelas();
-        } elseif ($user->role == UserRole::Kasir || $user->role == UserRole::KasirTabungan) {
+        } elseif ($user->role == UserRole::Kasir || $user->role == UserRole::KasirUnit) {
             return $this->kasir();
         } elseif ($user->role == UserRole::Pegawai || $user->role == UserRole::KepalaSekolah) {
             return $this->pegawai();

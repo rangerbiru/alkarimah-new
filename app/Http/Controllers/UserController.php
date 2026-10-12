@@ -223,8 +223,8 @@ class UserController extends Controller
                     $menu_user = UserMenu::Kasir;
                     break;
 
-                case UserRole::KasirTabungan->value:
-                    $menu_user = UserMenu::KasirTabungan;
+                case UserRole::KasirUnit->value:
+                    $menu_user = UserMenu::KasirUnit;
                     break;
             }
 

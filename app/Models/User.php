@@ -97,10 +97,10 @@ class User extends Authenticatable
         );
     }
 
-    protected function isKasirTabungan(): Attribute
+    protected function isKasirUnit(): Attribute
     {
         return Attribute::make(
-            get: fn () => Auth::user()->role == UserRole::KasirTabungan
+            get: fn () => Auth::user()->role == UserRole::KasirUnit
         );
     }
 

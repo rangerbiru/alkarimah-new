@@ -16,18 +16,18 @@ Route::prefix('balance')->group(function () {
     Route::get('waiting/{transaction}', [FinanceBalanceController::class, 'waiting'])->name('finance.balance.waiting')->middleware('role:orang-tua');
 
     // Rute Kasir
-    Route::get('topup', [FinanceBalanceController::class, 'topup'])->name('finance.balance.topup')->middleware('role:kasir,kasir-tabungan');
-    Route::get('get/autocomplete/parent', [FinanceBalanceController::class, 'getParentAutocomplete'])->name('finance.balance.get.autocomplete.parent')->middleware('role:kasir,kasir-tabungan');
+    Route::get('topup', [FinanceBalanceController::class, 'topup'])->name('finance.balance.topup')->middleware('role:kasir,kasir-unit');
+    Route::get('get/autocomplete/parent', [FinanceBalanceController::class, 'getParentAutocomplete'])->name('finance.balance.get.autocomplete.parent')->middleware('role:kasir,kasir-unit');
 
-    Route::post('get/parent', [FinanceBalanceController::class, 'getParent'])->name('finance.balance.get.parent')->middleware('role:kasir,kasir-tabungan');
+    Route::post('get/parent', [FinanceBalanceController::class, 'getParent'])->name('finance.balance.get.parent')->middleware('role:kasir,kasir-unit');
     Route::post('/', [FinanceBalanceController::class, 'store'])->name('finance.balance.store')->middleware('role:orang-tua');
     Route::post('get', [FinanceBalanceController::class, 'get'])->name('finance.balance.get')->middleware('role:orang-tua');
     Route::post('get/history', [FinanceBalanceController::class, 'getHistory'])->name('finance.balance.get.history')->middleware('role:orang-tua');
-    Route::post('storeCash', [FinanceBalanceController::class, 'storeCash'])->name('finance.balance.store.cash')->middleware('role:kasir,kasir-tabungan');
+    Route::post('storeCash', [FinanceBalanceController::class, 'storeCash'])->name('finance.balance.store.cash')->middleware('role:kasir,kasir-unit');
 
     // Pengambilan Saldo - Rute Kasir
-    Route::get('withdrawal', [FinanceBalanceController::class, 'withdrawal'])->name('finance.balance.withdrawal')->middleware('role:kasir,kasir-tabungan');
-    Route::post('withdrawal', [FinanceBalanceController::class, 'storeWithdrawal'])->name('finance.balance.store.withdrawal')->middleware('role:kasir,kasir-tabungan');
+    Route::get('withdrawal', [FinanceBalanceController::class, 'withdrawal'])->name('finance.balance.withdrawal')->middleware('role:kasir,kasir-unit');
+    Route::post('withdrawal', [FinanceBalanceController::class, 'storeWithdrawal'])->name('finance.balance.store.withdrawal')->middleware('role:kasir,kasir-unit');
 
     Route::get('/{history}', [FinanceBalanceController::class, 'show'])->name('finance.balance.show')->middleware('role:orang-tua');
 });
@@ -153,27 +153,27 @@ Route::prefix('savings')->group(function () {
     Route::get('/', [FinanceSavingsController::class, 'index'])->name('finance.savings.index')->middleware('role:orang-tua');
     Route::get('history', [FinanceSavingsController::class, 'history'])->name('finance.savings.history')->middleware('role:orang-tua');
     Route::get('history/withdrawal', [FinanceSavingsController::class, 'historyWithdrawal'])->name('finance.savings.history.withdrawal')->middleware('role:penanggung-jawab-tabungan');
-    Route::get('deposit', [FinanceSavingsController::class, 'deposit'])->name('finance.savings.deposit')->middleware('role:kasir,kasir-tabungan');
-    Route::get('list', [FinanceSavingsController::class, 'list'])->name('finance.savings.list')->middleware('role:kasir,kasir-tabungan');
+    Route::get('deposit', [FinanceSavingsController::class, 'deposit'])->name('finance.savings.deposit')->middleware('role:kasir,kasir-unit');
+    Route::get('list', [FinanceSavingsController::class, 'list'])->name('finance.savings.list')->middleware('role:kasir,kasir-unit');
     Route::get('waiting/{transaction}', [FinanceSavingsController::class, 'waiting'])->name('finance.savings.waiting')->middleware('role:orang-tua');
-    Route::get('withdrawal', [FinanceSavingsController::class, 'withdrawal'])->name('finance.savings.withdrawal')->middleware('role:kasir,kasir-tabungan');
-    Route::get('mutation', [FinanceSavingsController::class, 'mutation'])->name('finance.savings.mutation')->middleware('role:kasir,kasir-tabungan,penanggung-jawab-tabungan');
+    Route::get('withdrawal', [FinanceSavingsController::class, 'withdrawal'])->name('finance.savings.withdrawal')->middleware('role:kasir,kasir-unit');
+    Route::get('mutation', [FinanceSavingsController::class, 'mutation'])->name('finance.savings.mutation')->middleware('role:kasir,kasir-unit,penanggung-jawab-tabungan');
     Route::get('create/withdrawal', [FinanceSavingsController::class, 'createWithdrawal'])->name('finance.savings.create.withdrawal')->middleware('role:penanggung-jawab-tabungan');
     Route::get('edit/withdrawal/{withdrawal}', [FinanceSavingsController::class, 'editWithdrawal'])->name('finance.savings.edit.withdrawal')->middleware('role:penanggung-jawab-tabungan');
-    Route::get('download/excel/withdrawal/{transaction}', [FinanceSavingsController::class, 'downloadExcelWithdrawal'])->name('finance.savings.download.excel.withdrawal')->middleware('role:kasir,kasir-tabungan');
+    Route::get('download/excel/withdrawal/{transaction}', [FinanceSavingsController::class, 'downloadExcelWithdrawal'])->name('finance.savings.download.excel.withdrawal')->middleware('role:kasir,kasir-unit');
     Route::get('{transaction}', [FinanceSavingsController::class, 'show'])->name('finance.savings.show')->middleware('role:orang-tua');
     Route::get('withdrawal/{withdrawal}', [FinanceSavingsController::class, 'showWithdrawal'])->name('finance.savings.show-withdrawal')->middleware('role:orang-tua');
 
-    Route::post('datatable/history', [FinanceSavingsController::class, 'datatableHistory'])->name('finance.savings.datatable.history')->middleware('role:kasir,kasir-tabungan');
+    Route::post('datatable/history', [FinanceSavingsController::class, 'datatableHistory'])->name('finance.savings.datatable.history')->middleware('role:kasir,kasir-unit');
     Route::post('datatable/history-withdrawal', [FinanceSavingsController::class, 'datatableHistoryWithdrawal'])->name('finance.savings.datatable.history-withdrawal')->middleware('role:penanggung-jawab-tabungan');
-    Route::post('datatable/mutation', [FinanceSavingsController::class, 'datatableMutation'])->name('finance.savings.datatable.mutation')->middleware('role:kasir,kasir-tabungan,penanggung-jawab-tabungan');
+    Route::post('datatable/mutation', [FinanceSavingsController::class, 'datatableMutation'])->name('finance.savings.datatable.mutation')->middleware('role:kasir,kasir-unit,penanggung-jawab-tabungan');
     Route::post('get', [FinanceSavingsController::class, 'get'])->name('finance.savings.get')->middleware('role:orang-tua');
-    Route::post('get/student', [FinanceSavingsController::class, 'getStudent'])->name('finance.savings.get.student')->middleware('role:kasir,kasir-tabungan,penanggung-jawab-tabungan');
+    Route::post('get/student', [FinanceSavingsController::class, 'getStudent'])->name('finance.savings.get.student')->middleware('role:kasir,kasir-unit,penanggung-jawab-tabungan');
     Route::post('get/history', [FinanceSavingsController::class, 'getHistory'])->name('finance.savings.get.history')->middleware('role:orang-tua');
-    Route::post('get/withdrawal', [FinanceSavingsController::class, 'getWithdrawal'])->name('finance.savings.get.withdrawal')->middleware('role:kasir,kasir-tabungan');
-    Route::post('/', [FinanceSavingsController::class, 'store'])->name('finance.savings.store')->middleware('role:kasir,kasir-tabungan,orang-tua');
+    Route::post('get/withdrawal', [FinanceSavingsController::class, 'getWithdrawal'])->name('finance.savings.get.withdrawal')->middleware('role:kasir,kasir-unit');
+    Route::post('/', [FinanceSavingsController::class, 'store'])->name('finance.savings.store')->middleware('role:kasir,kasir-unit,orang-tua');
     Route::post('withdrawal', [FinanceSavingsController::class, 'storeWithdrawal'])->name('finance.savings.store.withdrawal')->middleware('role:penanggung-jawab-tabungan');
-    Route::post('process/withdrawal', [FinanceSavingsController::class, 'processWithdrawal'])->name('finance.savings.process.withdrawal')->middleware('role:kasir,kasir-tabungan');
+    Route::post('process/withdrawal', [FinanceSavingsController::class, 'processWithdrawal'])->name('finance.savings.process.withdrawal')->middleware('role:kasir,kasir-unit');
 
     Route::put('withdrawal/{withdrawal}', [FinanceSavingsController::class, 'updateWithdrawal'])->name('finance.savings.update.withdrawal')->middleware('role:penanggung-jawab-tabungan');
 
@@ -181,38 +181,38 @@ Route::prefix('savings')->group(function () {
 });
 
 Route::prefix('transaction')->group(function () {
-    Route::get('bill', [FinanceTransactionController::class, 'bill'])->name('finance.transaction.bill.index')->middleware('role:kasir,kasir-tabungan');
-    Route::get('bill/{transaction}', [FinanceTransactionController::class, 'showBill'])->name('finance.transaction.bill.show')->middleware('role:kasir,kasir-tabungan');
-    Route::get('cash/{render}', [FinanceTransactionController::class, 'cash'])->where('render', '[waiting|accepted|rejected]+')->name('finance.transaction.cash')->middleware('role:kasir,kasir-tabungan,bendahara');
-    Route::get('unique-code/{render}', [FinanceTransactionController::class, 'uniqueCode'])->where('render', '[waiting|accepted|rejected]+')->name('finance.transaction.unique-code')->middleware('role:kasir,kasir-tabungan,bendahara');
-    Route::get('pending', [FinanceTransactionController::class, 'pending'])->name('finance.transaction.pending')->middleware('role:kasir,kasir-tabungan');
-    Route::get('history', [FinanceTransactionController::class, 'history'])->name('finance.transaction.history')->middleware('role:kasir,kasir-tabungan');
-    Route::get('create/cash', [FinanceTransactionController::class, 'createCash'])->name('finance.transaction.create.cash')->middleware('role:kasir,kasir-tabungan');
-    Route::get('create/unique-code', [FinanceTransactionController::class, 'createUniqueCode'])->name('finance.transaction.create.unique-code')->middleware('role:kasir,kasir-tabungan');
-    Route::get('edit/cash/{deposit}', [FinanceTransactionController::class, 'editCash'])->name('finance.transaction.edit.cash')->middleware('role:kasir,kasir-tabungan');
-    Route::get('edit/unique-code/{deposit}', [FinanceTransactionController::class, 'editUniqueCode'])->name('finance.transaction.edit.unique-code')->middleware('role:kasir,kasir-tabungan');
+    Route::get('bill', [FinanceTransactionController::class, 'bill'])->name('finance.transaction.bill.index')->middleware('role:kasir,kasir-unit');
+    Route::get('bill/{transaction}', [FinanceTransactionController::class, 'showBill'])->name('finance.transaction.bill.show')->middleware('role:kasir,kasir-unit');
+    Route::get('cash/{render}', [FinanceTransactionController::class, 'cash'])->where('render', '[waiting|accepted|rejected]+')->name('finance.transaction.cash')->middleware('role:kasir,kasir-unit,bendahara');
+    Route::get('unique-code/{render}', [FinanceTransactionController::class, 'uniqueCode'])->where('render', '[waiting|accepted|rejected]+')->name('finance.transaction.unique-code')->middleware('role:kasir,kasir-unit,bendahara');
+    Route::get('pending', [FinanceTransactionController::class, 'pending'])->name('finance.transaction.pending')->middleware('role:kasir,kasir-unit');
+    Route::get('history', [FinanceTransactionController::class, 'history'])->name('finance.transaction.history')->middleware('role:kasir,kasir-unit');
+    Route::get('create/cash', [FinanceTransactionController::class, 'createCash'])->name('finance.transaction.create.cash')->middleware('role:kasir,kasir-unit');
+    Route::get('create/unique-code', [FinanceTransactionController::class, 'createUniqueCode'])->name('finance.transaction.create.unique-code')->middleware('role:kasir,kasir-unit');
+    Route::get('edit/cash/{deposit}', [FinanceTransactionController::class, 'editCash'])->name('finance.transaction.edit.cash')->middleware('role:kasir,kasir-unit');
+    Route::get('edit/unique-code/{deposit}', [FinanceTransactionController::class, 'editUniqueCode'])->name('finance.transaction.edit.unique-code')->middleware('role:kasir,kasir-unit');
     Route::get('verify/cash/{deposit}', [FinanceTransactionController::class, 'verifyCash'])->name('finance.transaction.verify.cash')->middleware('role:bendahara');
     Route::get('verify/unique-code/{deposit}', [FinanceTransactionController::class, 'verifyUniqueCode'])->name('finance.transaction.verify.unique-code')->middleware('role:bendahara');
-    Route::get('print/{transaction}', [FinanceTransactionController::class, 'print'])->name('finance.transaction.print')->middleware('role:kasir,kasir-tabungan');
-    Route::get('print/cash/{deposit}', [FinanceTransactionController::class, 'printCash'])->name('finance.transaction.print.cash')->middleware('role:kasir,kasir-tabungan');
+    Route::get('print/{transaction}', [FinanceTransactionController::class, 'print'])->name('finance.transaction.print')->middleware('role:kasir,kasir-unit');
+    Route::get('print/cash/{deposit}', [FinanceTransactionController::class, 'printCash'])->name('finance.transaction.print.cash')->middleware('role:kasir,kasir-unit');
 
-    Route::post('/', [FinanceTransactionController::class, 'store'])->name('finance.transaction.store')->middleware('role:kasir,kasir-tabungan');
-    Route::post('cash', [FinanceTransactionController::class, 'storeCash'])->name('finance.transaction.store.cash')->middleware('role:kasir,kasir-tabungan');
-    Route::post('unique-code', [FinanceTransactionController::class, 'storeUniqueCode'])->name('finance.transaction.store.unique-code')->middleware('role:kasir,kasir-tabungan');
+    Route::post('/', [FinanceTransactionController::class, 'store'])->name('finance.transaction.store')->middleware('role:kasir,kasir-unit');
+    Route::post('cash', [FinanceTransactionController::class, 'storeCash'])->name('finance.transaction.store.cash')->middleware('role:kasir,kasir-unit');
+    Route::post('unique-code', [FinanceTransactionController::class, 'storeUniqueCode'])->name('finance.transaction.store.unique-code')->middleware('role:kasir,kasir-unit');
     Route::post('verify/cash/{deposit}', [FinanceTransactionController::class, 'storeVerifyCash'])->name('finance.transaction.store.verify-cash')->middleware('role:bendahara');
     Route::post('verify/unique-code/{deposit}', [FinanceTransactionController::class, 'storeVerifyUniqueCode'])->name('finance.transaction.store.verify-unique-code')->middleware('role:bendahara');
-    Route::post('get/bill', [FinanceTransactionController::class, 'getBill'])->name('finance.transaction.get.bill')->middleware('role:kasir,kasir-tabungan');
-    Route::post('datatable/donatur', [FinanceTransactionController::class, 'datatableDonatur'])->name('finance.transaction.datatable.donatur')->middleware('role:kasir,kasir-tabungan');
-    Route::post('datatable/pending', [FinanceTransactionController::class, 'datatablePending'])->name('finance.transaction.datatable.pending')->middleware('role:kasir,kasir-tabungan');
-    Route::post('datatable/history', [FinanceTransactionController::class, 'datatableHistory'])->name('finance.transaction.datatable.history')->middleware('role:kasir,kasir-tabungan');
-    Route::post('datatable/cash', [FinanceTransactionController::class, 'datatableCash'])->name('finance.transaction.datatable.cash')->middleware('role:kasir,kasir-tabungan,bendahara');
-    Route::post('datatable/unique-code', [FinanceTransactionController::class, 'datatableUniqueCode'])->name('finance.transaction.datatable.unique-code')->middleware('role:kasir,kasir-tabungan,bendahara');
-    Route::post('datatable/paid', [FinanceTransactionController::class, 'datatablePaid'])->name('finance.transaction.datatable.paid')->middleware('role:kasir,kasir-tabungan');
-    Route::post('datatable/paid-unique-code', [FinanceTransactionController::class, 'datatablePaidUniqueCode'])->name('finance.transaction.datatable.paid-unique-code')->middleware('role:kasir,kasir-tabungan');
-    Route::post('update/status', [FinanceTransactionController::class, 'updateStatus'])->name('finance.transaction.update.status')->middleware('role:kasir,kasir-tabungan');
-    Route::post('update/cash/{deposit}', [FinanceTransactionController::class, 'updateCash'])->name('finance.transaction.update.cash')->middleware('role:kasir,kasir-tabungan');
-    Route::post('update/unique-code/{deposit}', [FinanceTransactionController::class, 'updateUniqueCode'])->name('finance.transaction.update.unique-code')->middleware('role:kasir,kasir-tabungan');
+    Route::post('get/bill', [FinanceTransactionController::class, 'getBill'])->name('finance.transaction.get.bill')->middleware('role:kasir,kasir-unit');
+    Route::post('datatable/donatur', [FinanceTransactionController::class, 'datatableDonatur'])->name('finance.transaction.datatable.donatur')->middleware('role:kasir,kasir-unit');
+    Route::post('datatable/pending', [FinanceTransactionController::class, 'datatablePending'])->name('finance.transaction.datatable.pending')->middleware('role:kasir,kasir-unit');
+    Route::post('datatable/history', [FinanceTransactionController::class, 'datatableHistory'])->name('finance.transaction.datatable.history')->middleware('role:kasir,kasir-unit');
+    Route::post('datatable/cash', [FinanceTransactionController::class, 'datatableCash'])->name('finance.transaction.datatable.cash')->middleware('role:kasir,kasir-unit,bendahara');
+    Route::post('datatable/unique-code', [FinanceTransactionController::class, 'datatableUniqueCode'])->name('finance.transaction.datatable.unique-code')->middleware('role:kasir,kasir-unit,bendahara');
+    Route::post('datatable/paid', [FinanceTransactionController::class, 'datatablePaid'])->name('finance.transaction.datatable.paid')->middleware('role:kasir,kasir-unit');
+    Route::post('datatable/paid-unique-code', [FinanceTransactionController::class, 'datatablePaidUniqueCode'])->name('finance.transaction.datatable.paid-unique-code')->middleware('role:kasir,kasir-unit');
+    Route::post('update/status', [FinanceTransactionController::class, 'updateStatus'])->name('finance.transaction.update.status')->middleware('role:kasir,kasir-unit');
+    Route::post('update/cash/{deposit}', [FinanceTransactionController::class, 'updateCash'])->name('finance.transaction.update.cash')->middleware('role:kasir,kasir-unit');
+    Route::post('update/unique-code/{deposit}', [FinanceTransactionController::class, 'updateUniqueCode'])->name('finance.transaction.update.unique-code')->middleware('role:kasir,kasir-unit');
 
-    Route::delete('cash/{deposit}', [FinanceTransactionController::class, 'destroyCash'])->name('finance.transaction.destroy.cash')->middleware('role:kasir,kasir-tabungan');
-    Route::delete('unique-code/{deposit}', [FinanceTransactionController::class, 'destroyUniqueCode'])->name('finance.transaction.destroy.unique-code')->middleware('role:kasir,kasir-tabungan');
+    Route::delete('cash/{deposit}', [FinanceTransactionController::class, 'destroyCash'])->name('finance.transaction.destroy.cash')->middleware('role:kasir,kasir-unit');
+    Route::delete('unique-code/{deposit}', [FinanceTransactionController::class, 'destroyUniqueCode'])->name('finance.transaction.destroy.unique-code')->middleware('role:kasir,kasir-unit');
 });
