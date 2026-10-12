@@ -2,7 +2,6 @@
     $set_finance_transaction_bill = $action == 'transaction' && $function == 'bill' ? ' active' : '';
     $set_finance_transaction_cash = $action == 'transaction' && $function == 'cash' ? ' active' : '';
     $set_finance_transaction_unique_code = $action == 'transaction' && $function == 'unique-code' ? ' active' : '';
-    $set_finance_transaction_pending = $action == 'transaction' && $function == 'pending' ? ' active' : '';
     $set_finance_transaction_history = $action == 'transaction' && $function == 'history' ? ' active' : '';
     $set_finance_balance_topup = $action == 'balance' && $function == 'topup' ? ' active' : '';
     $set_finance_balance_withdrawal = $action == 'balance' && $function == 'withdrawal' ? ' active' : '';
@@ -44,13 +43,6 @@
         </span>
         <span class="side-menu__label">{{ __('label.transaction') }}</span>
 
-        @if ($data->transaction_pending > 0)
-            @php
-                $sbc = $data->transaction_pending > 99 ? '+' . $data->transaction_pending : $data->transaction_pending;
-            @endphp
-            <span class="badge bg-danger-transparent ms-2 d-inline-block">{{ $sbc }}</span>
-        @endif
-
         <i class="fe fe-chevron-right side-menu__angle"></i>
     </a>
 
@@ -59,22 +51,6 @@
             <a href="{{ route('finance.transaction.bill.index') }}"
                 class="side-menu__item{{ $set_finance_transaction_bill }}">
                 {{ __('label.payment') }}
-            </a>
-        </li>
-        <li class="slide">
-            <a href="{{ route('finance.transaction.pending') }}"
-                class="side-menu__item{{ $set_finance_transaction_pending }}">
-                {{ __('label.pending') }}
-
-                @if ($data->transaction_pending > 0)
-                    @php
-                        $sbc =
-                            $data->transaction_pending > 99
-                                ? '+' . $data->transaction_pending
-                                : $data->transaction_pending;
-                    @endphp
-                    <span class="badge bg-danger-transparent ms-2 d-inline-block">{{ $sbc }}</span>
-                @endif
             </a>
         </li>
         <li class="slide">

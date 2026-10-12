@@ -185,7 +185,7 @@ Route::prefix('transaction')->group(function () {
     Route::get('bill/{transaction}', [FinanceTransactionController::class, 'showBill'])->name('finance.transaction.bill.show')->middleware('role:kasir,kasir-unit');
     Route::get('cash/{render}', [FinanceTransactionController::class, 'cash'])->where('render', '[waiting|accepted|rejected]+')->name('finance.transaction.cash')->middleware('role:kasir,kasir-unit,bendahara');
     Route::get('unique-code/{render}', [FinanceTransactionController::class, 'uniqueCode'])->where('render', '[waiting|accepted|rejected]+')->name('finance.transaction.unique-code')->middleware('role:kasir,kasir-unit,bendahara');
-    Route::get('pending', [FinanceTransactionController::class, 'pending'])->name('finance.transaction.pending')->middleware('role:kasir,kasir-unit');
+    Route::get('pending', [FinanceTransactionController::class, 'pending'])->name('finance.transaction.pending')->middleware('role:kasir');
     Route::get('history', [FinanceTransactionController::class, 'history'])->name('finance.transaction.history')->middleware('role:kasir,kasir-unit');
     Route::get('create/cash', [FinanceTransactionController::class, 'createCash'])->name('finance.transaction.create.cash')->middleware('role:kasir,kasir-unit');
     Route::get('create/unique-code', [FinanceTransactionController::class, 'createUniqueCode'])->name('finance.transaction.create.unique-code')->middleware('role:kasir,kasir-unit');
@@ -203,7 +203,7 @@ Route::prefix('transaction')->group(function () {
     Route::post('verify/unique-code/{deposit}', [FinanceTransactionController::class, 'storeVerifyUniqueCode'])->name('finance.transaction.store.verify-unique-code')->middleware('role:bendahara');
     Route::post('get/bill', [FinanceTransactionController::class, 'getBill'])->name('finance.transaction.get.bill')->middleware('role:kasir,kasir-unit');
     Route::post('datatable/donatur', [FinanceTransactionController::class, 'datatableDonatur'])->name('finance.transaction.datatable.donatur')->middleware('role:kasir,kasir-unit');
-    Route::post('datatable/pending', [FinanceTransactionController::class, 'datatablePending'])->name('finance.transaction.datatable.pending')->middleware('role:kasir,kasir-unit');
+    Route::post('datatable/pending', [FinanceTransactionController::class, 'datatablePending'])->name('finance.transaction.datatable.pending')->middleware('role:kasir');
     Route::post('datatable/history', [FinanceTransactionController::class, 'datatableHistory'])->name('finance.transaction.datatable.history')->middleware('role:kasir,kasir-unit');
     Route::post('datatable/cash', [FinanceTransactionController::class, 'datatableCash'])->name('finance.transaction.datatable.cash')->middleware('role:kasir,kasir-unit,bendahara');
     Route::post('datatable/unique-code', [FinanceTransactionController::class, 'datatableUniqueCode'])->name('finance.transaction.datatable.unique-code')->middleware('role:kasir,kasir-unit,bendahara');
