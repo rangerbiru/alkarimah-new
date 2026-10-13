@@ -19,8 +19,8 @@ use App\Http\Controllers\Hr\UnitMasterController as HrUnitMasterController;
 use App\Http\Controllers\Hr\ViolationTypeMasterController as HrViolationTypeMasterController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('allowance/datatable', [HrAllowanceController::class, 'datatable'])->name('hr.allowance.datatable')->middleware('role:bendahara');
-Route::resource('allowance', HrAllowanceController::class, ['as' => 'hr'])->except(['show'])->middleware('role:bendahara');
+Route::post('allowance/datatable', [HrAllowanceController::class, 'datatable'])->name('hr.allowance.datatable')->middleware('access:bendahara');
+Route::resource('allowance', HrAllowanceController::class, ['as' => 'hr'])->except(['show'])->middleware('access:bendahara');
 
 Route::prefix('employee')->group(function () {
     Route::get('rights/{employee}', [HrEmployeeController::class, 'rights'])->name('hr.employee.rights')->middleware('role:admin');

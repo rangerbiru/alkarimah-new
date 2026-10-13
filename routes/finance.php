@@ -91,16 +91,16 @@ Route::prefix('payment')->group(function () {
 
 Route::prefix('payroll')->group(function () {
     Route::get('/', [FinancePayrollController::class, 'index'])->name('finance.payroll.index')->middleware('role:pegawai,kepala-sekolah');
-    Route::get('setup', [FinancePayrollController::class, 'setup'])->name('finance.payroll.setup')->middleware('role:bendahara');
-    Route::get('slip', [FinancePayrollController::class, 'slip'])->name('finance.payroll.slip')->middleware('role:bendahara');
+    Route::get('setup', [FinancePayrollController::class, 'setup'])->name('finance.payroll.setup')->middleware('access:bendahara');
+    Route::get('slip', [FinancePayrollController::class, 'slip'])->name('finance.payroll.slip')->middleware('access:bendahara');
     Route::get('slip/{payroll}', [FinancePayrollController::class, 'showSlip'])->name('finance.payroll.show.slip')->middleware('role:bendahara,pegawai,kepala-sekolah');
-    Route::get('edit/setup/{employee}', [FinancePayrollController::class, 'editSetup'])->name('finance.payroll.edit.setup')->middleware('role:bendahara');
+    Route::get('edit/setup/{employee}', [FinancePayrollController::class, 'editSetup'])->name('finance.payroll.edit.setup')->middleware('access:bendahara');
     Route::get('download/slip/{payroll}', [FinancePayrollController::class, 'downloadSlip'])->name('finance.payroll.download.slip')->middleware('role:bendahara,pegawai,kepala-sekolah');
 
-    Route::post('datatable/setup', [FinancePayrollController::class, 'datatableSetup'])->name('finance.payroll.datatable.setup')->middleware('role:bendahara');
-    Route::post('datatable/slip', [FinancePayrollController::class, 'datatableSlip'])->name('finance.payroll.datatable.slip')->middleware('role:bendahara');
+    Route::post('datatable/setup', [FinancePayrollController::class, 'datatableSetup'])->name('finance.payroll.datatable.setup')->middleware('access:bendahara');
+    Route::post('datatable/slip', [FinancePayrollController::class, 'datatableSlip'])->name('finance.payroll.datatable.slip')->middleware('access:bendahara');
 
-    Route::put('setup/{employee}', [FinancePayrollController::class, 'updateSetup'])->name('finance.payroll.update.setup')->middleware('role:bendahara');
+    Route::put('setup/{employee}', [FinancePayrollController::class, 'updateSetup'])->name('finance.payroll.update.setup')->middleware('access:bendahara');
 });
 
 Route::prefix('report')->group(function () {
@@ -191,16 +191,16 @@ Route::prefix('transaction')->group(function () {
     Route::get('create/unique-code', [FinanceTransactionController::class, 'createUniqueCode'])->name('finance.transaction.create.unique-code')->middleware('access:kasir,kasir-unit');
     Route::get('edit/cash/{deposit}', [FinanceTransactionController::class, 'editCash'])->name('finance.transaction.edit.cash')->middleware('access:kasir,kasir-unit');
     Route::get('edit/unique-code/{deposit}', [FinanceTransactionController::class, 'editUniqueCode'])->name('finance.transaction.edit.unique-code')->middleware('access:kasir,kasir-unit');
-    Route::get('verify/cash/{deposit}', [FinanceTransactionController::class, 'verifyCash'])->name('finance.transaction.verify.cash')->middleware('role:bendahara');
-    Route::get('verify/unique-code/{deposit}', [FinanceTransactionController::class, 'verifyUniqueCode'])->name('finance.transaction.verify.unique-code')->middleware('role:bendahara');
+    Route::get('verify/cash/{deposit}', [FinanceTransactionController::class, 'verifyCash'])->name('finance.transaction.verify.cash')->middleware('access:bendahara');
+    Route::get('verify/unique-code/{deposit}', [FinanceTransactionController::class, 'verifyUniqueCode'])->name('finance.transaction.verify.unique-code')->middleware('access:bendahara');
     Route::get('print/{transaction}', [FinanceTransactionController::class, 'print'])->name('finance.transaction.print')->middleware('access:kasir,kasir-unit');
     Route::get('print/cash/{deposit}', [FinanceTransactionController::class, 'printCash'])->name('finance.transaction.print.cash')->middleware('access:kasir,kasir-unit');
 
     Route::post('/', [FinanceTransactionController::class, 'store'])->name('finance.transaction.store')->middleware('access:kasir,kasir-unit');
     Route::post('cash', [FinanceTransactionController::class, 'storeCash'])->name('finance.transaction.store.cash')->middleware('access:kasir,kasir-unit');
     Route::post('unique-code', [FinanceTransactionController::class, 'storeUniqueCode'])->name('finance.transaction.store.unique-code')->middleware('access:kasir,kasir-unit');
-    Route::post('verify/cash/{deposit}', [FinanceTransactionController::class, 'storeVerifyCash'])->name('finance.transaction.store.verify-cash')->middleware('role:bendahara');
-    Route::post('verify/unique-code/{deposit}', [FinanceTransactionController::class, 'storeVerifyUniqueCode'])->name('finance.transaction.store.verify-unique-code')->middleware('role:bendahara');
+    Route::post('verify/cash/{deposit}', [FinanceTransactionController::class, 'storeVerifyCash'])->name('finance.transaction.store.verify-cash')->middleware('access:bendahara');
+    Route::post('verify/unique-code/{deposit}', [FinanceTransactionController::class, 'storeVerifyUniqueCode'])->name('finance.transaction.store.verify-unique-code')->middleware('access:bendahara');
     Route::post('get/bill', [FinanceTransactionController::class, 'getBill'])->name('finance.transaction.get.bill')->middleware('access:kasir,kasir-unit');
     Route::post('datatable/donatur', [FinanceTransactionController::class, 'datatableDonatur'])->name('finance.transaction.datatable.donatur')->middleware('access:kasir,kasir-unit');
     Route::post('datatable/pending', [FinanceTransactionController::class, 'datatablePending'])->name('finance.transaction.datatable.pending')->middleware('access:kasir');
