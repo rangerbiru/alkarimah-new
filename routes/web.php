@@ -67,9 +67,9 @@ Route::group(['middleware' => ['auth', 'initialize.backend']], function () {
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard.index');
         Route::post('datatable/withdrawal', [DashboardController::class, 'datatableWithdrawal'])->name('dashboard.datatable.withdrawal')->middleware('role:penanggung-jawab-tabungan');
         Route::post('datatable/bill-not-paid', [DashboardController::class, 'datatableBillNotPaid'])->name('dashboard.datatable.bill-not-paid');
-        Route::post('get/count', [DashboardController::class, 'getCount'])->name('dashboard.get.count')->middleware('role:kasir,kasir-unit');
-        Route::post('get/payment-progress', [DashboardController::class, 'getPaymentProgress'])->name('dashboard.get.payment-progress')->middleware('role:kasir,kasir-unit');
-        Route::post('get/receipt', [DashboardController::class, 'getReceipt'])->name('dashboard.get.receipt')->middleware('role:kasir,kasir-unit');
+        Route::post('get/count', [DashboardController::class, 'getCount'])->name('dashboard.get.count')->middleware('access:kasir,kasir-unit');
+        Route::post('get/payment-progress', [DashboardController::class, 'getPaymentProgress'])->name('dashboard.get.payment-progress')->middleware('access:kasir,kasir-unit');
+        Route::post('get/receipt', [DashboardController::class, 'getReceipt'])->name('dashboard.get.receipt')->middleware('access:kasir,kasir-unit');
 
         Route::post('datatable/employee', [DashboardController::class, 'datatableAttendance'])->name('dashboard.datatable.attendance');
         Route::get('/attendance-summary/data', [DashboardController::class, 'getData'])->name('attendance.summary.data');
