@@ -152,32 +152,32 @@ Route::prefix('report')->group(function () {
 Route::prefix('savings')->group(function () {
     Route::get('/', [FinanceSavingsController::class, 'index'])->name('finance.savings.index')->middleware('role:orang-tua');
     Route::get('history', [FinanceSavingsController::class, 'history'])->name('finance.savings.history')->middleware('role:orang-tua');
-    Route::get('history/withdrawal', [FinanceSavingsController::class, 'historyWithdrawal'])->name('finance.savings.history.withdrawal')->middleware('role:penanggung-jawab-tabungan');
+    Route::get('history/withdrawal', [FinanceSavingsController::class, 'historyWithdrawal'])->name('finance.savings.history.withdrawal')->middleware('access:penanggung-jawab-tabungan');
     Route::get('deposit', [FinanceSavingsController::class, 'deposit'])->name('finance.savings.deposit')->middleware('access:kasir,kasir-unit');
     Route::get('list', [FinanceSavingsController::class, 'list'])->name('finance.savings.list')->middleware('access:kasir,kasir-unit');
     Route::get('waiting/{transaction}', [FinanceSavingsController::class, 'waiting'])->name('finance.savings.waiting')->middleware('role:orang-tua');
     Route::get('withdrawal', [FinanceSavingsController::class, 'withdrawal'])->name('finance.savings.withdrawal')->middleware('access:kasir,kasir-unit');
     Route::get('mutation', [FinanceSavingsController::class, 'mutation'])->name('finance.savings.mutation')->middleware('access:kasir,kasir-unit,penanggung-jawab-tabungan');
-    Route::get('create/withdrawal', [FinanceSavingsController::class, 'createWithdrawal'])->name('finance.savings.create.withdrawal')->middleware('role:penanggung-jawab-tabungan');
-    Route::get('edit/withdrawal/{withdrawal}', [FinanceSavingsController::class, 'editWithdrawal'])->name('finance.savings.edit.withdrawal')->middleware('role:penanggung-jawab-tabungan');
+    Route::get('create/withdrawal', [FinanceSavingsController::class, 'createWithdrawal'])->name('finance.savings.create.withdrawal')->middleware('access:penanggung-jawab-tabungan');
+    Route::get('edit/withdrawal/{withdrawal}', [FinanceSavingsController::class, 'editWithdrawal'])->name('finance.savings.edit.withdrawal')->middleware('access:penanggung-jawab-tabungan');
     Route::get('download/excel/withdrawal/{transaction}', [FinanceSavingsController::class, 'downloadExcelWithdrawal'])->name('finance.savings.download.excel.withdrawal')->middleware('access:kasir,kasir-unit');
     Route::get('{transaction}', [FinanceSavingsController::class, 'show'])->name('finance.savings.show')->middleware('role:orang-tua');
     Route::get('withdrawal/{withdrawal}', [FinanceSavingsController::class, 'showWithdrawal'])->name('finance.savings.show-withdrawal')->middleware('role:orang-tua');
 
     Route::post('datatable/history', [FinanceSavingsController::class, 'datatableHistory'])->name('finance.savings.datatable.history')->middleware('access:kasir,kasir-unit');
-    Route::post('datatable/history-withdrawal', [FinanceSavingsController::class, 'datatableHistoryWithdrawal'])->name('finance.savings.datatable.history-withdrawal')->middleware('role:penanggung-jawab-tabungan');
+    Route::post('datatable/history-withdrawal', [FinanceSavingsController::class, 'datatableHistoryWithdrawal'])->name('finance.savings.datatable.history-withdrawal')->middleware('access:penanggung-jawab-tabungan');
     Route::post('datatable/mutation', [FinanceSavingsController::class, 'datatableMutation'])->name('finance.savings.datatable.mutation')->middleware('access:kasir,kasir-unit,penanggung-jawab-tabungan');
     Route::post('get', [FinanceSavingsController::class, 'get'])->name('finance.savings.get')->middleware('role:orang-tua');
     Route::post('get/student', [FinanceSavingsController::class, 'getStudent'])->name('finance.savings.get.student')->middleware('access:kasir,kasir-unit,penanggung-jawab-tabungan');
     Route::post('get/history', [FinanceSavingsController::class, 'getHistory'])->name('finance.savings.get.history')->middleware('role:orang-tua');
     Route::post('get/withdrawal', [FinanceSavingsController::class, 'getWithdrawal'])->name('finance.savings.get.withdrawal')->middleware('access:kasir,kasir-unit');
     Route::post('/', [FinanceSavingsController::class, 'store'])->name('finance.savings.store')->middleware('access:kasir,kasir-unit,orang-tua');
-    Route::post('withdrawal', [FinanceSavingsController::class, 'storeWithdrawal'])->name('finance.savings.store.withdrawal')->middleware('role:penanggung-jawab-tabungan');
+    Route::post('withdrawal', [FinanceSavingsController::class, 'storeWithdrawal'])->name('finance.savings.store.withdrawal')->middleware('access:penanggung-jawab-tabungan');
     Route::post('process/withdrawal', [FinanceSavingsController::class, 'processWithdrawal'])->name('finance.savings.process.withdrawal')->middleware('access:kasir,kasir-unit');
 
-    Route::put('withdrawal/{withdrawal}', [FinanceSavingsController::class, 'updateWithdrawal'])->name('finance.savings.update.withdrawal')->middleware('role:penanggung-jawab-tabungan');
+    Route::put('withdrawal/{withdrawal}', [FinanceSavingsController::class, 'updateWithdrawal'])->name('finance.savings.update.withdrawal')->middleware('access:penanggung-jawab-tabungan');
 
-    Route::delete('withdrawal/{withdrawal}', [FinanceSavingsController::class, 'destroyWithdrawal'])->name('finance.savings.destroy.withdrawal')->middleware('role:penanggung-jawab-tabungan');
+    Route::delete('withdrawal/{withdrawal}', [FinanceSavingsController::class, 'destroyWithdrawal'])->name('finance.savings.destroy.withdrawal')->middleware('access:penanggung-jawab-tabungan');
 });
 
 Route::prefix('transaction')->group(function () {
