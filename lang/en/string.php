@@ -83,4 +83,5 @@ return [
     'kepala_sekolah_employee_invalid' => 'Invalid employee or the employee already has another role.',
     'kepala_sekolah_reverted' => 'Principal role revoked, the account is back to Employee.',
     'kepala_sekolah_edit_info' => 'The principal\'s personal data is managed from the Employee (HR) menu. Only the education levels held can be changed here.',
+    'kasir_unit_level_info' => 'Leave empty for no education level restriction. When set, this cashier only sees and processes data of the selected levels.',
 ];

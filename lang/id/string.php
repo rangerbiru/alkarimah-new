@@ -84,4 +84,5 @@ return [
     'kepala_sekolah_employee_invalid' => 'Pegawai tidak valid atau sudah memiliki role lain.',
     'kepala_sekolah_reverted' => 'Role Kepala Sekolah dicabut, akun dikembalikan menjadi Pegawai.',
     'kepala_sekolah_edit_info' => 'Data pribadi kepala sekolah diubah lewat menu Pegawai (HR). Di sini hanya jenjang yang dipegang yang dapat diubah.',
+    'kasir_unit_level_info' => 'Kosongkan agar akun ini tidak dibatasi jenjang. Bila diisi, Kasir Unit hanya melihat dan memproses data pada jenjang yang dipilih.',
 ];

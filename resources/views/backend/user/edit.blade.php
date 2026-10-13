@@ -77,6 +77,23 @@
                 </div>
             </div>
 
+            @if ($role == 'kasir-unit')
+            <div class="row">
+                <div class="col-md-6">
+                    <x-form.select
+                        name="level_education[]"
+                        id="level_education"
+                        :label="__('label.level_education')"
+                        :option="$educations"
+                        :selected="old('level_education', $selected_educations)"
+                        :data-placeholder="__('label.choose_education_level')"
+                        :info="__('string.kasir_unit_level_info')"
+                        multiple
+                    />
+                </div>
+            </div>
+            @endif
+
             <x-form.button-submit :cancel-route="route('user.index', $role)" />
         </form>
     </div>

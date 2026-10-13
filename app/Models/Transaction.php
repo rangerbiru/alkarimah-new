@@ -407,6 +407,38 @@ class Transaction extends Model
         return $this->belongsTo(User::class, 'paid_by')->withTrashed();
     }
 
+    /**
+     * Batasi transaksi ke yang boleh dilihat user bila Kasir Unit dibatasi jenjang
+     * (User::kasirUnitClassIds). Berbasis siswa lewat kelas siswa; tanpa siswa lewat
+     * orang tua yang punya minimal satu anak di kelas itu; pengambilan tabungan hanya
+     * milik sendiri (diproses oleh user itu). Transaksi tanpa siswa/orang tua (donasi)
+     * disembunyikan. Tidak dibatasi bila user tidak punya batas jenjang.
+     */
+    public function scopeVisibleToKasirUnit($query, User $user)
+    {
+        $classIds = $user->kasirUnitClassIds();
+
+        if ($classIds === null) {
+            return $query;
+        }
+
+        $students = Student::withTrashed()->select('id')->whereIn('id_class', $classIds);
+        $parents = Student::select('id_parent')->whereIn('id_class', $classIds);
+
+        return $query->where(function ($q) use ($students, $parents, $user) {
+            $q->whereIn('id_student', $students)
+                ->orWhere(function ($q) use ($parents) {
+                    $q->whereNull('id_student')
+                        ->whereNotIn('flag', [TransactionFlag::PengambilanTabungan->value])
+                        ->whereIn('id_parent', $parents);
+                })
+                ->orWhere(function ($q) use ($user) {
+                    $q->where('flag', TransactionFlag::PengambilanTabungan->value)
+                        ->where('paid_by', $user->id);
+                });
+        });
+    }
+
     public function scopeTagihan($query)
     {
         return $query->whereFlag(TransactionFlag::Tagihan->value);

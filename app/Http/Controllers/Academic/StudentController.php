@@ -690,8 +690,11 @@ class StudentController extends Controller
         $students = [];
         $student = Student::select('id', 'id_class', 'nis', 'name')
             ->with(['class' => fn ($query) => $query->select('id', 'name')])
-            ->where('nis', 'like', '%'.$request->term.'%')
-            ->orWhere('name', 'like', '%'.$request->term.'%')
+            ->inClasses(Auth::user()->kasirUnitClassIds())
+            ->where(function ($query) use ($request) {
+                $query->where('nis', 'like', '%'.$request->term.'%')
+                    ->orWhere('name', 'like', '%'.$request->term.'%');
+            })
             ->orderBy('name')
             ->limit(50)
             ->get();

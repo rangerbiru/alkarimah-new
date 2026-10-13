@@ -61,6 +61,54 @@ class TransactionController extends Controller
         'unique-code' => 'backend.finance.transaction.unique-code.',
     ];
 
+    /**
+     * Kasir Unit yang dibatasi jenjang hanya boleh membuka transaksi pada jenjangnya.
+     */
+    private function authorizeTransaction(Transaction $transaction): void
+    {
+        if (Auth::user()->kasirUnitClassIds() === null) {
+            return;
+        }
+
+        abort_unless(
+            Transaction::visibleToKasirUnit(Auth::user())->whereKey($transaction->id)->exists(),
+            403
+        );
+    }
+
+    /**
+     * Kunci (lockForUpdate) transaksi yang akan disetor lalu periksa ulang: lunas, tagihan,
+     * belum disetor (kecuali sudah termasuk setoran yang sedang diedit) dan masih dalam
+     * jenjang user. Dipanggil di dalam DB::transaction; null = ada yang tidak valid.
+     */
+    private function lockDepositTransactions(array $ids, string $depositColumn, array $ownIds = [], bool $uniqueCode = false)
+    {
+        $ids = array_values(array_unique(array_filter($ids)));
+
+        $transactions = Transaction::whereIn('id', $ids)->lockForUpdate()->get();
+
+        if ($transactions->count() !== count($ids)) {
+            return null;
+        }
+
+        $visible = Transaction::visibleToKasirUnit(Auth::user())->whereIn('id', $ids)->pluck('id')->all();
+
+        foreach ($transactions as $t) {
+            $notDeposited = $t->{$depositColumn}->value == TransactionDepositStatus::NotDeposit->value
+                || in_array($t->id, array_map('intval', $ownIds));
+
+            if (! $t->is_paid
+                || ! $t->is_tagihan
+                || ! $notDeposited
+                || ($uniqueCode && $t->unique_code <= 0)
+                || ! in_array($t->id, $visible)) {
+                return null;
+            }
+        }
+
+        return $transactions->keyBy('id');
+    }
+
     public function bill()
     {
         $number = Transaction::generateNumber(TransactionFlag::Tagihan->value);
@@ -190,6 +238,8 @@ class TransactionController extends Controller
 
     public function showBill(Transaction $transaction)
     {
+        $this->authorizeTransaction($transaction);
+
         $method_cash = TransactionMethod::Cash->value;
         $period_monthly = BillPeriod::Monthly->value;
         $period_semester = BillPeriod::Semiannual->value;
@@ -302,7 +352,8 @@ class TransactionController extends Controller
                 }
             })
             ->paid()
-            ->tagihan();
+            ->tagihan()
+            ->visibleToKasirUnit(Auth::user());
 
         if ($request->has('edit')) {
             $transaction = $transaction->where(function ($query) use ($request) {
@@ -377,7 +428,8 @@ class TransactionController extends Controller
             ->where('flag', '!=', TransactionFlag::PengambilanTabungan->value)
             ->where('unique_code', '>', 0)
             ->paid()
-            ->tagihan();
+            ->tagihan()
+            ->visibleToKasirUnit(Auth::user());
 
         if ($request->has('edit')) {
             $transaction = $transaction->where(function ($query) use ($request) {
@@ -528,7 +580,8 @@ class TransactionController extends Controller
             ->where(function ($query) use ($request) {
                 $query->whereBetween('dates', [$request->start_date, $request->end_date]);
             })
-            ->paid();
+            ->paid()
+            ->visibleToKasirUnit(Auth::user());
 
         if (! empty($request->type)) {
             $transaction = $transaction->whereFlag($request->type);
@@ -799,8 +852,19 @@ class TransactionController extends Controller
 
         $actual_total = $actual_subtotal - $donation;
 
-        $student = Student::with('parent')->find($request->id_student);
+        $classIds = Auth::user()->kasirUnitClassIds();
+        $student = Student::with('parent')->inClasses($classIds)->find($request->id_student);
         $parent = $student ? $student->parent : null;
+
+        if ($classIds !== null) {
+            $ownBills = $student
+                ? TransactionBill::whereIdStudent($student->id)->whereIn('id', array_keys($bills ?? []))->count()
+                : 0;
+
+            if (! $student || $ownBills !== count($bills ?? [])) {
+                return response()->json(['status' => false, 'message' => __('message.student_out_of_level')], 403);
+            }
+        }
 
         if ($payment_method == 'balance') {
             if (! $parent) {
@@ -949,18 +1013,27 @@ class TransactionController extends Controller
     public function storeCash(TransactionCashRequest $request)
     {
         $deposit = (object) [];
+        $invalid = false;
 
-        DB::transaction(function () use ($request, &$deposit) {
+        DB::transaction(function () use ($request, &$deposit, &$invalid) {
             $trans = $request->transaction;
             $transactions = [];
             $total = 0;
+
+            $locked = $this->lockDepositTransactions($trans ?? [], 'status_deposit');
+
+            if ($locked === null) {
+                $invalid = true;
+
+                return;
+            }
 
             foreach ($trans as $t) {
                 if (empty($t)) {
                     continue;
                 }
 
-                $transaction = Transaction::select('id', 'unique_code', 'total', 'status_deposit')->whereId($t)->first();
+                $transaction = $locked[$t];
                 $transaction->status_deposit = TransactionDepositStatus::Deposited->value;
                 $transaction->save();
 
@@ -976,6 +1049,10 @@ class TransactionController extends Controller
             $deposit = CashDeposit::create($request->all());
         });
 
+        if ($invalid) {
+            return response()->json(['status' => false, 'message' => __('message.deposit_already_deposited')], 422);
+        }
+
         $response = [
             'status' => true,
             'message' => __('message.create_success', ['label' => __($this->title['cash'])]),
@@ -989,17 +1066,27 @@ class TransactionController extends Controller
 
     public function storeUniqueCode(TransactionUniqueCodeRequest $request)
     {
-        DB::transaction(function () use ($request) {
+        $invalid = false;
+
+        DB::transaction(function () use ($request, &$invalid) {
             $trans = $request->transaction;
             $transactions = [];
             $total = 0;
+
+            $locked = $this->lockDepositTransactions($trans ?? [], 'status_deposit_code', [], true);
+
+            if ($locked === null) {
+                $invalid = true;
+
+                return;
+            }
 
             foreach ($trans as $t) {
                 if (empty($t)) {
                     continue;
                 }
 
-                $transaction = Transaction::select('id', 'unique_code', 'status_deposit_code')->whereId($t)->first();
+                $transaction = $locked[$t];
                 $transaction->status_deposit_code = TransactionDepositStatus::Deposited->value;
                 $transaction->save();
 
@@ -1013,6 +1100,10 @@ class TransactionController extends Controller
                 'total' => $total,
             ]);
         });
+
+        if ($invalid) {
+            return response()->json(['status' => false, 'message' => __('message.deposit_already_deposited')], 422);
+        }
 
         $response = [
             'status' => true,
@@ -1114,6 +1205,7 @@ class TransactionController extends Controller
     {
         $message = '';
         $transaction = Transaction::findOrFail(Crypt::decrypt($request->id));
+        $this->authorizeTransaction($transaction);
 
         DB::transaction(function () use ($request, $transaction, &$message) {
             if ($request->status == 'paid') {
@@ -1196,17 +1288,27 @@ class TransactionController extends Controller
 
     public function updateCash(TransactionCashRequest $request, CashDeposit $deposit)
     {
-        DB::transaction(function () use ($request, $deposit) {
+        $invalid = false;
+
+        DB::transaction(function () use ($request, $deposit, &$invalid) {
             $trans = $request->transaction;
             $transactions = [];
             $total = 0;
+
+            $locked = $this->lockDepositTransactions($trans ?? [], 'status_deposit', $deposit->transactions ?? []);
+
+            if ($locked === null) {
+                $invalid = true;
+
+                return;
+            }
 
             foreach ($trans as $t) {
                 if (empty($t)) {
                     continue;
                 }
 
-                $transaction = Transaction::select('id', 'unique_code', 'total')->whereId($t)->first();
+                $transaction = $locked[$t];
                 $transaction->update([
                     'status_deposit' => TransactionDepositStatus::Deposited->value,
                 ]);
@@ -1238,6 +1340,10 @@ class TransactionController extends Controller
             $deposit->update($request->all());
         });
 
+        if ($invalid) {
+            return response()->json(['status' => false, 'message' => __('message.deposit_already_deposited')], 422);
+        }
+
         $response = [
             'status' => true,
             'message' => __('message.create_success', ['label' => __($this->title['cash'])]),
@@ -1251,17 +1357,27 @@ class TransactionController extends Controller
 
     public function updateUniqueCode(TransactionUniqueCodeRequest $request, UniqueCodeDeposit $deposit)
     {
-        DB::transaction(function () use ($request, $deposit) {
+        $invalid = false;
+
+        DB::transaction(function () use ($request, $deposit, &$invalid) {
             $trans = $request->transaction;
             $transactions = [];
             $total = 0;
+
+            $locked = $this->lockDepositTransactions($trans ?? [], 'status_deposit_code', $deposit->transactions ?? [], true);
+
+            if ($locked === null) {
+                $invalid = true;
+
+                return;
+            }
 
             foreach ($trans as $t) {
                 if (empty($t)) {
                     continue;
                 }
 
-                $transaction = Transaction::select('id', 'unique_code')->whereId($t)->first();
+                $transaction = $locked[$t];
                 $transaction->update([
                     'status_deposit_code' => TransactionDepositStatus::Deposited->value,
                 ]);
@@ -1291,6 +1407,10 @@ class TransactionController extends Controller
                 'total' => $total,
             ]);
         });
+
+        if ($invalid) {
+            return response()->json(['status' => false, 'message' => __('message.deposit_already_deposited')], 422);
+        }
 
         $response = [
             'status' => true,
@@ -1344,6 +1464,8 @@ class TransactionController extends Controller
 
     public function print(Transaction $transaction)
     {
+        $this->authorizeTransaction($transaction);
+
         $period_monthly = BillPeriod::Monthly->value;
         $period_semester = BillPeriod::Semiannual->value;
         $bills = (object) [];
@@ -1423,6 +1545,7 @@ class TransactionController extends Controller
 
         $queryStudent = Student::select('id', 'id_parent')
             ->with(['parent' => fn ($q) => $q->select('id', 'balance')])
+            ->inClasses(Auth::user()->kasirUnitClassIds())
             ->where('nis', $nisNumber);
 
         if (isset($searchData[1])) {

@@ -124,6 +124,23 @@ class Parents extends Model
         return $this->belongsTo(Region::class, 'id_village');
     }
 
+    public function students()
+    {
+        return $this->hasMany(Student::class, 'id_parent');
+    }
+
+    /**
+     * Batasi ke orang tua yang punya minimal satu anak di kelas tertentu.
+     * null = tanpa batas.
+     */
+    public function scopeInClasses($query, ?array $classIds)
+    {
+        return $query->when($classIds !== null, fn ($q) => $q->whereHas(
+            'students',
+            fn ($qs) => $qs->whereIn('id_class', $classIds)
+        ));
+    }
+
     public function relation()
     {
         return $this->belongsTo(self::class, 'id_relation');

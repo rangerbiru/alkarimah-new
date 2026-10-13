@@ -26,6 +26,7 @@ use App\Models\ReportBillMethod;
 use App\Models\ReportBillType;
 use App\Models\SavingsWithdrawal;
 use App\Models\Student;
+use App\Enums\TransactionMethod;
 use App\Models\Transaction;
 use App\Models\TransactionBill;
 use App\Models\Year;
@@ -730,10 +731,14 @@ class DashboardController extends Controller
 
     public function getCount()
     {
-        $savings = Student::sum('balance_savings');
-        $topup = Parents::sum('balance');
-        $cash = Transaction::selectRaw('SUM(total-unique_code) AS total')->tagihan()->paid()->notDeposit()->first();
-        $unique_code = Transaction::paid()->notDepositCode()->sum('unique_code');
+        $user = Auth::user();
+        $classIds = $user->kasirUnitClassIds();
+
+        $savings = Student::inClasses($classIds)->sum('balance_savings');
+        $topup = Parents::inClasses($classIds)->sum('balance');
+        $cash = Transaction::selectRaw('SUM(total-unique_code) AS total')->tagihan()->paid()->notDeposit()
+            ->visibleToKasirUnit($user)->first();
+        $unique_code = Transaction::paid()->notDepositCode()->visibleToKasirUnit($user)->sum('unique_code');
 
         $response = [
             'status' => true,
@@ -751,8 +756,11 @@ class DashboardController extends Controller
 
     public function getPaymentProgress(Request $request)
     {
+        $levels = Auth::user()->kasirUnitReportLevels();
+
         $report = ReportBill::selectRaw('level, SUM(total) AS total, SUM(paid) AS paid, SUM(remaining) AS remaining')
             ->whereIdYear($request->year)
+            ->when($levels !== null, fn ($q) => $q->whereIn('level', $levels))
             ->groupBy('level')
             ->get();
 
@@ -797,17 +805,37 @@ class DashboardController extends Controller
     public function getReceipt(Request $request)
     {
         $year = $request->year;
-        $rr_cash = ReportBillMethod::select('total')->whereIdYear($year)->cash()->today()->first();
-        $rr_bni = ReportBillMethod::select('total')->whereIdYear($year)->bni()->today()->first();
-        $rr_bsi = ReportBillMethod::select('total')->whereIdYear($year)->bsi()->today()->first();
-        $rr_topup = ReportBillMethod::select('total')->whereIdYear($year)->topupBalance()->today()->first();
+        $user = Auth::user();
+        $classIds = $user->kasirUnitClassIds();
+        $levels = $user->kasirUnitReportLevels();
 
-        $receipt_recipient = (object) [
-            'cash' => (empty($rr_cash)) ? 0 : $rr_cash->total,
-            'bni' => (empty($rr_bni)) ? 0 : $rr_bni->total,
-            'bsi' => (empty($rr_bsi)) ? 0 : $rr_bsi->total,
-            'topup' => (empty($rr_topup)) ? 0 : $rr_topup->total,
-        ];
+        if ($classIds === null) {
+            $rr_cash = ReportBillMethod::select('total')->whereIdYear($year)->cash()->today()->first();
+            $rr_bni = ReportBillMethod::select('total')->whereIdYear($year)->bni()->today()->first();
+            $rr_bsi = ReportBillMethod::select('total')->whereIdYear($year)->bsi()->today()->first();
+            $rr_topup = ReportBillMethod::select('total')->whereIdYear($year)->topupBalance()->today()->first();
+
+            $receipt_recipient = (object) [
+                'cash' => (empty($rr_cash)) ? 0 : $rr_cash->total,
+                'bni' => (empty($rr_bni)) ? 0 : $rr_bni->total,
+                'bsi' => (empty($rr_bsi)) ? 0 : $rr_bsi->total,
+                'topup' => (empty($rr_topup)) ? 0 : $rr_topup->total,
+            ];
+        } else {
+            // Laporan per metode tidak punya dimensi kelas, hitung dari transaksi yang boleh dilihat.
+            $byMethod = Transaction::tagihan()->paid()->visibleToKasirUnit($user)
+                ->whereDate('paid_at', date('Y-m-d'))
+                ->selectRaw('payment_method, SUM(total) AS total')
+                ->groupBy('payment_method')
+                ->pluck('total', 'payment_method');
+
+            $receipt_recipient = (object) [
+                'cash' => (int) ($byMethod[TransactionMethod::Cash->value] ?? 0),
+                'bni' => (int) ($byMethod[TransactionMethod::BNI->value] ?? 0),
+                'bsi' => (int) ($byMethod[TransactionMethod::BSI->value] ?? 0),
+                'topup' => (int) ($byMethod[TransactionMethod::TopupBalance->value] ?? 0),
+            ];
+        }
 
         $receipt_class = ReportBillClass::select('id', 'id_class', 'total')
             ->with([
@@ -817,6 +845,7 @@ class DashboardController extends Controller
                 },
             ])
             ->whereIdYear($year)
+            ->when($classIds !== null, fn ($q) => $q->whereIn('id_class', $classIds))
             ->today()
             ->get();
 
@@ -824,6 +853,10 @@ class DashboardController extends Controller
         $receipt_type = [];
 
         foreach ($classes as $c) {
+            if ($levels !== null && ! in_array($c, $levels, true)) {
+                continue;
+            }
+
             $report_bill_type = ReportBillType::select('id', 'id_type', 'total')
                 ->with(['type' => fn ($query) => $query->select('id', 'name')])
                 ->whereIdYear($year)

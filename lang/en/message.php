@@ -15,5 +15,7 @@ return [
     'reset_password_success' => 'Password has been reseted successfully',
     'server_error' => 'Sorry an error occurred, please report this error',
     'module_requires_level' => 'The :module module requires at least one education level',
-    'server_busy' => 'Sorry server is busy, please try again later'
+    'server_busy' => 'Sorry server is busy, please try again later',
+    'student_out_of_level' => 'This student is outside the education levels you may access',
+    'deposit_already_deposited' => 'Some transactions were already deposited or are outside your education levels; the deposit was cancelled. Reload the transaction list.',
 ];

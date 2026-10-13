@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 
 use App\Constants\Modules;
+use App\Constants\EducationLevel as EducationLevelMap;
 use App\Enums\Gender;
 use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -274,6 +275,56 @@ class User extends Authenticatable
         }
 
         return $ids;
+    }
+
+    /**
+     * Id kelas yang boleh diakses Kasir Unit (null = tanpa batas).
+     *
+     * - Kasir / modul Kasir: null (Kasir menang atas Kasir Unit).
+     * - Akun kasir-unit lama: jenjang di baris module_id NULL; belum punya baris = null.
+     * - Pegawai pemegang modul Kasir Unit: jenjang modulnya; kosong = [] (tolak semua).
+     * - Selain itu: null (aturan ini tidak berlaku).
+     */
+    public function kasirUnitClassIds(): ?array
+    {
+        if ($this->hasAccess('kasir')) {
+            return null;
+        }
+
+        if ($this->role === UserRole::KasirUnit) {
+            $levels = $this->educationLevelValues();
+
+            if (empty($levels)) {
+                return null;
+            }
+        } elseif ($this->hasAccess('kasir-unit')) {
+            $levels = $this->educationLevelValues(Modules::KasirUnit);
+        } else {
+            return null;
+        }
+
+        return Classroom::whereIn('level_education', $levels)->pluck('id')->all();
+    }
+
+    /**
+     * Kunci laporan (EducationLevel::Classes) untuk kelas yang boleh diakses Kasir Unit
+     * (null = tanpa batas).
+     */
+    public function kasirUnitReportLevels(): ?array
+    {
+        $classIds = $this->kasirUnitClassIds();
+
+        if ($classIds === null) {
+            return null;
+        }
+
+        return Classroom::whereIn('id', $classIds)
+            ->get(['level_education', 'level_class'])
+            ->map(fn ($c) => EducationLevelMap::Classes[$c->level_education->value.'.'.$c->level_class] ?? null)
+            ->filter(fn ($l) => $l !== null)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /**

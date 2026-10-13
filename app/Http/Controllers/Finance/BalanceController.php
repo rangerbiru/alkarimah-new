@@ -199,8 +199,11 @@ class BalanceController extends Controller
     {
         $parentsData = [];
         $parents = Parents::select('id', 'name', 'phone')
-            ->where('phone', 'like', '%'.$request->term.'%')
-            ->orWhere('name', 'like', '%'.$request->term.'%')
+            ->inClasses(Auth::user()->kasirUnitClassIds())
+            ->where(function ($query) use ($request) {
+                $query->where('phone', 'like', '%'.$request->term.'%')
+                    ->orWhere('name', 'like', '%'.$request->term.'%');
+            })
             ->orderBy('name')
             ->limit(50)
             ->get();
@@ -222,7 +225,7 @@ class BalanceController extends Controller
         $term = explode(' - ', $parentValue);
         $phone = trim($term[1] ?? '');
 
-        $parent = Parents::where('phone', $phone)->first();
+        $parent = Parents::inClasses(Auth::user()->kasirUnitClassIds())->where('phone', $phone)->first();
 
         if ($parent) {
             $user = User::find($parent->id_user);
@@ -251,7 +254,7 @@ class BalanceController extends Controller
         }
 
         if ($error == false) {
-            $parent = Parents::find($request->id_parent);
+            $parent = Parents::inClasses(Auth::user()->kasirUnitClassIds())->find($request->id_parent);
 
             if (! $parent) {
                 return response()->json(['status' => false, 'message' => 'Data Orang Tua tidak valid.']);
@@ -324,7 +327,10 @@ class BalanceController extends Controller
 
         if ($error == false) {
             DB::transaction(function () use ($request, $nominal, &$error, &$balance) {
-                $parent = Parents::whereId($request->id_parent)->lockForUpdate()->first();
+                $parent = Parents::inClasses(Auth::user()->kasirUnitClassIds())
+                    ->whereId($request->id_parent)
+                    ->lockForUpdate()
+                    ->first();
 
                 if (! $parent) {
                     $error = __('string.parent_invalid');

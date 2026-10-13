@@ -15,5 +15,7 @@ return [
     'reset_password_success' => 'Password berhasil direset',
     'server_error' => 'Maaf telah terjadi kesalahan, harap laporkan error ini',
     'module_requires_level' => 'Modul :module wajib memilih minimal satu jenjang',
-    'server_busy' => 'Maaf server sedang sibuk, silahkan coba lagi nanti'
+    'server_busy' => 'Maaf server sedang sibuk, silahkan coba lagi nanti',
+    'student_out_of_level' => 'Siswa ini berada di luar jenjang yang boleh Anda akses',
+    'deposit_already_deposited' => 'Sebagian transaksi sudah disetor atau berada di luar jenjang Anda, setoran dibatalkan. Muat ulang daftar transaksi.',
 ];

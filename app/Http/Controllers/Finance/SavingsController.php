@@ -215,7 +215,8 @@ class SavingsController extends Controller
                     $query->whereRaw('DATE(dates) BETWEEN (? AND ?)', [$start_date, $end_date]);
             })
             ->paid()
-            ->setorTabungan();
+            ->setorTabungan()
+            ->visibleToKasirUnit(Auth::user());
 
         $transaction_count = $transaction->count();
 
@@ -315,7 +316,10 @@ class SavingsController extends Controller
     public function datatableMutation(Request $request)
     {
         $st = explode(' - ', $request->student);
-        $student = Student::select('id')->whereNis(trim($st[0]))->first();
+        $student = Student::select('id')
+            ->inClasses(Auth::user()->kasirUnitClassIds())
+            ->whereNis(trim($st[0]))
+            ->firstOrFail();
         $search = $request->input('search')['value'];
         $limit = $request->input('length');
         $start = $request->input('start');
@@ -393,6 +397,12 @@ class SavingsController extends Controller
 
     private function storeCashier($request)
     {
+        $student = Student::inClasses(Auth::user()->kasirUnitClassIds())->find($request->id_student);
+
+        if (! $student) {
+            return response()->json(['status' => false, 'message' => __('message.student_out_of_level')], 403);
+        }
+
         DB::transaction(function() use($request) {
             $request->merge([
                 'subtotal' => $request->nominal,
@@ -528,6 +538,19 @@ class SavingsController extends Controller
 
     public function processWithdrawal(SavingsWithdrawalProcessRequest $request)
     {
+        $classIds = Auth::user()->kasirUnitClassIds();
+
+        if ($classIds !== null) {
+            $ids = array_keys($request->bills ?? []);
+            $allowed = SavingsWithdrawal::whereIn('id', $ids)
+                ->whereHas('student', fn ($q) => $q->withTrashed()->whereIn('id_class', $classIds))
+                ->count();
+
+            if ($allowed !== count($ids)) {
+                return response()->json(['status' => false, 'message' => __('message.student_out_of_level')], 403);
+            }
+        }
+
         $transaction = (object) [];
 
         DB::transaction(function() use($request, &$transaction) {
@@ -648,6 +671,10 @@ class SavingsController extends Controller
                 }
             ])
             ->whereIn('id', $transaction->bills)
+            ->when(Auth::user()->kasirUnitClassIds() !== null, fn ($q) => $q->whereHas(
+                'student',
+                fn ($qs) => $qs->withTrashed()->whereIn('id_class', Auth::user()->kasirUnitClassIds())
+            ))
             ->orderBy('created_at')
             ->get();
 
@@ -771,6 +798,7 @@ class SavingsController extends Controller
                 'parent' => fn($query) => $query->select('id', 'name', 'phone'),
                 'class' => fn($query) => $query->select('id', 'name', 'level_education'),
             ])
+            ->inClasses(Auth::user()->kasirUnitClassIds())
             ->whereNis($nis[0])
             ->firstOrFail();
 
@@ -799,6 +827,10 @@ class SavingsController extends Controller
                 }
             ])
             ->whereCreatedBy($request->person)
+            ->when(Auth::user()->kasirUnitClassIds() !== null, fn ($q) => $q->whereHas(
+                'student',
+                fn ($qs) => $qs->withTrashed()->whereIn('id_class', Auth::user()->kasirUnitClassIds())
+            ))
             ->notProcessed()
             ->orderBy('created_at')
             ->get();

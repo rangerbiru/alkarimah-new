@@ -254,6 +254,8 @@ class UserController extends Controller
             'user' => $user,
             'role' => $role,
             'genders' => $genders,
+            'educations' => Common::option('education_level'),
+            'selected_educations' => $user->educationLevelValues(),
         ]);
     }
 
@@ -263,7 +265,26 @@ class UserController extends Controller
             unset($request->password);
         }
 
-        $user->update($request->all());
+        $isKasirUnit = $user->role == UserRole::KasirUnit;
+
+        if ($isKasirUnit) {
+            $request->validate([
+                'level_education' => 'nullable|array',
+                'level_education.*' => 'in:'.implode(',', array_keys(Common::option('education_level'))),
+            ], [], [
+                'level_education' => __('label.level_education'),
+                'level_education.*' => __('label.level_education'),
+            ]);
+        }
+
+        DB::transaction(function () use ($request, $user, $isKasirUnit) {
+            $user->update($request->except('level_education'));
+
+            // Kasir Unit lama: kosong = tanpa batas jenjang
+            if ($isKasirUnit) {
+                $user->syncEducationLevels($request->input('level_education', []));
+            }
+        });
 
         return Redirect::route('user.index', $user->role->value)->with('success', __('message.create_success', ['label' => __($this->title)]));
     }
