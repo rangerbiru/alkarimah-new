@@ -14,5 +14,6 @@ return [
     'registration_success' => 'Registrasi Berhasil',
     'reset_password_success' => 'Password berhasil direset',
     'server_error' => 'Maaf telah terjadi kesalahan, harap laporkan error ini',
+    'module_requires_level' => 'Modul :module wajib memilih minimal satu jenjang',
     'server_busy' => 'Maaf server sedang sibuk, silahkan coba lagi nanti'
 ];

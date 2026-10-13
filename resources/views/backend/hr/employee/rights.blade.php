@@ -37,7 +37,24 @@
                                     </div>
                                 </td>
                                 <td>{{ $m->name }}</td>
-                                <td>{{ $m->description }}</td>
+                                <td>
+                                    {{ $m->description }}
+
+                                    @if (in_array($m->id, $level_modules))
+                                        <div class="module-levels mt-2{{ isset($module_rights[$m->id]) ? '' : ' d-none' }}" data-module="{{ $m->id }}">
+                                            <div class="fw-medium mb-1">{{ __('label.level_education') }} <span class="text-danger">*</span></div>
+                                            @foreach ($educations as $key => $label)
+                                                <div class="form-check form-check-inline">
+                                                    <input type="checkbox" class="form-check-input" name="level_education[{{ $m->id }}][]" id="level-{{ $m->id }}-{{ $key }}" value="{{ $key }}"{{ in_array($key, old('level_education.' . $m->id, $selected_educations[$m->id] ?? [])) ? ' checked' : '' }} />
+                                                    <label class="form-check-label" for="level-{{ $m->id }}-{{ $key }}">{{ $label }}</label>
+                                                </div>
+                                            @endforeach
+                                            @error('level_education.' . $m->id)
+                                                <div class="text-danger text-sm">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    @endif
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -53,12 +70,22 @@
 @push('scripts')
 <script>
 $(document).ready(function() {
+    function toggleLevels() {
+        $("#table-module input[name='module[]']").each(function() {
+            $(".module-levels[data-module='" + $(this).val() + "']").toggleClass("d-none", !$(this).is(":checked"))
+        })
+    }
+
+    $("#table-module").on("change", "input[name='module[]']", toggleLevels)
+
     $("#check-all").click(function() {
         if ($(this).is(":checked")) {
-            $("#table-module tbody input[type=checkbox]").prop("checked", true)
+            $("#table-module tbody input[name='module[]']").prop("checked", true)
         } else {
-            $("#table-module tbody input[type=checkbox]").prop("checked", false)
+            $("#table-module tbody input[name='module[]']").prop("checked", false)
         }
+
+        toggleLevels()
     })
 })
 </script>

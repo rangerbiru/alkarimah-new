@@ -14,5 +14,6 @@ return [
     'registration_success' => 'Registration Successfully',
     'reset_password_success' => 'Password has been reseted successfully',
     'server_error' => 'Sorry an error occurred, please report this error',
+    'module_requires_level' => 'The :module module requires at least one education level',
     'server_busy' => 'Sorry server is busy, please try again later'
 ];

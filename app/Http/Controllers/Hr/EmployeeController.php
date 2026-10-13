@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Hr;
 
+use App\Constants\Modules;
 use App\Enums\UserRole;
 use App\Helpers\Common;
 use App\Http\Controllers\Controller;
@@ -43,12 +44,22 @@ class EmployeeController extends Controller
         $module = Module::select('id', 'name', 'description')->orderBy('name')->get();
         $module_rights = ModuleRights::select('id_module')->whereIdUser($employee->id_user)->pluck('id_module', 'id_module')->toArray();
 
+        $educations = Common::option('education_level');
+        $selected_educations = [];
+
+        foreach (Modules::WithEducationLevels as $module_id) {
+            $selected_educations[$module_id] = $employee->user ? $employee->user->educationLevelValues($module_id) : [];
+        }
+
         return view($this->path . 'rights', [
             'title' => __($this->title['rights']),
             'icon' => $this->icon,
             'employee' => $employee,
             'module' => $module,
             'module_rights' => $module_rights,
+            'educations' => $educations,
+            'selected_educations' => $selected_educations,
+            'level_modules' => Modules::WithEducationLevels,
         ]);
     }
 
@@ -141,30 +152,52 @@ class EmployeeController extends Controller
 
     public function storeRights(Request $request, Employee $employee)
     {
-        $module = $request->module;
-        $module_rights = ModuleRights::select('id_module')->whereIdUser($employee->id_user)->pluck('id_module', 'id_module')->toArray();
-        $rights = [];
-        $old = [];
-        $delete = [];
+        $education_keys = implode(',', array_keys(Common::option('education_level')));
 
-        foreach ($module_rights as $m) {
-            if (array_search($m, $module) === false)
-                array_push($delete, $m);
-            else
-                array_push($old, $m);
+        $request->validate([
+            'module' => 'nullable|array',
+            'module.*' => 'integer|exists:module,id',
+            'level_education' => 'nullable|array',
+            'level_education.*' => 'array',
+            'level_education.*.*' => 'in:' . $education_keys,
+        ], [], [
+            'module' => __('label.module'),
+            'level_education' => __('label.level_education'),
+            'level_education.*' => __('label.level_education'),
+            'level_education.*.*' => __('label.level_education'),
+        ]);
+
+        $module = array_map('intval', $request->input('module', []));
+        $levels = $request->input('level_education', []);
+
+        // Modul berjenjang (Kepala Sekolah, Kasir Unit) wajib punya minimal satu jenjang
+        foreach (Modules::WithEducationLevels as $module_id) {
+            if (in_array($module_id, $module, true) && empty($levels[$module_id])) {
+                $module_name = Module::whereKey($module_id)->value('name');
+
+                return Redirect::back()->withInput()->withErrors([
+                    'level_education.' . $module_id => __('message.module_requires_level', ['module' => $module_name]),
+                ]);
+            }
         }
 
-        foreach ($module as $m) {
-            if (array_search($m, $old) === false)
-                array_push($rights, $m);
-        }
+        $module_rights = ModuleRights::select('id_module')->whereIdUser($employee->id_user)->pluck('id_module')->map(fn ($m) => (int) $m)->all();
+        $rights = array_diff($module, $module_rights);
+        $delete = array_diff($module_rights, $module);
 
-        DB::transaction(function () use ($rights, $delete, $employee) {
+        DB::transaction(function () use ($rights, $delete, $employee, $module, $levels) {
             foreach ($rights as $r)
                 ModuleRights::create(['id_module' => $r, 'id_user' => $employee->id_user]);
 
             foreach ($delete as $d)
                 ModuleRights::whereIdModule($d)->whereIdUser($employee->id_user)->delete();
+
+            foreach (Modules::WithEducationLevels as $module_id) {
+                $employee->user->syncEducationLevels(
+                    in_array($module_id, $module, true) ? array_values($levels[$module_id] ?? []) : [],
+                    $module_id
+                );
+            }
         });
 
         return Redirect::route('hr.employee.index')->with('success', __('message.update_success', ['label' => __($this->title['rights'])]));

@@ -50,4 +50,22 @@ abstract class ModuleAccessTestCase extends TestCase
 
         return User::withoutGlobalScopes()->findOrFail($id);
     }
+
+    protected function createEmployee(User $user): \App\Models\Employee
+    {
+        $id = DB::table('employee')->insertGetId([
+            'id_user' => $user->id,
+            'name' => $user->name,
+            'gender' => 'male',
+            'phone' => $user->phone,
+            'marital_status' => 0,
+            'status_employment' => 1,
+            'status_teacher' => 0,
+            'status' => 1,
+            'branch_id' => self::BRANCH_ID,
+            'created_by' => 0,
+        ]);
+
+        return \App\Models\Employee::withoutGlobalScopes()->findOrFail($id);
+    }
 }
