@@ -232,31 +232,48 @@ class User extends Authenticatable
      * Nilai jenjang yang dipegang, misal ['sd', 'smp'] — siap dipakai untuk
      * filter whereIn('level_education', ...) pada data kelas/siswa.
      */
-    public function educationLevelValues(): array
+    public function educationLevelValues(?int $moduleId = null): array
     {
-        return $this->educationLevels->map(fn ($e) => $e->level_education->value)->all();
+        return $this->educationLevels
+            ->filter(fn ($e) => $e->module_id === $moduleId)
+            ->map(fn ($e) => $e->level_education->value)
+            ->values()
+            ->all();
     }
 
+    /**
+     * Id kelas pada jenjang kepala sekolah: dari akun kepala-sekolah (jenjang milik akun)
+     * atau pegawai pemegang modul Kepala Sekolah (jenjang milik modul). Selain itu null.
+     */
     public function educationLevelClassIds(): ?array
     {
-        if ($this->role != UserRole::KepalaSekolah) {
+        if ($this->role == UserRole::KepalaSekolah) {
+            $levels = $this->educationLevelValues();
+        } elseif ($this->hasAccess('kepala-sekolah')) {
+            $levels = $this->educationLevelValues(Modules::KepalaSekolah);
+        } else {
             return null;
         }
 
-        return Classroom::whereIn('level_education', $this->educationLevelValues())->pluck('id')->all();
+        return Classroom::whereIn('level_education', $levels)->pluck('id')->all();
     }
 
     public function allowedClassIds(): ?array
     {
-        if ($this->role == UserRole::KepalaSekolah) {
-            return $this->educationLevelClassIds();
+        $ids = null;
+
+        if ($this->hasAccess('kepala-sekolah')) {
+            $ids = $this->educationLevelClassIds();
         }
 
-        if ($this->role == UserRole::WaliKelas) {
-            return Classroom::where('id_wali_kelas', $this->id)->pluck('id')->all();
+        if ($this->hasAccess('wali-kelas')) {
+            $ids = array_values(array_unique(array_merge(
+                $ids ?? [],
+                Classroom::where('id_wali_kelas', $this->id)->pluck('id')->all()
+            )));
         }
 
-        return null;
+        return $ids;
     }
 
     /**
@@ -271,12 +288,12 @@ class User extends Authenticatable
     /**
      * Ganti seluruh jenjang user dengan daftar yang diberikan (seperti sync).
      */
-    public function syncEducationLevels(array $levels): void
+    public function syncEducationLevels(array $levels, ?int $moduleId = null): void
     {
-        $this->educationLevels()->delete();
+        $this->educationLevels()->where('module_id', $moduleId)->delete();
 
         foreach (array_unique($levels) as $level) {
-            $this->educationLevels()->create(['level_education' => $level]);
+            $this->educationLevels()->create(['level_education' => $level, 'module_id' => $moduleId]);
         }
 
         $this->unsetRelation('educationLevels');

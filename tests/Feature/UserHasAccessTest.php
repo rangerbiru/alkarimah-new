@@ -51,4 +51,46 @@ class UserHasAccessTest extends ModuleAccessTestCase
         $this->assertFalse($admin->hasAccess('kasir'));
         $this->assertFalse($admin->hasAccess('pegawai'));
     }
+
+    public function test_education_levels_are_kept_per_module(): void
+    {
+        $pegawai = $this->createUser('pegawai', [Modules::KepalaSekolah, Modules::KasirUnit]);
+        $pegawai->syncEducationLevels(['sd'], Modules::KepalaSekolah);
+        $pegawai->syncEducationLevels(['smp', 'sma'], Modules::KasirUnit);
+
+        $pegawai = $pegawai->fresh();
+
+        $this->assertSame(['sd'], $pegawai->educationLevelValues(Modules::KepalaSekolah));
+        $this->assertEqualsCanonicalizing(['smp', 'sma'], $pegawai->educationLevelValues(Modules::KasirUnit));
+        $this->assertSame([], $pegawai->educationLevelValues());
+    }
+
+    public function test_syncing_one_module_does_not_touch_other_levels(): void
+    {
+        $pegawai = $this->createUser('pegawai', [Modules::KepalaSekolah, Modules::KasirUnit]);
+        $pegawai->syncEducationLevels(['sd'], Modules::KepalaSekolah);
+        $pegawai->syncEducationLevels(['sma'], Modules::KasirUnit);
+
+        $pegawai->syncEducationLevels(['smp'], Modules::KasirUnit);
+        $pegawai = $pegawai->fresh();
+
+        $this->assertSame(['sd'], $pegawai->educationLevelValues(Modules::KepalaSekolah));
+        $this->assertSame(['smp'], $pegawai->educationLevelValues(Modules::KasirUnit));
+    }
+
+    public function test_legacy_kepala_sekolah_keeps_account_level_scope(): void
+    {
+        $ks = $this->createUser('kepala-sekolah', [], ['sd']);
+
+        $this->assertSame(['sd'], $ks->educationLevelValues());
+        $this->assertNotNull($ks->educationLevelClassIds());
+    }
+
+    public function test_pegawai_without_kepala_sekolah_module_is_not_scoped(): void
+    {
+        $pegawai = $this->createUser('pegawai', [Modules::Kasir]);
+
+        $this->assertNull($pegawai->educationLevelClassIds());
+        $this->assertNull($pegawai->allowedClassIds());
+    }
 }
