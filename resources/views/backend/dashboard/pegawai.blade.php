@@ -523,7 +523,17 @@
                     </div>
                 @endif
 
-                @if ($isPimpinan)
+                @foreach ($tuCards ?? [] as $card)
+                    <div class="col-3 text-center">
+                        <a href="{{ $card['route'] }}" class="btn-icon text-grey">
+                            <img src="{{ asset('images/icons/' . $card['icon']) }}" />
+
+                            <div class="mt-1 text">{{ $card['label'] }}</div>
+                        </a>
+                    </div>
+                @endforeach
+
+                @if ($isPimpinan || ($isWaliKelas ?? false))
                     <div class="col-3 text-center">
                         <a href="{{ route('finance.report.bill-per-type') }}" class="btn-icon text-grey">
                             <img src="{{ asset('images/icons/report.png') }}" />

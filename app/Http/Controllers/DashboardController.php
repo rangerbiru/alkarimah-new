@@ -473,6 +473,40 @@ class DashboardController extends Controller
         ]);
     }
 
+    /**
+     * Kartu pintasan fitur TU untuk pegawai pemegang modul (Kasir, Kasir Unit,
+     * Bendahara, Penanggung Jawab Tabungan). Kasir Unit tidak punya Pending.
+     */
+    private function tuCards($user): array
+    {
+        if ($user->role != UserRole::Pegawai) {
+            return [];
+        }
+
+        $cards = [];
+
+        if ($user->hasAccess('kasir') || $user->hasAccess('kasir-unit')) {
+            $cards[] = ['route' => route('finance.transaction.bill.index'), 'icon' => 'pembayaran.svg', 'label' => __('label.transaction')];
+            $cards[] = ['route' => route('finance.balance.topup'), 'icon' => 'savings.png', 'label' => __('label.topup')];
+            $cards[] = ['route' => route('finance.savings.deposit'), 'icon' => 'history-cash.png', 'label' => __('label.savings')];
+        }
+
+        if ($user->hasAccess('kasir')) {
+            $cards[] = ['route' => route('finance.bill.index'), 'icon' => 'bill.png', 'label' => __('label.bill')];
+        }
+
+        if ($user->hasAccess('bendahara')) {
+            $cards[] = ['route' => route('finance.transaction.cash', 'waiting'), 'icon' => 'history-cash.png', 'label' => __('label.cash_deposit')];
+            $cards[] = ['route' => route('finance.payroll.setup'), 'icon' => 'payroll.png', 'label' => __('label.payroll')];
+        }
+
+        if ($user->hasAccess('penanggung-jawab-tabungan')) {
+            $cards[] = ['route' => route('finance.savings.create.withdrawal'), 'icon' => 'savings.png', 'label' => __('label.savings')];
+        }
+
+        return $cards;
+    }
+
     private function pegawai()
     {
         $module_rights = ModuleRights::select('id_module')
@@ -499,6 +533,8 @@ class DashboardController extends Controller
             'isLogistik' => AllowedSubmissionEmployee::where('employee_id', $employeeId)->where('position', 'like', '%logistik%')->exists(),
             'inDepartment' => Departments::where('employee_id', $employeeId)->exists(),
             'isPimpinan' => $user->hasPimpinanAccess(),
+            'tuCards' => $this->tuCards($user),
+            'isWaliKelas' => $user->hasAccess('wali-kelas'),
             'isMudir' => AllowedSubmissionEmployee::where('employee_id', $employeeId)->where('position', 'like', '%mudir%')->exists(),
             'isWadir' => AllowedSubmissionEmployee::where('employee_id', $employeeId)->where('position', 'like', '%wadir%')->exists(),
         ];
