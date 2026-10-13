@@ -1,0 +1,1471 @@
+{
+ "academic.absence.create": [
+  "role:pegawai,kepala-sekolah",
+  "accessRights:1"
+ ],
+ "academic.absence.datatable.report": [
+  "role:admin"
+ ],
+ "academic.absence.download.excel.report": [
+  "role:admin"
+ ],
+ "academic.absence.download.pdf.report": [
+  "role:admin"
+ ],
+ "academic.absence.get.student": [
+  "role:pegawai,kepala-sekolah"
+ ],
+ "academic.absence.report": [
+  "role:admin"
+ ],
+ "academic.absence.store": [
+  "role:pegawai,kepala-sekolah",
+  "accessRights:1"
+ ],
+ "academic.absence.type.create": [
+  "role:admin"
+ ],
+ "academic.absence.type.datatable": [
+  "role:admin"
+ ],
+ "academic.absence.type.destroy": [
+  "role:admin"
+ ],
+ "academic.absence.type.edit": [
+  "role:admin"
+ ],
+ "academic.absence.type.index": [
+  "role:admin"
+ ],
+ "academic.absence.type.store": [
+  "role:admin"
+ ],
+ "academic.absence.type.update": [
+  "role:admin"
+ ],
+ "academic.asrama.create": [
+  "role:admin"
+ ],
+ "academic.asrama.datatable": [
+  "role:admin"
+ ],
+ "academic.asrama.destroy": [
+  "role:admin"
+ ],
+ "academic.asrama.edit": [
+  "role:admin"
+ ],
+ "academic.asrama.index": [
+  "role:admin"
+ ],
+ "academic.asrama.store": [
+  "role:admin"
+ ],
+ "academic.asrama.update": [
+  "role:admin"
+ ],
+ "academic.basic.create": [],
+ "academic.basic.datatable": [],
+ "academic.basic.destroy": [],
+ "academic.basic.edit": [],
+ "academic.basic.index": [],
+ "academic.basic.show": [],
+ "academic.basic.store": [],
+ "academic.basic.update": [],
+ "academic.class-hours.create": [
+  "role:admin"
+ ],
+ "academic.class-hours.datatable": [],
+ "academic.class-hours.destroy": [
+  "role:admin"
+ ],
+ "academic.class-hours.edit": [
+  "role:admin"
+ ],
+ "academic.class-hours.index": [
+  "role:admin"
+ ],
+ "academic.class-hours.store": [
+  "role:admin"
+ ],
+ "academic.class-hours.update": [
+  "role:admin"
+ ],
+ "academic.class-schedule.create": [
+  "role:admin"
+ ],
+ "academic.class-schedule.datatable": [],
+ "academic.class-schedule.datatable-manage-schedule": [],
+ "academic.class-schedule.destroy": [
+  "role:admin"
+ ],
+ "academic.class-schedule.edit": [
+  "role:admin"
+ ],
+ "academic.class-schedule.index": [
+  "role:admin"
+ ],
+ "academic.class-schedule.manage": [
+  "role:admin"
+ ],
+ "academic.class-schedule.save-manage": [],
+ "academic.class-schedule.store": [
+  "role:admin"
+ ],
+ "academic.class-schedule.update": [
+  "role:admin"
+ ],
+ "academic.class.create": [
+  "role:admin"
+ ],
+ "academic.class.datatable": [
+  "role:admin"
+ ],
+ "academic.class.destroy": [
+  "role:admin"
+ ],
+ "academic.class.edit": [
+  "role:admin"
+ ],
+ "academic.class.get.option": [
+  "access:admin,kasir"
+ ],
+ "academic.class.get.option.level": [
+  "access:admin,kasir"
+ ],
+ "academic.class.get.option.level-class": [
+  "access:kasir,bendahara"
+ ],
+ "academic.class.index": [
+  "role:admin"
+ ],
+ "academic.class.store": [
+  "role:admin"
+ ],
+ "academic.class.update": [
+  "role:admin"
+ ],
+ "academic.excul.create": [
+  "role:admin"
+ ],
+ "academic.excul.datatable": [
+  "role:admin"
+ ],
+ "academic.excul.destroy": [
+  "role:admin"
+ ],
+ "academic.excul.edit": [
+  "role:admin"
+ ],
+ "academic.excul.group.create": [
+  "role:admin"
+ ],
+ "academic.excul.group.datatable": [
+  "role:admin"
+ ],
+ "academic.excul.group.destroy": [
+  "role:admin"
+ ],
+ "academic.excul.group.edit": [
+  "role:admin"
+ ],
+ "academic.excul.group.index": [
+  "role:admin"
+ ],
+ "academic.excul.group.store": [
+  "role:admin"
+ ],
+ "academic.excul.group.update": [
+  "role:admin"
+ ],
+ "academic.excul.index": [
+  "role:admin"
+ ],
+ "academic.excul.store": [
+  "role:admin"
+ ],
+ "academic.excul.update": [
+  "role:admin"
+ ],
+ "academic.halaqah.create": [
+  "role:admin"
+ ],
+ "academic.halaqah.datatable": [
+  "role:admin"
+ ],
+ "academic.halaqah.destroy": [
+  "role:admin"
+ ],
+ "academic.halaqah.edit": [
+  "role:admin"
+ ],
+ "academic.halaqah.index": [
+  "role:admin"
+ ],
+ "academic.halaqah.store": [
+  "role:admin"
+ ],
+ "academic.halaqah.update": [
+  "role:admin"
+ ],
+ "academic.monitoring.create": [],
+ "academic.monitoring.data": [],
+ "academic.monitoring.destroy": [],
+ "academic.monitoring.edit": [],
+ "academic.monitoring.index": [],
+ "academic.monitoring.show": [],
+ "academic.monitoring.store": [],
+ "academic.monitoring.update": [],
+ "academic.parent.create": [
+  "role:admin"
+ ],
+ "academic.parent.datatable": [
+  "role:admin"
+ ],
+ "academic.parent.destroy": [
+  "role:admin"
+ ],
+ "academic.parent.edit": [
+  "role:admin"
+ ],
+ "academic.parent.index": [
+  "role:admin"
+ ],
+ "academic.parent.store": [
+  "role:admin"
+ ],
+ "academic.parent.update": [
+  "role:admin"
+ ],
+ "academic.student-permit-group.create": [
+  "role:admin"
+ ],
+ "academic.student-permit-group.datatable": [
+  "role:admin"
+ ],
+ "academic.student-permit-group.destroy": [
+  "role:admin"
+ ],
+ "academic.student-permit-group.edit": [
+  "role:admin"
+ ],
+ "academic.student-permit-group.index": [
+  "role:admin"
+ ],
+ "academic.student-permit-group.store": [
+  "role:admin"
+ ],
+ "academic.student-permit-group.update": [
+  "role:admin"
+ ],
+ "academic.student-permit.create": [],
+ "academic.student-permit.datatable": [],
+ "academic.student-permit.destroy": [],
+ "academic.student-permit.edit": [],
+ "academic.student-permit.groups": [],
+ "academic.student-permit.index": [],
+ "academic.student-permit.store": [],
+ "academic.student-permit.students": [],
+ "academic.student-permit.update": [],
+ "academic.student.change": [
+  "role:admin"
+ ],
+ "academic.student.create": [
+  "role:admin"
+ ],
+ "academic.student.datatable": [
+  "role:admin"
+ ],
+ "academic.student.datatable.change": [
+  "role:admin"
+ ],
+ "academic.student.datatable.history-displacement": [
+  "role:admin"
+ ],
+ "academic.student.datatable.set": [
+  "role:admin"
+ ],
+ "academic.student.datatable.set-excul": [
+  "role:admin"
+ ],
+ "academic.student.destroy": [
+  "role:admin"
+ ],
+ "academic.student.edit": [
+  "role:admin,orang-tua"
+ ],
+ "academic.student.get.autocomplete": [
+  "access:kasir,kasir-unit,penanggung-jawab-tabungan"
+ ],
+ "academic.student.history.displacement": [
+  "role:admin"
+ ],
+ "academic.student.index": [
+  "role:admin,orang-tua"
+ ],
+ "academic.student.set": [
+  "role:admin"
+ ],
+ "academic.student.set.excul": [
+  "role:admin"
+ ],
+ "academic.student.show": [
+  "role:orang-tua"
+ ],
+ "academic.student.store": [
+  "role:admin"
+ ],
+ "academic.student.store.change": [
+  "role:admin"
+ ],
+ "academic.student.store.set": [
+  "role:admin"
+ ],
+ "academic.student.store.set-excul": [
+  "role:admin"
+ ],
+ "academic.student.update": [
+  "role:admin"
+ ],
+ "academic.student.update.parent": [
+  "role:orang-tua"
+ ],
+ "academic.subject.create": [],
+ "academic.subject.datatable": [],
+ "academic.subject.destroy": [],
+ "academic.subject.edit": [],
+ "academic.subject.index": [],
+ "academic.subject.show": [],
+ "academic.subject.store": [],
+ "academic.subject.update": [],
+ "academic.tahfidz.datatable": [],
+ "academic.tahfidz.index": [],
+ "academic.tahfidz.print": [],
+ "academic.violation.create": [],
+ "academic.violation.datatable": [],
+ "academic.violation.destroy": [],
+ "academic.violation.edit": [],
+ "academic.violation.index": [],
+ "academic.violation.store": [],
+ "academic.violation.students": [],
+ "academic.violation.types": [],
+ "academic.violation.update": [],
+ "attachment.download": [],
+ "attachment.get": [],
+ "attachment.store.temporary": [],
+ "attendance.export": [],
+ "attendance.positions": [],
+ "attendance.summary.data": [],
+ "auth.authenticate": [],
+ "auth.forgot-password": [],
+ "auth.forgot-password.verification": [],
+ "auth.logout": [],
+ "auth.register": [],
+ "auth.register.password": [],
+ "auth.register.verification": [],
+ "auth.reset-password": [],
+ "auth.store.forgot-password": [],
+ "auth.store.forgot-password.verification": [],
+ "auth.store.register": [],
+ "auth.store.register-password": [],
+ "auth.store.register.verification": [],
+ "auth.store.reset-password": [],
+ "base": [],
+ "branch.create": [],
+ "branch.datatable": [],
+ "branch.destroy": [],
+ "branch.edit": [],
+ "branch.index": [],
+ "branch.store": [],
+ "branch.update": [],
+ "captcha.refresh": [],
+ "dashboard.datatable.attendance": [],
+ "dashboard.datatable.bill-not-paid": [],
+ "dashboard.datatable.withdrawal": [
+  "access:penanggung-jawab-tabungan"
+ ],
+ "dashboard.employee.attendance.reason": [],
+ "dashboard.employee.attendanceIn": [
+  "role:kasir,pegawai,kepala-sekolah,wali-kelas,admin,penanggung-jawab-tabungan"
+ ],
+ "dashboard.employee.attendanceOut": [
+  "role:kasir,pegawai,kepala-sekolah,wali-kelas,admin,penanggung-jawab-tabungan"
+ ],
+ "dashboard.get.count": [
+  "access:kasir,kasir-unit"
+ ],
+ "dashboard.get.payment-progress": [
+  "access:kasir,kasir-unit"
+ ],
+ "dashboard.get.receipt": [
+  "access:kasir,kasir-unit"
+ ],
+ "dashboard.index": [],
+ "employee.activity-report.comment": [],
+ "employee.activity-report.create": [],
+ "employee.activity-report.datatable": [],
+ "employee.activity-report.destroy": [],
+ "employee.activity-report.edit": [],
+ "employee.activity-report.export": [],
+ "employee.activity-report.index": [],
+ "employee.activity-report.store": [],
+ "employee.activity-report.update": [],
+ "employee.attendance-report.create": [],
+ "employee.attendance-report.datatable": [],
+ "employee.attendance-report.destroy": [],
+ "employee.attendance-report.edit": [],
+ "employee.attendance-report.export": [],
+ "employee.attendance-report.index": [],
+ "employee.attendance-report.positions": [],
+ "employee.attendance-report.store": [],
+ "employee.attendance-report.summary.data": [],
+ "employee.attendance-report.update": [],
+ "employee.attendance.datatable": [],
+ "employee.attendance.export.excel": [],
+ "employee.attendance.export.pdf": [],
+ "employee.attendance.index": [],
+ "employee.committee-activity.create": [],
+ "employee.committee-activity.data-employee": [],
+ "employee.committee-activity.datatable": [],
+ "employee.committee-activity.destroy": [],
+ "employee.committee-activity.document.destroy": [],
+ "employee.committee-activity.edit": [],
+ "employee.committee-activity.index": [],
+ "employee.committee-activity.show": [],
+ "employee.committee-activity.store": [],
+ "employee.committee-activity.update": [],
+ "employee.hafalan.checkStudent": [],
+ "employee.hafalan.create": [],
+ "employee.hafalan.custom-destroy": [],
+ "employee.hafalan.datatable": [],
+ "employee.hafalan.datatableById": [],
+ "employee.hafalan.destroy": [],
+ "employee.hafalan.edit": [],
+ "employee.hafalan.index": [],
+ "employee.hafalan.show": [],
+ "employee.hafalan.store": [],
+ "employee.hafalan.update": [],
+ "employee.import": [],
+ "employee.inventory.create": [],
+ "employee.inventory.datatable": [],
+ "employee.inventory.destroy": [],
+ "employee.inventory.edit": [],
+ "employee.inventory.index": [],
+ "employee.inventory.input": [],
+ "employee.inventory.modal": [],
+ "employee.inventory.store": [],
+ "employee.inventory.update": [],
+ "employee.lunch-report.create": [],
+ "employee.lunch-report.datatable": [],
+ "employee.lunch-report.destroy": [],
+ "employee.lunch-report.edit": [],
+ "employee.lunch-report.index": [],
+ "employee.lunch-report.store": [],
+ "employee.lunch-report.update": [],
+ "employee.permit.approve": [],
+ "employee.permit.create": [],
+ "employee.permit.datatable": [],
+ "employee.permit.destroy": [],
+ "employee.permit.edit": [],
+ "employee.permit.index": [],
+ "employee.permit.reject": [],
+ "employee.permit.show": [],
+ "employee.permit.store": [],
+ "employee.permit.update": [],
+ "employee.student-permit.approve": [],
+ "employee.student-permit.create": [],
+ "employee.student-permit.datatable": [],
+ "employee.student-permit.datatable-permit": [],
+ "employee.student-permit.destroy": [],
+ "employee.student-permit.edit": [],
+ "employee.student-permit.groups": [],
+ "employee.student-permit.index": [],
+ "employee.student-permit.reject": [],
+ "employee.student-permit.show": [],
+ "employee.student-permit.store": [],
+ "employee.student-permit.students": [],
+ "employee.student-permit.update": [],
+ "employee.submission.approve": [],
+ "employee.submission.create": [],
+ "employee.submission.destroy": [],
+ "employee.submission.edit": [],
+ "employee.submission.index": [],
+ "employee.submission.item.create": [],
+ "employee.submission.item.destroy": [],
+ "employee.submission.item.edit": [],
+ "employee.submission.item.index": [],
+ "employee.submission.item.store": [],
+ "employee.submission.item.update": [],
+ "employee.submission.reject": [],
+ "employee.submission.store": [],
+ "employee.submission.update": [],
+ "employee.tahfidz.create": [],
+ "employee.tahfidz.datatable": [],
+ "employee.tahfidz.destroy": [],
+ "employee.tahfidz.edit": [],
+ "employee.tahfidz.get-siswa-by-pengampu": [],
+ "employee.tahfidz.index": [],
+ "employee.tahfidz.pertemuan-terpakai": [],
+ "employee.tahfidz.process": [],
+ "employee.tahfidz.process.datatable": [],
+ "employee.tahfidz.process.destroy": [],
+ "employee.tahfidz.process.get-id-surat": [],
+ "employee.tahfidz.process.get-id-surat-murojaah": [],
+ "employee.tahfidz.process.send-message": [],
+ "employee.tahfidz.process.store": [],
+ "employee.tahfidz.show": [],
+ "employee.tahfidz.store": [],
+ "employee.tahfidz.update": [],
+ "employee.teaching-schedule.create": [],
+ "employee.teaching-schedule.destroy": [],
+ "employee.teaching-schedule.edit": [],
+ "employee.teaching-schedule.index": [],
+ "employee.teaching-schedule.journal.store": [],
+ "employee.teaching-schedule.show": [],
+ "employee.teaching-schedule.store": [],
+ "employee.teaching-schedule.update": [],
+ "finance.balance.get": [
+  "role:orang-tua"
+ ],
+ "finance.balance.get.autocomplete.parent": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.balance.get.history": [
+  "role:orang-tua"
+ ],
+ "finance.balance.get.parent": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.balance.history": [
+  "role:orang-tua"
+ ],
+ "finance.balance.index": [
+  "role:orang-tua"
+ ],
+ "finance.balance.show": [
+  "role:orang-tua"
+ ],
+ "finance.balance.store": [
+  "role:orang-tua"
+ ],
+ "finance.balance.store.cash": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.balance.store.withdrawal": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.balance.topup": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.balance.waiting": [
+  "role:orang-tua"
+ ],
+ "finance.balance.withdrawal": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.bill.datatable.list": [
+  "access:kasir"
+ ],
+ "finance.bill.datatable.student": [
+  "access:kasir"
+ ],
+ "finance.bill.destroy": [
+  "access:kasir"
+ ],
+ "finance.bill.discount.create": [
+  "access:kasir"
+ ],
+ "finance.bill.discount.datatable": [
+  "access:kasir"
+ ],
+ "finance.bill.discount.destroy": [
+  "access:kasir"
+ ],
+ "finance.bill.discount.edit": [
+  "access:kasir"
+ ],
+ "finance.bill.discount.index": [
+  "access:kasir"
+ ],
+ "finance.bill.discount.store": [
+  "access:kasir"
+ ],
+ "finance.bill.discount.update": [
+  "access:kasir"
+ ],
+ "finance.bill.generate": [
+  "access:kasir"
+ ],
+ "finance.bill.get": [
+  "access:kasir"
+ ],
+ "finance.bill.get.class": [
+  "access:kasir"
+ ],
+ "finance.bill.get.option": [
+  "access:kasir"
+ ],
+ "finance.bill.index": [
+  "access:kasir"
+ ],
+ "finance.bill.setup.create": [
+  "access:kasir"
+ ],
+ "finance.bill.setup.datatable": [
+  "access:kasir"
+ ],
+ "finance.bill.setup.destroy": [
+  "access:kasir"
+ ],
+ "finance.bill.setup.edit": [
+  "access:kasir"
+ ],
+ "finance.bill.setup.index": [
+  "access:kasir"
+ ],
+ "finance.bill.setup.setting": [
+  "access:kasir"
+ ],
+ "finance.bill.setup.store": [
+  "access:kasir"
+ ],
+ "finance.bill.setup.update": [
+  "access:kasir"
+ ],
+ "finance.bill.type.create": [
+  "access:kasir"
+ ],
+ "finance.bill.type.datatable": [
+  "access:kasir"
+ ],
+ "finance.bill.type.destroy": [
+  "access:kasir"
+ ],
+ "finance.bill.type.edit": [
+  "access:kasir"
+ ],
+ "finance.bill.type.index": [
+  "access:kasir"
+ ],
+ "finance.bill.type.store": [
+  "access:kasir"
+ ],
+ "finance.bill.type.update": [
+  "access:kasir"
+ ],
+ "finance.donation.create": [
+  "access:kasir"
+ ],
+ "finance.donation.datatable": [
+  "access:kasir"
+ ],
+ "finance.donation.destroy": [
+  "access:kasir"
+ ],
+ "finance.donation.edit": [
+  "access:kasir"
+ ],
+ "finance.donation.index": [
+  "access:kasir"
+ ],
+ "finance.donation.store": [
+  "access:kasir"
+ ],
+ "finance.donation.update": [
+  "access:kasir"
+ ],
+ "finance.payment.check": [
+  "role:orang-tua"
+ ],
+ "finance.payment.destroy": [
+  "role:orang-tua"
+ ],
+ "finance.payment.get.bills": [
+  "role:orang-tua"
+ ],
+ "finance.payment.get.history": [
+  "role:orang-tua"
+ ],
+ "finance.payment.history": [
+  "role:orang-tua"
+ ],
+ "finance.payment.index": [
+  "role:orang-tua"
+ ],
+ "finance.payment.show": [
+  "role:orang-tua"
+ ],
+ "finance.payment.store": [
+  "role:orang-tua"
+ ],
+ "finance.payment.waiting": [
+  "role:orang-tua"
+ ],
+ "finance.payroll.datatable.setup": [
+  "access:bendahara"
+ ],
+ "finance.payroll.datatable.slip": [
+  "access:bendahara"
+ ],
+ "finance.payroll.download.slip": [
+  "role:bendahara,pegawai,kepala-sekolah"
+ ],
+ "finance.payroll.edit.setup": [
+  "access:bendahara"
+ ],
+ "finance.payroll.index": [
+  "role:pegawai,kepala-sekolah"
+ ],
+ "finance.payroll.setup": [
+  "access:bendahara"
+ ],
+ "finance.payroll.show.slip": [
+  "role:bendahara,pegawai,kepala-sekolah"
+ ],
+ "finance.payroll.slip": [
+  "access:bendahara"
+ ],
+ "finance.payroll.update.setup": [
+  "access:bendahara"
+ ],
+ "finance.report.bill-not-paid": [
+  "access:kasir"
+ ],
+ "finance.report.bill-per-type": [
+  "role:admin,kasir,bendahara,wali-kelas,pegawai,kepala-sekolah"
+ ],
+ "finance.report.bill-progress": [
+  "access:kasir"
+ ],
+ "finance.report.bill-student": [
+  "access:kasir,bendahara"
+ ],
+ "finance.report.bill-total": [
+  "access:kasir,bendahara"
+ ],
+ "finance.report.datatable.bill-not-paid": [
+  "access:kasir"
+ ],
+ "finance.report.datatable.bill-per-type": [
+  "role:admin,kasir,bendahara,wali-kelas,pegawai,kepala-sekolah"
+ ],
+ "finance.report.datatable.bill-student": [
+  "access:kasir"
+ ],
+ "finance.report.datatable.bill-total": [
+  "access:kasir"
+ ],
+ "finance.report.datatable.donation": [
+  "access:kasir"
+ ],
+ "finance.report.donation": [
+  "access:kasir"
+ ],
+ "finance.report.download.excel.bill-not-paid": [
+  "access:kasir"
+ ],
+ "finance.report.download.excel.bill-per-type": [
+  "role:admin,kasir,bendahara,wali-kelas,pegawai,kepala-sekolah"
+ ],
+ "finance.report.download.excel.bill-progress": [
+  "access:kasir"
+ ],
+ "finance.report.download.excel.bill-student": [
+  "access:kasir,bendahara"
+ ],
+ "finance.report.download.excel.bill-total": [
+  "access:kasir,bendahara"
+ ],
+ "finance.report.download.excel.donation": [
+  "access:kasir"
+ ],
+ "finance.report.download.excel.ongoing-collection-spp": [
+  "access:kasir"
+ ],
+ "finance.report.download.excel.outstanding-arrears": [
+  "access:kasir"
+ ],
+ "finance.report.download.excel.payment-method": [
+  "access:kasir"
+ ],
+ "finance.report.download.pdf.bill-not-paid": [
+  "access:kasir"
+ ],
+ "finance.report.download.pdf.bill-per-type": [
+  "role:admin,kasir,bendahara,wali-kelas,pegawai,kepala-sekolah"
+ ],
+ "finance.report.download.pdf.bill-progress": [
+  "access:kasir"
+ ],
+ "finance.report.download.pdf.bill-student": [
+  "access:kasir,bendahara"
+ ],
+ "finance.report.download.pdf.bill-total": [
+  "access:kasir,bendahara"
+ ],
+ "finance.report.download.pdf.donation": [
+  "access:kasir"
+ ],
+ "finance.report.download.pdf.ongoing-collection-spp": [
+  "access:kasir"
+ ],
+ "finance.report.download.pdf.outstanding-arrears": [
+  "access:kasir"
+ ],
+ "finance.report.download.pdf.payment-method": [
+  "access:kasir"
+ ],
+ "finance.report.get.ongoing-collection-spp": [
+  "access:kasir"
+ ],
+ "finance.report.get.option.bill": [
+  "access:kasir"
+ ],
+ "finance.report.get.outstanding-arrears": [
+  "access:kasir"
+ ],
+ "finance.report.get.total-bill": [
+  "access:kasir,bendahara"
+ ],
+ "finance.report.get.total-bill-not-paid": [
+  "access:kasir"
+ ],
+ "finance.report.get.total-bill-per-type": [
+  "role:admin,kasir,bendahara,wali-kelas,pegawai,kepala-sekolah"
+ ],
+ "finance.report.ongoing-collection-spp": [
+  "access:kasir"
+ ],
+ "finance.report.outstanding-arrears": [
+  "access:kasir"
+ ],
+ "finance.report.payment-method": [
+  "access:kasir"
+ ],
+ "finance.savings.create.withdrawal": [
+  "access:penanggung-jawab-tabungan"
+ ],
+ "finance.savings.datatable.history": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.savings.datatable.history-withdrawal": [
+  "access:penanggung-jawab-tabungan"
+ ],
+ "finance.savings.datatable.mutation": [
+  "access:kasir,kasir-unit,penanggung-jawab-tabungan"
+ ],
+ "finance.savings.deposit": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.savings.destroy.withdrawal": [
+  "access:penanggung-jawab-tabungan"
+ ],
+ "finance.savings.download.excel.withdrawal": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.savings.edit.withdrawal": [
+  "access:penanggung-jawab-tabungan"
+ ],
+ "finance.savings.get": [
+  "role:orang-tua"
+ ],
+ "finance.savings.get.history": [
+  "role:orang-tua"
+ ],
+ "finance.savings.get.student": [
+  "access:kasir,kasir-unit,penanggung-jawab-tabungan"
+ ],
+ "finance.savings.get.withdrawal": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.savings.history": [
+  "role:orang-tua"
+ ],
+ "finance.savings.history.withdrawal": [
+  "access:penanggung-jawab-tabungan"
+ ],
+ "finance.savings.index": [
+  "role:orang-tua"
+ ],
+ "finance.savings.list": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.savings.mutation": [
+  "access:kasir,kasir-unit,penanggung-jawab-tabungan"
+ ],
+ "finance.savings.process.withdrawal": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.savings.show": [
+  "role:orang-tua"
+ ],
+ "finance.savings.show-withdrawal": [
+  "role:orang-tua"
+ ],
+ "finance.savings.store": [
+  "access:kasir,kasir-unit,orang-tua"
+ ],
+ "finance.savings.store.withdrawal": [
+  "access:penanggung-jawab-tabungan"
+ ],
+ "finance.savings.update.withdrawal": [
+  "access:penanggung-jawab-tabungan"
+ ],
+ "finance.savings.waiting": [
+  "role:orang-tua"
+ ],
+ "finance.savings.withdrawal": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.transaction.bill.index": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.transaction.bill.show": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.transaction.cash": [
+  "access:kasir,kasir-unit,bendahara"
+ ],
+ "finance.transaction.create.cash": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.transaction.create.unique-code": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.transaction.datatable.cash": [
+  "access:kasir,kasir-unit,bendahara"
+ ],
+ "finance.transaction.datatable.donatur": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.transaction.datatable.history": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.transaction.datatable.paid": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.transaction.datatable.paid-unique-code": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.transaction.datatable.pending": [
+  "access:kasir"
+ ],
+ "finance.transaction.datatable.unique-code": [
+  "access:kasir,kasir-unit,bendahara"
+ ],
+ "finance.transaction.destroy.cash": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.transaction.destroy.unique-code": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.transaction.edit.cash": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.transaction.edit.unique-code": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.transaction.get.bill": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.transaction.history": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.transaction.pending": [
+  "access:kasir"
+ ],
+ "finance.transaction.print": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.transaction.print.cash": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.transaction.store": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.transaction.store.cash": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.transaction.store.unique-code": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.transaction.store.verify-cash": [
+  "access:bendahara"
+ ],
+ "finance.transaction.store.verify-unique-code": [
+  "access:bendahara"
+ ],
+ "finance.transaction.unique-code": [
+  "access:kasir,kasir-unit,bendahara"
+ ],
+ "finance.transaction.update.cash": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.transaction.update.status": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.transaction.update.unique-code": [
+  "access:kasir,kasir-unit"
+ ],
+ "finance.transaction.verify.cash": [
+  "access:bendahara"
+ ],
+ "finance.transaction.verify.unique-code": [
+  "access:bendahara"
+ ],
+ "hr.allowance.create": [
+  "access:bendahara"
+ ],
+ "hr.allowance.datatable": [
+  "access:bendahara"
+ ],
+ "hr.allowance.destroy": [
+  "access:bendahara"
+ ],
+ "hr.allowance.edit": [
+  "access:bendahara"
+ ],
+ "hr.allowance.index": [
+  "access:bendahara"
+ ],
+ "hr.allowance.store": [
+  "access:bendahara"
+ ],
+ "hr.allowance.update": [
+  "access:bendahara"
+ ],
+ "hr.allowed-submission.create": [
+  "role:admin"
+ ],
+ "hr.allowed-submission.datatable": [],
+ "hr.allowed-submission.destroy": [
+  "role:admin"
+ ],
+ "hr.allowed-submission.edit": [
+  "role:admin"
+ ],
+ "hr.allowed-submission.index": [
+  "role:admin"
+ ],
+ "hr.allowed-submission.show": [
+  "role:admin"
+ ],
+ "hr.allowed-submission.store": [
+  "role:admin"
+ ],
+ "hr.allowed-submission.update": [
+  "role:admin"
+ ],
+ "hr.attendance.group.create": [
+  "role:admin"
+ ],
+ "hr.attendance.group.datatable": [
+  "role:admin"
+ ],
+ "hr.attendance.group.destroy": [
+  "role:admin"
+ ],
+ "hr.attendance.group.edit": [
+  "role:admin"
+ ],
+ "hr.attendance.group.index": [
+  "role:admin"
+ ],
+ "hr.attendance.group.store": [
+  "role:admin"
+ ],
+ "hr.attendance.group.update": [
+  "role:admin"
+ ],
+ "hr.attendance.group.update-time": [
+  "role:admin"
+ ],
+ "hr.attendance.group.update-time-shift": [
+  "role:admin"
+ ],
+ "hr.attendance.group.update.shift": [],
+ "hr.attendance.location.create": [
+  "role:admin"
+ ],
+ "hr.attendance.location.datatable": [
+  "role:admin"
+ ],
+ "hr.attendance.location.destroy": [
+  "role:admin"
+ ],
+ "hr.attendance.location.edit": [
+  "role:admin"
+ ],
+ "hr.attendance.location.index": [
+  "role:admin"
+ ],
+ "hr.attendance.location.show": [
+  "role:admin"
+ ],
+ "hr.attendance.location.store": [
+  "role:admin"
+ ],
+ "hr.attendance.location.update": [
+  "role:admin"
+ ],
+ "hr.attendance.member.create": [
+  "role:admin"
+ ],
+ "hr.attendance.member.data-employee": [
+  "role:admin"
+ ],
+ "hr.attendance.member.datatable": [
+  "role:admin"
+ ],
+ "hr.attendance.member.destroy": [
+  "role:admin"
+ ],
+ "hr.attendance.member.edit": [
+  "role:admin"
+ ],
+ "hr.attendance.member.index": [
+  "role:admin"
+ ],
+ "hr.attendance.member.show": [
+  "role:admin"
+ ],
+ "hr.attendance.member.store": [
+  "role:admin"
+ ],
+ "hr.attendance.member.update": [
+  "role:admin"
+ ],
+ "hr.attendance.report.create": [
+  "role:admin"
+ ],
+ "hr.attendance.report.datatable": [
+  "role:admin"
+ ],
+ "hr.attendance.report.destroy": [
+  "role:admin"
+ ],
+ "hr.attendance.report.edit": [
+  "role:admin"
+ ],
+ "hr.attendance.report.index": [
+  "role:admin"
+ ],
+ "hr.attendance.report.show": [
+  "role:admin"
+ ],
+ "hr.attendance.report.store": [
+  "role:admin"
+ ],
+ "hr.attendance.report.update": [
+  "role:admin"
+ ],
+ "hr.department.create": [
+  "role:admin"
+ ],
+ "hr.department.data-employee": [],
+ "hr.department.datatable": [
+  "role:admin"
+ ],
+ "hr.department.destroy": [
+  "role:admin"
+ ],
+ "hr.department.edit": [
+  "role:admin"
+ ],
+ "hr.department.index": [
+  "role:admin"
+ ],
+ "hr.department.show": [
+  "role:admin"
+ ],
+ "hr.department.store": [
+  "role:admin"
+ ],
+ "hr.department.update": [
+  "role:admin"
+ ],
+ "hr.employee-activity.create": [
+  "role:admin"
+ ],
+ "hr.employee-activity.datatable": [],
+ "hr.employee-activity.destroy": [
+  "role:admin"
+ ],
+ "hr.employee-activity.edit": [
+  "role:admin"
+ ],
+ "hr.employee-activity.index": [
+  "role:admin"
+ ],
+ "hr.employee-activity.show": [
+  "role:admin"
+ ],
+ "hr.employee-activity.store": [
+  "role:admin"
+ ],
+ "hr.employee-activity.update": [
+  "role:admin"
+ ],
+ "hr.employee.create": [
+  "role:admin"
+ ],
+ "hr.employee.datatable": [
+  "role:admin"
+ ],
+ "hr.employee.destroy": [
+  "role:admin"
+ ],
+ "hr.employee.edit": [
+  "role:admin"
+ ],
+ "hr.employee.index": [
+  "role:admin"
+ ],
+ "hr.employee.rights": [
+  "role:admin"
+ ],
+ "hr.employee.store": [
+  "role:admin"
+ ],
+ "hr.employee.store.rights": [
+  "role:admin"
+ ],
+ "hr.employee.update": [
+  "role:admin"
+ ],
+ "hr.inventory-item.create": [
+  "role:admin"
+ ],
+ "hr.inventory-item.datatable": [
+  "role:admin"
+ ],
+ "hr.inventory-item.destroy": [
+  "role:admin"
+ ],
+ "hr.inventory-item.edit": [
+  "role:admin"
+ ],
+ "hr.inventory-item.index": [
+  "role:admin"
+ ],
+ "hr.inventory-item.modal": [],
+ "hr.inventory-item.show": [
+  "role:admin"
+ ],
+ "hr.inventory-item.store": [
+  "role:admin"
+ ],
+ "hr.inventory-item.update": [
+  "role:admin"
+ ],
+ "hr.item-category.create": [
+  "role:admin"
+ ],
+ "hr.item-category.datatable": [
+  "role:admin"
+ ],
+ "hr.item-category.destroy": [
+  "role:admin"
+ ],
+ "hr.item-category.edit": [
+  "role:admin"
+ ],
+ "hr.item-category.index": [
+  "role:admin"
+ ],
+ "hr.item-category.show": [
+  "role:admin"
+ ],
+ "hr.item-category.store": [
+  "role:admin"
+ ],
+ "hr.item-category.update": [
+  "role:admin"
+ ],
+ "hr.item.create": [
+  "role:admin"
+ ],
+ "hr.item.datatable": [
+  "role:admin"
+ ],
+ "hr.item.destroy": [
+  "role:admin"
+ ],
+ "hr.item.edit": [
+  "role:admin"
+ ],
+ "hr.item.index": [
+  "role:admin"
+ ],
+ "hr.item.modal": [],
+ "hr.item.show": [
+  "role:admin"
+ ],
+ "hr.item.store": [
+  "role:admin"
+ ],
+ "hr.item.update": [
+  "role:admin"
+ ],
+ "hr.location.create": [
+  "role:admin"
+ ],
+ "hr.location.datatable": [
+  "role:admin"
+ ],
+ "hr.location.destroy": [
+  "role:admin"
+ ],
+ "hr.location.edit": [
+  "role:admin"
+ ],
+ "hr.location.index": [
+  "role:admin"
+ ],
+ "hr.location.show": [
+  "role:admin"
+ ],
+ "hr.location.store": [
+  "role:admin"
+ ],
+ "hr.location.update": [
+  "role:admin"
+ ],
+ "hr.permit-type.create": [
+  "role:admin"
+ ],
+ "hr.permit-type.datatable": [
+  "role:admin"
+ ],
+ "hr.permit-type.destroy": [
+  "role:admin"
+ ],
+ "hr.permit-type.edit": [
+  "role:admin"
+ ],
+ "hr.permit-type.index": [
+  "role:admin"
+ ],
+ "hr.permit-type.show": [
+  "role:admin"
+ ],
+ "hr.permit-type.store": [
+  "role:admin"
+ ],
+ "hr.permit-type.update": [
+  "role:admin"
+ ],
+ "hr.position.create": [
+  "role:admin"
+ ],
+ "hr.position.datatable": [
+  "role:admin"
+ ],
+ "hr.position.destroy": [
+  "role:admin"
+ ],
+ "hr.position.edit": [
+  "role:admin"
+ ],
+ "hr.position.index": [
+  "role:admin"
+ ],
+ "hr.position.store": [
+  "role:admin"
+ ],
+ "hr.position.update": [
+  "role:admin"
+ ],
+ "hr.unit.create": [
+  "role:admin"
+ ],
+ "hr.unit.datatable": [
+  "role:admin"
+ ],
+ "hr.unit.destroy": [
+  "role:admin"
+ ],
+ "hr.unit.edit": [
+  "role:admin"
+ ],
+ "hr.unit.index": [
+  "role:admin"
+ ],
+ "hr.unit.show": [
+  "role:admin"
+ ],
+ "hr.unit.store": [
+  "role:admin"
+ ],
+ "hr.unit.update": [
+  "role:admin"
+ ],
+ "hr.violation.create": [
+  "role:admin"
+ ],
+ "hr.violation.datatable": [
+  "role:admin"
+ ],
+ "hr.violation.destroy": [
+  "role:admin"
+ ],
+ "hr.violation.edit": [
+  "role:admin"
+ ],
+ "hr.violation.index": [
+  "role:admin"
+ ],
+ "hr.violation.show": [
+  "role:admin"
+ ],
+ "hr.violation.store": [
+  "role:admin"
+ ],
+ "hr.violation.update": [
+  "role:admin"
+ ],
+ "icon.datatable": [],
+ "moota.notification": [],
+ "region.option": [],
+ "service.activity.get": [],
+ "service.activity.index": [],
+ "service.dashboard.index": [],
+ "service.dzikirDoa": [],
+ "service.dzikirDoaById": [],
+ "service.hadist": [],
+ "service.hadistById": [],
+ "service.hadistSearch": [],
+ "service.jadwalSholat": [],
+ "service.posterDakwah": [],
+ "service.quran.index": [],
+ "service.quranById": [],
+ "setting.index": [],
+ "setting.update": [],
+ "setting.year.datatable": [],
+ "setting.year.index": [],
+ "setting.year.store": [],
+ "setting.year.update": [],
+ "setting.year.update.status": [],
+ "student.import": [],
+ "user.create": [],
+ "user.datatable": [],
+ "user.destroy": [],
+ "user.edit": [],
+ "user.edit.kepala-sekolah": [
+  "role:admin"
+ ],
+ "user.index": [],
+ "user.password": [],
+ "user.password.update": [],
+ "user.profile": [],
+ "user.profile.update": [],
+ "user.store": [],
+ "user.store.kepala-sekolah": [
+  "role:admin"
+ ],
+ "user.update": [],
+ "user.update.kepala-sekolah": [
+  "role:admin"
+ ],
+ "whatsapp.send.bill-due-date": []
+}
