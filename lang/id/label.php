@@ -404,6 +404,8 @@ return [
     'committee_activity' => 'Kegiatan Kepanitiaan',
     'manage_lesson_schedule' => 'Kelola Jadwal Pelajaran',
     'module' => 'Modul',
+    'module_group_general' => 'Umum',
+    'module_group_tu' => 'Tata Usaha',
     'access_rights' => 'Hak Akses',
     'jadwal_sholat' => 'Jadwal Sholat',
     'absensi_tahfidz' => 'Absensi KBM Tahfidz',

@@ -29,7 +29,13 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($module as $m)
+                        @foreach ($module_groups as $group => $group_ids)
+                            <tr class="table-light">
+                                <th colspan="3">{{ __('label.module_group_' . $group) }}</th>
+                            </tr>
+                            @foreach ($group_ids as $group_id)
+                            @continue (! isset($module[$group_id]))
+                            @php $m = $module[$group_id]; @endphp
                             <tr>
                                 <td>
                                     <div class="form-check form-check-md">
@@ -56,6 +62,7 @@
                                     @endif
                                 </td>
                             </tr>
+                            @endforeach
                         @endforeach
                     </tbody>
                 </table>

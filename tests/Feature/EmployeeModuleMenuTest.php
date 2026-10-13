@@ -72,4 +72,45 @@ class EmployeeModuleMenuTest extends ModuleAccessTestCase
         $this->assertStringNotContainsString(route('finance.transaction.pending'), $html);
         $this->assertStringContainsString(route('finance.balance.topup'), $html);
     }
+
+    public function test_general_module_sidebar_sections_follow_modules(): void
+    {
+        $academic = $this->pegawai([Modules::AdminAcademic]);
+        $html = $this->actingAs($academic)->get(route('employee.tahfidz.index'))->getContent();
+        $this->assertStringContainsString(route('academic.class.index'), $html);
+        $this->assertStringNotContainsString('href="'.route('academic.student.index').'"', $html);
+        $this->assertStringNotContainsString(route('hr.violation.index'), $html);
+        $this->assertStringNotContainsString(route('hr.employee.index'), $html);
+        $this->assertStringNotContainsString(route('hr.item.index'), $html);
+
+        $hr = $this->pegawai([Modules::AdminHumanResource, Modules::AdminInventory]);
+        $html = $this->actingAs($hr)->get(route('employee.tahfidz.index'))->getContent();
+        $this->assertStringContainsString(route('hr.employee.index'), $html);
+        $this->assertStringContainsString(route('hr.item.index'), $html);
+        $this->assertStringNotContainsString(route('academic.class.index'), $html);
+
+        $none = $this->pegawai();
+        $html = $this->actingAs($none)->get(route('employee.tahfidz.index'))->getContent();
+        $this->assertStringNotContainsString(route('academic.class.index'), $html);
+        $this->assertStringNotContainsString(route('hr.employee.index'), $html);
+    }
+
+    public function test_general_module_dashboard_cards(): void
+    {
+        $user = $this->pegawai([Modules::AdminAcademic, Modules::AdminInventory]);
+        $html = $this->actingAs($user)->get(route('dashboard.index'))->getContent();
+
+        $this->assertStringContainsString(route('academic.class.index'), $html);
+        $this->assertStringContainsString(route('hr.inventory-item.index'), $html);
+        $this->assertStringNotContainsString(route('hr.employee.index'), $html);
+    }
+
+    public function test_admin_sidebar_keeps_general_menus(): void
+    {
+        $html = $this->actingAs($this->createUser('admin'))->get(route('hr.employee.index'))->getContent();
+
+        foreach (['academic.class.index', 'academic.student.index', 'hr.violation.index', 'hr.employee.index', 'hr.item.index', 'hr.unit.index'] as $name) {
+            $this->assertStringContainsString('href="'.route($name).'"', $html, $name);
+        }
+    }
 }

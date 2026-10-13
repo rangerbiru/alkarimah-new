@@ -4,13 +4,27 @@ namespace App\Constants;
 
 abstract class Modules
 {
+    // Umum (disamakan dengan PPIA)
     const CreateAbsence = 1;
-    const KepalaSekolah = 2;
-    const WaliKelas = 3;
-    const Kasir = 4;
-    const KasirUnit = 5;
-    const Bendahara = 6;
-    const PenanggungJawabTabungan = 7;
+    const AdminAcademic = 2;
+    const AdminHumanResource = 3;
+    const AdminInventory = 4;
+
+    // Tata Usaha
+    const KepalaSekolah = 5;
+    const WaliKelas = 6;
+    const Kasir = 7;
+    const KasirUnit = 8;
+    const Bendahara = 9;
+    const PenanggungJawabTabungan = 10;
+
+    /**
+     * Kelompok modul di halaman Hak Akses pegawai (label => ID modul).
+     */
+    const Groups = [
+        'general' => [self::CreateAbsence, self::AdminAcademic, self::AdminHumanResource, self::AdminInventory],
+        'tu' => [self::KepalaSekolah, self::WaliKelas, self::Kasir, self::KasirUnit, self::Bendahara, self::PenanggungJawabTabungan],
+    ];
 
     /**
      * Akses TU (slug role) => modul yang membukanya untuk akun pegawai.

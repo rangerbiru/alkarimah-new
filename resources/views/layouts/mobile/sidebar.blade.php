@@ -41,6 +41,11 @@
                 </li>
             @endif
 
+            {{-- Menu modul Hak Akses (TU, Akademik, Kepegawaian, Pengadaan Barang) untuk pegawai --}}
+            @if (Auth::user()->role->value === 'pegawai')
+                @include('layouts.backend.sidebar-pegawai-modules')
+            @endif
+
             @php
                 $menu_groups = ['none', 'academic', 'finance'];
             @endphp

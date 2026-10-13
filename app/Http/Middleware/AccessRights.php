@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\UserRole;
 use App\Models\ModuleRights;
 use Closure;
 use Illuminate\Http\Request;
@@ -18,6 +19,11 @@ class AccessRights
      */
     public function handle(Request $request, Closure $next, $module): Response
     {
+        // Admin lolos semua modul. Route yang tidak boleh dibuka admin dibatasi
+        // oleh middleware role: yang berjalan lebih dulu (mis. academic.absence.create).
+        if (Auth::user()?->role === UserRole::Admin)
+            return $next($request);
+
         $module_rights = ModuleRights::select('id_module')->whereIdUser(Auth::id())->pluck('id_module', 'id_module')->toArray();
 
         if (in_array($module, $module_rights))

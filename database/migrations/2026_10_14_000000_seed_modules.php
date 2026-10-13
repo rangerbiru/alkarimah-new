@@ -15,6 +15,9 @@ return new class extends Migration
     {
         return [
             Modules::CreateAbsence => ['Buat Absensi', 'Form tambah/buat absensi'],
+            Modules::AdminAcademic => ['Kelola Akademik', 'Mengelola data akademik'],
+            Modules::AdminHumanResource => ['Kelola Kepegawaian', 'Mengelola data kepegawaian Ibnu Abbas'],
+            Modules::AdminInventory => ['Kelola Pengadaan Barang', 'Mengelola pengadaan barang pesantren'],
             Modules::KepalaSekolah => ['Kepala Sekolah', 'Laporan dan monitoring per jenjang'],
             Modules::WaliKelas => ['Wali Kelas', 'Data kelas yang diampu'],
             Modules::Kasir => ['Kasir', 'Tagihan, transaksi, pending, dan laporan keuangan'],

@@ -345,6 +345,8 @@ return [
     'sick' => 'Sick',
     'time' => 'Time',
     'module' => 'Module',
+    'module_group_general' => 'General',
+    'module_group_tu' => 'Administration',
     'access_rights' => 'Access Rights',
     'group' => 'Group',
     'move_history' => 'Move History',

@@ -475,7 +475,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * Kartu pintasan fitur TU untuk pegawai pemegang modul (Kasir, Kasir Unit,
+     * Kartu pintasan untuk pegawai pemegang modul (Kelola Akademik/Kepegawaian/Pengadaan Barang, Kasir, Kasir Unit,
      * Bendahara, Penanggung Jawab Tabungan). Kasir Unit tidak punya Pending.
      */
     private function tuCards($user): array
@@ -485,6 +485,19 @@ class DashboardController extends Controller
         }
 
         $cards = [];
+        $module_ids = $user->moduleIds();
+
+        if (in_array(Modules::AdminAcademic, $module_ids, true)) {
+            $cards[] = ['route' => route('academic.class.index'), 'icon' => 'siswa.svg', 'label' => __('label.academic')];
+        }
+
+        if (in_array(Modules::AdminHumanResource, $module_ids, true)) {
+            $cards[] = ['route' => route('hr.employee.index'), 'icon' => 'kehadiran.png', 'label' => __('label.hrd')];
+        }
+
+        if (in_array(Modules::AdminInventory, $module_ids, true)) {
+            $cards[] = ['route' => route('hr.inventory-item.index'), 'icon' => 'pengadaan-barang.png', 'label' => __('label.submission_item')];
+        }
 
         if ($user->hasAccess('kasir') || $user->hasAccess('kasir-unit')) {
             $cards[] = ['route' => route('finance.transaction.bill.index'), 'icon' => 'pembayaran.svg', 'label' => __('label.transaction')];

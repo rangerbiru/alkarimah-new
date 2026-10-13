@@ -41,7 +41,7 @@ class EmployeeController extends Controller
 
     public function rights(Employee $employee)
     {
-        $module = Module::select('id', 'name', 'description')->orderBy('name')->get();
+        $module = Module::select('id', 'name', 'description')->orderBy('id')->get()->keyBy('id');
         $module_rights = ModuleRights::select('id_module')->whereIdUser($employee->id_user)->pluck('id_module', 'id_module')->toArray();
 
         $educations = Common::option('education_level');
@@ -56,6 +56,7 @@ class EmployeeController extends Controller
             'icon' => $this->icon,
             'employee' => $employee,
             'module' => $module,
+            'module_groups' => Modules::Groups,
             'module_rights' => $module_rights,
             'educations' => $educations,
             'selected_educations' => $selected_educations,
