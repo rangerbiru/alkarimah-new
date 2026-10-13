@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\Access;
 use App\Http\Middleware\AccessRights;
 use App\Http\Middleware\InitializeBackend;
 use App\Http\Middleware\Role;
@@ -19,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'initialize.backend' => InitializeBackend::class,
             'role' => Role::class,
+            'access' => Access::class,
             'accessRights' => AccessRights::class,
         ]);
 

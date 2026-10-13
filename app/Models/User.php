@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 
+use App\Constants\Modules;
 use App\Enums\Gender;
 use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -20,6 +21,8 @@ use Spatie\Activitylog\Traits\LogsActivity;
 class User extends Authenticatable
 {
     use HasFactory, LogsActivity, Notifiable, SoftDeletes;
+
+    private ?array $moduleIdsCache = null;
 
     protected $guarded = ['id', 'created_at', 'created_by', 'updated_at', 'updated_by', 'deleted_at', 'deleted_by'];
 
@@ -282,6 +285,39 @@ class User extends Authenticatable
     public function scopePenanggungJawabTabungan($query)
     {
         return $query->whereRole(UserRole::PenanggungJawabTabungan->value);
+    }
+
+    /**
+     * True bila role user sama dengan $access, atau user berrole pegawai yang
+     * memegang modul untuk akses TU tersebut (App\Constants\Modules::ByAccess).
+     * Admin hanya lolos untuk akses 'admin'.
+     */
+    public function hasAccess(string $access): bool
+    {
+        if ($this->role->value === $access) {
+            return true;
+        }
+
+        if ($this->role !== UserRole::Pegawai) {
+            return false;
+        }
+
+        $module = Modules::ByAccess[$access] ?? null;
+
+        return $module !== null && in_array($module, $this->moduleIds(), true);
+    }
+
+    /**
+     * ID modul (module_rights) yang dipegang user, di-cache per instance.
+     *
+     * @return array<int, int>
+     */
+    public function moduleIds(): array
+    {
+        return $this->moduleIdsCache ??= ModuleRights::where('id_user', $this->id)
+            ->pluck('id_module')
+            ->map(fn ($id) => (int) $id)
+            ->all();
     }
 
     public function hasRole($role)
