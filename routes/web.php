@@ -77,8 +77,8 @@ Route::group(['middleware' => ['auth', 'initialize.backend']], function () {
         Route::get('/attendance/export', [DashboardController::class, 'exportExcel'])->name('attendance.export');
 
         // Employee Attendance
-        Route::post('attendance/in', [AttendanceController::class, 'attendanceIn'])->name('dashboard.employee.attendanceIn')->middleware('role:kasir,pegawai,kepala-sekolah,wali-kelas,admin,penanggungJawabTabungan');
-        Route::post('attendance/out', [AttendanceController::class, 'attendanceOut'])->name('dashboard.employee.attendanceOut')->middleware('role:kasir,pegawai,kepala-sekolah,wali-kelas,admin,penanggungJawabTabungan');
+        Route::post('attendance/in', [AttendanceController::class, 'attendanceIn'])->name('dashboard.employee.attendanceIn')->middleware('role:kasir,pegawai,kepala-sekolah,wali-kelas,admin,penanggung-jawab-tabungan');
+        Route::post('attendance/out', [AttendanceController::class, 'attendanceOut'])->name('dashboard.employee.attendanceOut')->middleware('role:kasir,pegawai,kepala-sekolah,wali-kelas,admin,penanggung-jawab-tabungan');
         Route::post('attendance/reason', [AttendanceController::class, 'storeReason'])->name('dashboard.employee.attendance.reason');
     });
 
