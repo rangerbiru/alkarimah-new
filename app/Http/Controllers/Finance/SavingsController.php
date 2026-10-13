@@ -93,7 +93,7 @@ class SavingsController extends Controller
 
     public function history(Request $request) // Role: Orang Tua
     {
-        if (Auth::user()->role->value == UserRole::Kasir->value || Auth::user()->role->value == UserRole::KasirUnit->value)
+        if (Auth::user()->hasAccess('kasir') || Auth::user()->hasAccess('kasir-unit'))
             return $this->historyCashier($request);
         else
             return $this->historyParent();
@@ -385,7 +385,7 @@ class SavingsController extends Controller
 
     public function store(SavingsDepositRequest $request)
     {
-        if (Auth::user()->role->value == UserRole::Kasir->value || Auth::user()->role->value == UserRole::KasirUnit->value)
+        if (Auth::user()->hasAccess('kasir') || Auth::user()->hasAccess('kasir-unit'))
             return $this->storeCashier($request);
         else // Orang Tua
             return $this->storeParent($request);

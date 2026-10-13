@@ -89,21 +89,21 @@ class User extends Authenticatable
     protected function isBendahara(): Attribute
     {
         return Attribute::make(
-            get: fn () => Auth::user()->role == UserRole::Bendahara
+            get: fn () => $this->hasAccess('bendahara')
         );
     }
 
     protected function isKasir(): Attribute
     {
         return Attribute::make(
-            get: fn () => Auth::user()->role == UserRole::Kasir
+            get: fn () => $this->hasAccess('kasir')
         );
     }
 
     protected function isKasirUnit(): Attribute
     {
         return Attribute::make(
-            get: fn () => Auth::user()->role == UserRole::KasirUnit
+            get: fn () => $this->hasAccess('kasir-unit')
         );
     }
 
@@ -134,7 +134,7 @@ class User extends Authenticatable
      */
     public function hasPimpinanAccess(): bool
     {
-        if ($this->role == UserRole::KepalaSekolah) {
+        if ($this->hasAccess('kepala-sekolah')) {
             return true;
         }
 
@@ -297,6 +297,21 @@ class User extends Authenticatable
         }
 
         $this->unsetRelation('educationLevels');
+    }
+
+    /**
+     * User yang boleh dipilih sebagai wali kelas: akun wali-kelas, atau pegawai
+     * pemegang modul Wali Kelas.
+     */
+    public function scopeWaliKelasCandidates($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('role', UserRole::WaliKelas->value)
+                ->orWhere(function ($q) {
+                    $q->where('role', UserRole::Pegawai->value)
+                        ->whereIn('id', ModuleRights::select('id_user')->where('id_module', Modules::WaliKelas));
+                });
+        });
     }
 
     public function scopePenanggungJawabTabungan($query)

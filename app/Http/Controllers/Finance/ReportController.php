@@ -209,11 +209,11 @@ class ReportController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->role == UserRole::KepalaSekolah) {
+        if ($user->hasAccess('kepala-sekolah')) {
             $allowedClassIds = $user->allowedClassIds();
         } elseif ($user->hasPimpinanAccess()) {
             $allowedClassIds = null;
-        } elseif ($user->role == UserRole::WaliKelas) {
+        } elseif ($user->hasAccess('wali-kelas')) {
             $allowedClassIds = $user->allowedClassIds();
         } elseif ($user->role == UserRole::Pegawai) {
             abort(403);

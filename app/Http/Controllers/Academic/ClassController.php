@@ -80,7 +80,7 @@ class ClassController extends Controller
     public function create()
     {
         $educations = Common::option('education_level');
-        $wali_kelas = User::select('id', 'name')->whereRole(UserRole::WaliKelas)->orderBy('name')->pluck('name', 'id');
+        $wali_kelas = User::select('id', 'name')->waliKelasCandidates()->orderBy('name')->pluck('name', 'id');
 
         return view($this->path.'create', [
             'title' => __($this->title),
@@ -100,7 +100,7 @@ class ClassController extends Controller
     public function edit(Classroom $class)
     {
         $educations = Common::option('education_level');
-        $wali_kelas = User::select('id', 'name')->whereRole(UserRole::WaliKelas)->orderBy('name')->pluck('name', 'id');
+        $wali_kelas = User::select('id', 'name')->waliKelasCandidates()->orderBy('name')->pluck('name', 'id');
 
         return view($this->path.'edit', [
             'title' => __($this->title),
