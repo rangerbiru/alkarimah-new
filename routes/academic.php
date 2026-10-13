@@ -47,9 +47,9 @@ Route::resource('asrama', AcademicAsramaController::class, ['as' => 'academic'])
 
 Route::prefix('class')->group(function () {
     Route::post('datatable', [AcademicClassController::class, 'datatable'])->name('academic.class.datatable')->middleware('role:admin');
-    Route::post('get/option', [AcademicClassController::class, 'getOption'])->name('academic.class.get.option')->middleware('role:admin,kasir');
-    Route::post('get/option/level', [AcademicClassController::class, 'getOptionLevel'])->name('academic.class.get.option.level')->middleware('role:admin,kasir');
-    Route::post('get/option/level-class', [AcademicClassController::class, 'getOptionLevelClass'])->name('academic.class.get.option.level-class')->middleware('role:kasir,bendahara');
+    Route::post('get/option', [AcademicClassController::class, 'getOption'])->name('academic.class.get.option')->middleware('access:admin,kasir');
+    Route::post('get/option/level', [AcademicClassController::class, 'getOptionLevel'])->name('academic.class.get.option.level')->middleware('access:admin,kasir');
+    Route::post('get/option/level-class', [AcademicClassController::class, 'getOptionLevelClass'])->name('academic.class.get.option.level-class')->middleware('access:kasir,bendahara');
 });
 Route::resource('class', AcademicClassController::class, ['as' => 'academic'])->except(['show'])->middleware('role:admin');
 
