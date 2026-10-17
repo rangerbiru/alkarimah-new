@@ -4,7 +4,7 @@
 <p class="h4 fw-semibold mb-2">{{ __('label.reset_password') }}</p>
 <p class="mb-3 text-muted op-7 fw-normal">{{ __('string.please_fill_your_password') }}</p>
 
-<form id="form-register" method="post" action="{{ route('auth.store.reset-password', $user->encrypted_id) }}" class="form-block mb-4">
+<form id="form-register" method="post" action="{{ route('auth.store.reset-password') }}" class="form-block mb-4">
     @csrf
 
     @isset($errors->all()[0])

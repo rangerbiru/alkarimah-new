@@ -85,4 +85,7 @@ return [
     'kepala_sekolah_reverted' => 'Role Kepala Sekolah dicabut, akun dikembalikan menjadi Pegawai.',
     'kepala_sekolah_edit_info' => 'Data pribadi kepala sekolah diubah lewat menu Pegawai (HR). Di sini hanya jenjang yang dipegang yang dapat diubah.',
     'kasir_unit_level_info' => 'Kosongkan agar akun ini tidak dibatasi jenjang. Bila diisi, Kasir Unit hanya melihat dan memproses data pada jenjang yang dipilih.',
+    'otp_session_invalid' => 'Sesi verifikasi tidak valid atau sudah berakhir, silakan ulangi dari awal.',
+    'otp_too_many_attempts' => 'Terlalu banyak percobaan kode verifikasi, silakan minta kode baru.',
+    'choose_account_to_reset' => 'Nomor ini dipakai oleh lebih dari satu akun. Pilih akun yang ingin direset passwordnya.',
 ];

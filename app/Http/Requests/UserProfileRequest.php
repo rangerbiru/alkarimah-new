@@ -29,6 +29,7 @@ class UserProfileRequest extends FormRequest
                 'name' => 'required|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users,email',
                 'phone' => 'required|string|max:15',
+                'gender' => 'sometimes|in:male,female',
             ];
 
             if ($this->method() == 'PUT') {

@@ -897,6 +897,15 @@ class TahfidzController extends Controller
 
     private function sendToWa($phone_no, $message)
     {
+        if (! \App\Helpers\Whatsapp::enabled()) {
+            \Illuminate\Support\Facades\Log::info('Whatsapp Send skipped (non-production atau WHATSAPP_ENABLED=false)', [
+                'phone' => $phone_no,
+                'message' => $message,
+            ]);
+
+            return null;
+        }
+
         $message = preg_replace("/(\n)/", '<ENTER>', $message);
         $message = preg_replace("/(\r)/", '<ENTER>', $message);
 

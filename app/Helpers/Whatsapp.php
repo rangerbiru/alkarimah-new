@@ -8,8 +8,25 @@ use Illuminate\Support\Facades\Log;
 class Whatsapp
 {
 
+    /**
+     * Pesan hanya benar-benar dikirim di production dan bila WHATSAPP_ENABLED tidak false.
+     */
+    public static function enabled(): bool
+    {
+        return app()->environment('production') && filter_var(config('services.whatsapp.enabled', true), FILTER_VALIDATE_BOOLEAN);
+    }
+
     public static function send($phone, $message)
     {
+        if (! self::enabled()) {
+            Log::info('Whatsapp Send skipped (non-production atau WHATSAPP_ENABLED=false)', [
+                'phone' => $phone,
+                'message' => $message,
+            ]);
+
+            return true;
+        }
+
         $data = [
             'phone_no' => Common::phoneAddCountryCode($phone),
             'key' => 'da0826f6603f9729df86a85f6023ee4deb89edf78d381b61',

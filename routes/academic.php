@@ -111,7 +111,7 @@ Route::prefix('student')->group(function () {
 
     Route::put('parent/{student}', [AcademicStudentController::class, 'updateParent'])->name('academic.student.update.parent')->middleware('role:orang-tua');
 
-    Route::post('/import', [AcademicStudentController::class, 'import'])->name('student.import');
+    Route::post('/import', [AcademicStudentController::class, 'import'])->name('student.import')->middleware(['role:admin,pegawai', 'accessRights:'.Modules::AdminAcademic]);
 });
 
 Route::resource('student-permit', AcademicStudentPermitController::class, ['as' => 'academic'])->except(['show']);

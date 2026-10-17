@@ -21,17 +21,19 @@ Route::get('register', [AuthController::class, 'register'])->name('auth.register
 Route::get('register/verification/{parent}', [AuthController::class, 'registerVerification'])->name('auth.register.verification');
 Route::get('register/password/{parent}', [AuthController::class, 'registerPassword'])->name('auth.register.password');
 Route::get('forgot-password', [AuthController::class, 'forgotPassword'])->name('auth.forgot-password');
-Route::get('forgot-password/verification/{user}', [AuthController::class, 'forgotPasswordVerification'])->name('auth.forgot-password.verification');
-Route::get('reset-password/{token}', [AuthController::class, 'resetPassword'])->name('auth.reset-password');
+Route::get('forgot-password/verification', [AuthController::class, 'forgotPasswordVerification'])->name('auth.forgot-password.verification');
+Route::get('forgot-password/accounts', [AuthController::class, 'forgotPasswordAccounts'])->name('auth.forgot-password.accounts');
+Route::get('reset-password', [AuthController::class, 'resetPassword'])->name('auth.reset-password');
 Route::get('logout', [AuthController::class, 'logout'])->name('auth.logout');
 Route::get('kebijakan-privasi-si-alka', [PageController::class, 'privacyPolicy']);
 
-Route::post('register', [AuthController::class, 'storeRegister'])->name('auth.store.register');
-Route::post('register/verification/{parent}', [AuthController::class, 'storeRegisterVerification'])->name('auth.store.register.verification');
+Route::post('register', [AuthController::class, 'storeRegister'])->name('auth.store.register')->middleware('throttle:5,1');
+Route::post('register/verification/{parent}', [AuthController::class, 'storeRegisterVerification'])->name('auth.store.register.verification')->middleware('throttle:10,1');
 Route::post('register/password/{parent}', [AuthController::class, 'storeRegisterPassword'])->name('auth.store.register-password');
-Route::post('forgot-password', [AuthController::class, 'storeForgotPassword'])->name('auth.store.forgot-password');
-Route::post('forgot-password/verification/{user}', [AuthController::class, 'storeForgotPasswordVerification'])->name('auth.store.forgot-password.verification');
-Route::post('reset-password/{user}', [AuthController::class, 'storeResetPassword'])->name('auth.store.reset-password');
+Route::post('forgot-password', [AuthController::class, 'storeForgotPassword'])->name('auth.store.forgot-password')->middleware('throttle:5,1');
+Route::post('forgot-password/verification', [AuthController::class, 'storeForgotPasswordVerification'])->name('auth.store.forgot-password.verification')->middleware('throttle:10,1');
+Route::post('forgot-password/accounts', [AuthController::class, 'storeForgotPasswordAccounts'])->name('auth.store.forgot-password.accounts');
+Route::post('reset-password', [AuthController::class, 'storeResetPassword'])->name('auth.store.reset-password');
 Route::post('authenticate', [AuthController::class, 'authenticate'])->name('auth.authenticate');
 Route::post('moota/notification/{bank}', [MootaController::class, 'notification'])->whereIn('bank', ['bsi'])->name('moota.notification');
 Route::get('captcha-refresh', [CaptchaController::class, 'refresh'])->name('captcha.refresh');
@@ -82,14 +84,14 @@ Route::group(['middleware' => ['auth', 'initialize.backend']], function () {
         Route::post('attendance/reason', [AttendanceController::class, 'storeReason'])->name('dashboard.employee.attendance.reason');
     });
 
-    Route::post('branch/datatable', [BranchController::class, 'datatable'])->name('branch.datatable');
-    Route::resource('branch', BranchController::class)->except(['show']);
+    Route::post('branch/datatable', [BranchController::class, 'datatable'])->name('branch.datatable')->middleware('role:admin,super-admin');
+    Route::resource('branch', BranchController::class)->except(['show'])->middleware('role:admin,super-admin');
 
     Route::post('icon/datatable', [IconController::class, 'datatable'])->name('icon.datatable');
 
     Route::post('region/option', [RegionController::class, 'option'])->name('region.option');
 
-    Route::prefix('setting')->group(function () {
+    Route::prefix('setting')->middleware('role:admin,super-admin')->group(function () {
         Route::get('/', [SettingAppController::class, 'index'])->name('setting.index');
         Route::put('{setting}', [SettingAppController::class, 'update'])->name('setting.update');
 
@@ -102,7 +104,7 @@ Route::group(['middleware' => ['auth', 'initialize.backend']], function () {
         });
     });
 
-    Route::prefix('user')->group(function () {
+    Route::prefix('user')->middleware('role:admin,super-admin')->group(function () {
         Route::get('{role}', [UserController::class, 'index'])->where('role', 'bendahara|kasir|kasir\-unit|wali\-kelas|penanggung\-jawab\-tabungan|kepala\-sekolah')->name('user.index');
         Route::get('create/{role}', [UserController::class, 'create'])->where('role', 'bendahara|kasir|kasir\-unit|wali\-kelas|penanggung\-jawab\-tabungan|kepala\-sekolah')->name('user.create');
         Route::post('datatable', [UserController::class, 'datatable'])->name('user.datatable');
@@ -110,9 +112,9 @@ Route::group(['middleware' => ['auth', 'initialize.backend']], function () {
         Route::get('kepala-sekolah/{user}/edit', [UserController::class, 'editKepalaSekolah'])->name('user.edit.kepala-sekolah')->middleware('role:admin');
         Route::put('kepala-sekolah/{user}', [UserController::class, 'updateKepalaSekolah'])->name('user.update.kepala-sekolah')->middleware('role:admin');
     });
-    Route::resource('user', UserController::class)->except(['index', 'create', 'show']);
+    Route::resource('user', UserController::class)->except(['index', 'create', 'show'])->middleware('role:admin,super-admin');
 
-    Route::post('whatsapp/send/bill-due-date', [WhatsappController::class, 'sendBillDueDate'])->name('whatsapp.send.bill-due-date');
+    Route::post('whatsapp/send/bill-due-date', [WhatsappController::class, 'sendBillDueDate'])->name('whatsapp.send.bill-due-date')->middleware('access:kasir');
 
     Route::get('profile', [UserController::class, 'editProfile'])->name('user.profile');
     Route::put('profile', [UserController::class, 'updateProfile'])->name('user.profile.update');

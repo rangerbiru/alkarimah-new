@@ -12,6 +12,9 @@ use App\Http\Requests\AuthVerificationRequest;
 use App\Models\Parents;
 use App\Models\Student;
 use App\Models\User;
+use App\Support\OtpFlag;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Redirect;
@@ -47,6 +50,10 @@ class AuthController extends Controller
 
     public function registerPassword(Parents $parent)
     {
+        if (! $this->registerOtpVerified($parent)) {
+            return Redirect::route('auth.register')->withErrors(__('string.otp_session_invalid'));
+        }
+
         return view($this->path.'register-password', [
             'parent' => $parent,
         ]);
@@ -61,16 +68,43 @@ class AuthController extends Controller
         return view($this->path.'forgot-password');
     }
 
-    public function forgotPasswordVerification(User $user)
+    public function forgotPasswordVerification()
     {
+        $context = session('forgot_password');
+
+        if (! is_array($context)) {
+            return Redirect::route('auth.forgot-password')->withErrors(__('string.otp_session_invalid'));
+        }
+
         return view($this->path.'forgot-password-verification', [
-            'user' => $user,
+            'phone' => $context['phone'],
         ]);
     }
 
-    public function resetPassword($token)
+    public function forgotPasswordAccounts()
     {
-        $user = User::select('id')->whereToken(Crypt::decrypt($token))->firstOrFail();
+        $phone = $this->forgotVerifiedPhone();
+
+        if ($phone === null) {
+            return Redirect::route('auth.forgot-password')->withErrors(__('string.otp_session_invalid'));
+        }
+
+        $accounts = User::wherePhone($phone)->orderBy('id')->get()->map(fn (User $u) => (object) [
+            'id' => $u->encrypted_id,
+            'name' => $u->name,
+            'role' => $this->roleLabel($u->role->value),
+        ]);
+
+        return view($this->path.'forgot-password-accounts', ['accounts' => $accounts]);
+    }
+
+    public function resetPassword()
+    {
+        $user = $this->forgotVerifiedUser();
+
+        if ($user === null) {
+            return Redirect::route('auth.forgot-password')->withErrors(__('string.otp_session_invalid'));
+        }
 
         return view($this->path.'reset-password', [
             'user' => $user,
@@ -153,7 +187,7 @@ class AuthController extends Controller
     {
         $error = false;
 
-        if ($parent->token != $request->code) {
+        if (empty($parent->token) || ! hash_equals((string) $parent->token, (string) $request->code)) {
             $error = __('validation.captcha', ['attribute' => __('label.verification_code')]);
         }
 
@@ -177,11 +211,21 @@ class AuthController extends Controller
             return Redirect::route('auth.register.verification', $parent->encrypted_id)->withErrors($error)->withInput();
         }
 
+        OtpFlag::grant('register', ['parent' => $parent->id, 'phone' => $parent->phone]);
+
+        $parent->token = null;
+        $parent->token_expired_at = null;
+        $parent->save();
+
         return Redirect::route('auth.register.password', $parent->encrypted_id);
     }
 
     public function storeRegisterPassword(AuthPasswordRequest $request, Parents $parent)
     {
+        if (! $this->registerOtpVerified($parent)) {
+            return Redirect::route('auth.register')->withErrors(__('string.otp_session_invalid'));
+        }
+
         $user = User::create([
             'name' => $parent->name,
             'email' => strtolower(explode(' ', $parent->name)[0]).'_'.$parent->id.'@binabbas.org',
@@ -201,79 +245,185 @@ class AuthController extends Controller
             'email' => strtolower(explode(' ', $parent->name)[0]).'_'.$user->id.'@binabbas.org',
         ]);
 
+        OtpFlag::forget('register');
+
         return Redirect::route('base')->with('success', __('message.registration_success'));
     }
 
     public function storeForgotPassword(AuthForgotPasswordRequest $request)
     {
-        $error = false;
-        $user = User::select('id', 'phone')->wherePhone($request->phone)->first();
+        $phone = $request->phone;
+        $digits = preg_replace('/\D/', '', (string) $phone);
 
-        if (empty($user)) {
-            $error = __('string.account_not_found');
+        // Nomor kosong / "0" / terlalu pendek tidak pernah dianggap akun yang valid
+        $found = strlen($digits) >= 8 && User::wherePhone($phone)->exists();
+
+        if (! $found) {
+            return Redirect::route('auth.forgot-password')->withErrors(__('string.account_not_found'))->withInput();
         }
 
-        if ($error == false) {
-            $user->token = rand(111111, 999999);
-            $user->token_expired_at = date('Y-m-d H:i:s', strtotime('+10 minute'));
-            $user->save();
+        $this->startForgotOtp($phone);
 
-            $message = "*Pondok Pesantren*\n";
-            $message .= "*Al-Karimah*\n\n";
-            $message .= 'Berikut ini adalah Kode Verifikasi Anda : *'.$user->token."*\n\n";
-            $message .= "Kode ini hanya berlaku 10 menit. JANGAN BAGIKAN kode verifikasi ini kepada siapapun.\n\n";
-            $message .= '```app.alkarimah.org```';
-
-            Whatsapp::send($user->phone, $message);
-        }
-
-        if ($error !== false) {
-            return Redirect::route('auth.forgot-password')->withErrors($error)->withInput();
-        }
-
-        return Redirect::route('auth.forgot-password.verification', $user->encrypted_id);
+        return Redirect::route('auth.forgot-password.verification');
     }
 
-    public function storeForgotPasswordVerification(AuthVerificationRequest $request, User $user)
+    public function storeForgotPasswordVerification(AuthVerificationRequest $request)
     {
-        $error = false;
+        $context = session('forgot_password');
 
-        if ($user->token != $request->code) {
+        if (! is_array($context)) {
+            return Redirect::route('auth.forgot-password')->withErrors(__('string.otp_session_invalid'));
+        }
+
+        $error = false;
+        $context['attempts'] = ($context['attempts'] ?? 0) + 1;
+
+        if ($context['attempts'] > 5) {
+            session()->forget('forgot_password');
+
+            return Redirect::route('auth.forgot-password')->withErrors(__('string.otp_too_many_attempts'));
+        }
+
+        session()->put('forgot_password', $context);
+
+        if ($context['expires_at'] < now()->getTimestamp()) {
+            $error = __('string.verification_code_expired');
+            $this->startForgotOtp($context['phone']);
+        } elseif (! hash_equals((string) $context['code'], (string) $request->code)) {
             $error = __('validation.captcha', ['attribute' => __('label.verification_code')]);
         }
 
-        if ($error == false && strtotime($user->token_expired_at) < strtotime(date('Y-m-d H:i:s'))) {
-            $error = __('string.verification_code_expired');
-
-            $user->token = rand(111111, 999999);
-            $user->token_expired_at = date('Y-m-d H:i:s', strtotime('+10 minute'));
-            $user->save();
-
-            $message = "*Pondok Pesantren*\n";
-            $message .= "*Al-Karimah*\n\n";
-            $message .= 'Berikut ini adalah Kode Verifikasi Anda : *'.$user->token."*\n\n";
-            $message .= "Kode ini hanya berlaku 10 menit. JANGAN BAGIKAN kode verifikasi ini kepada siapapun.\n\n";
-            $message .= '```app.alkarimah.org```';
-
-            Whatsapp::send($user->phone, $message);
-        }
-
         if ($error !== false) {
-            return Redirect::route('auth.forgot-password.verification', $user->encrypted_id)->withErrors($error)->withInput();
+            return Redirect::route('auth.forgot-password.verification')->withErrors($error)->withInput();
         }
 
-        return Redirect::route('auth.reset-password', Crypt::encrypt($user->token));
+        session()->forget('forgot_password');
+        session()->put('forgot_password_phone', $context['phone']);
+        OtpFlag::grant('forgot_phone', ['phone' => $context['phone']]);
+
+        $users = User::wherePhone($context['phone'])->get();
+
+        if ($users->count() === 1) {
+            $this->grantForgotUser($context['phone'], $users->first());
+
+            return Redirect::route('auth.reset-password');
+        }
+
+        return Redirect::route('auth.forgot-password.accounts');
     }
 
-    public function storeResetPassword(AuthPasswordRequest $request, User $user)
+    public function storeForgotPasswordAccounts(Request $request)
     {
+        $phone = $this->forgotVerifiedPhone();
+
+        if ($phone === null) {
+            return Redirect::route('auth.forgot-password')->withErrors(__('string.otp_session_invalid'));
+        }
+
+        $request->validate(['account' => 'required|string']);
+
+        try {
+            $id = Crypt::decrypt($request->account);
+        } catch (\Throwable) {
+            return Redirect::route('auth.forgot-password.accounts')->withErrors(__('string.account_not_found'));
+        }
+
+        // Hanya akun yang memakai nomor yang sudah terverifikasi OTP
+        $user = User::wherePhone($phone)->whereKey($id)->first();
+
+        if (! $user) {
+            return Redirect::route('auth.forgot-password.accounts')->withErrors(__('string.account_not_found'));
+        }
+
+        $this->grantForgotUser($phone, $user);
+
+        return Redirect::route('auth.reset-password');
+    }
+
+    public function storeResetPassword(AuthPasswordRequest $request)
+    {
+        $user = $this->forgotVerifiedUser();
+
+        if ($user === null) {
+            return Redirect::route('auth.forgot-password')->withErrors(__('string.otp_session_invalid'));
+        }
+
         $user->update([
             'password' => $request->password,
             'token' => null,
             'token_expired_at' => null,
         ]);
 
+        OtpFlag::forget('forgot_phone');
+        OtpFlag::forget('forgot_user');
+        session()->forget(['forgot_password_phone', 'forgot_password_user']);
+
         return Redirect::route('base')->with('success', __('message.reset_password_success'));
+    }
+
+    private function registerOtpVerified(Parents $parent): bool
+    {
+        if (! OtpFlag::check('register', ['parent' => $parent->id, 'phone' => $parent->phone])) {
+            return false;
+        }
+
+        // Parent yang sudah punya akun tidak boleh dibuatkan akun baru / diganti passwordnya lewat registrasi
+        return empty($parent->id_user) || ! User::whereKey($parent->id_user)->exists();
+    }
+
+    private function startForgotOtp(string $phone): void
+    {
+        $code = rand(111111, 999999);
+
+        session()->put('forgot_password', [
+            'phone' => $phone,
+            'code' => (string) $code,
+            'expires_at' => now()->addMinutes(10)->getTimestamp(),
+            'attempts' => 0,
+        ]);
+
+        $message = "*Pondok Pesantren*\n";
+        $message .= "*Al-Karimah*\n\n";
+        $message .= 'Berikut ini adalah Kode Verifikasi Anda : *'.$code."*\n\n";
+        $message .= "Kode ini hanya berlaku 10 menit. JANGAN BAGIKAN kode verifikasi ini kepada siapapun.\n\n";
+        $message .= '```app.alkarimah.org```';
+
+        Whatsapp::send($phone, $message);
+    }
+
+    /** Nomor HP yang OTP-nya sudah terverifikasi (masih berlaku), atau null. */
+    private function forgotVerifiedPhone(): ?string
+    {
+        $phone = session('forgot_password_phone');
+
+        return $phone && OtpFlag::check('forgot_phone', ['phone' => $phone]) ? $phone : null;
+    }
+
+    private function grantForgotUser(string $phone, User $user): void
+    {
+        session()->put('forgot_password_user', $user->id);
+        OtpFlag::grant('forgot_user', ['phone' => $phone, 'user' => $user->id]);
+    }
+
+    /** Akun yang dipilih (OTP nomornya terverifikasi), atau null. */
+    private function forgotVerifiedUser(): ?User
+    {
+        $phone = $this->forgotVerifiedPhone();
+        $userId = session('forgot_password_user');
+
+        if ($phone === null || ! $userId || ! OtpFlag::check('forgot_user', ['phone' => $phone, 'user' => $userId])) {
+            return null;
+        }
+
+        // Nomor akun harus masih sama dengan nomor yang diverifikasi
+        return User::whereKey($userId)->wherePhone($phone)->first();
+    }
+
+    private function roleLabel(string $role): string
+    {
+        $key = 'label.'.str_replace('-', '_', $role);
+
+        return Lang::has($key) ? __($key) : ucwords(str_replace('-', ' ', $role));
     }
 
     public function logout()

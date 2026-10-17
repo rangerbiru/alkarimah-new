@@ -716,4 +716,5 @@ return [
 
     'total_payment' => 'Jumlah Bayar',
     'saving_deposit' => 'Setoran Tabungan',
+    'choose_account' => 'Pilih Akun',
 ];

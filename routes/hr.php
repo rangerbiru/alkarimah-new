@@ -30,7 +30,8 @@ Route::prefix('employee')->group(function () {
     Route::post('rights/{employee}', [HrEmployeeController::class, 'storeRights'])->name('hr.employee.store.rights')->middleware('role:admin');
 
     Route::post('/import', [HrEmployeeController::class, 'import'])
-        ->name('employee.import');
+        ->name('employee.import')
+        ->middleware(['role:admin,pegawai', 'accessRights:'.Modules::AdminHumanResource]);
 });
 Route::resource('employee', HrEmployeeController::class, ['as' => 'hr'])->except(['show'])->middleware(['role:admin,pegawai', 'accessRights:'.Modules::AdminHumanResource]);
 

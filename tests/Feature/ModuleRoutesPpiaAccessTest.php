@@ -23,6 +23,15 @@ class ModuleRoutesPpiaAccessTest extends ModuleAccessTestCase
         'wali-kelas', 'kepala-sekolah', 'pegawai', 'orang-tua',
     ];
 
+    /**
+     * Route yang sengaja dikunci pada perbaikan keamanan (docs/deploy/*-bagian-1-keamanan.md):
+     * dulu tanpa middleware (terbuka untuk semua role), kini dibatasi. Perubahan izin -> tolak
+     * pada route ini diizinkan; kebalikannya (tolak -> izin) tetap dilarang.
+     */
+    private const SECURITY_LOCKED = [
+        'branch.', 'setting.', 'user.', 'whatsapp.send.bill-due-date', 'student.import', 'employee.import',
+    ];
+
     private const GRANTING = [Modules::AdminAcademic, Modules::AdminHumanResource, Modules::AdminInventory];
 
     /** @return array<string, User> persona => user */
@@ -122,6 +131,14 @@ class ModuleRoutesPpiaAccessTest extends ModuleAccessTestCase
                 $checks++;
 
                 if ($was === $now) {
+                    continue;
+                }
+
+                $tightened = $was && ! $now && collect(self::SECURITY_LOCKED)->contains(
+                    fn ($prefix) => str_starts_with($name, $prefix)
+                );
+
+                if ($tightened) {
                     continue;
                 }
 

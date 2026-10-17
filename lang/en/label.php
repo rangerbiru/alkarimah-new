@@ -441,4 +441,5 @@ return [
     'nov' => 'Nov',
     'dec' => 'Dec',
     'hr' => 'Hr', // Hour
+    'choose_account' => 'Choose Account',
 ];

@@ -19,6 +19,15 @@ use Illuminate\Support\Facades\Redirect;
 
 class UserController extends Controller
 {
+    /** Role yang dikelola lewat menu User (dibuat/diubah di form User). */
+    public const MANAGED_ROLES = [
+        'bendahara',
+        'kasir',
+        'kasir-unit',
+        'wali-kelas',
+        'penanggung-jawab-tabungan',
+    ];
+
     private $title = 'label.user';
 
     private $icon = 'bx bx-user';
@@ -44,6 +53,8 @@ class UserController extends Controller
         $search = $request->input('search')['value'];
         $limit = $request->input('length');
         $start = $request->input('start');
+
+        abort_unless(in_array($request->role, array_merge(self::MANAGED_ROLES, [UserRole::KepalaSekolah->value]), true), 404);
 
         $user = User::select('id', 'name', 'phone', 'email', 'gender')
             ->whereBranchId(Auth::user()->branch_id)
@@ -201,10 +212,23 @@ class UserController extends Controller
         return Redirect::route('user.index', UserRole::KepalaSekolah->value)->with('success', __('message.update_success', ['label' => __('label.kepala_sekolah')]));
     }
 
+    /**
+     * Akun yang boleh disentuh form User: role yang dikelola menu ini (atau kepala sekolah)
+     * di cabang admin yang sedang login. Mencegah mengubah/menghapus akun admin, pegawai, ortu, dll.
+     */
+    private function ensureManageable(User $user): void
+    {
+        $allowed = array_merge(self::MANAGED_ROLES, [UserRole::KepalaSekolah->value]);
+
+        if (! in_array($user->role->value, $allowed, true) || $user->branch_id != Auth::user()->branch_id) {
+            abort(404);
+        }
+    }
+
     public function store(UserRequest $request)
     {
         DB::transaction(function () use ($request) {
-            $user = User::create($request->all());
+            $user = User::create($request->safe()->only(['name', 'phone', 'email', 'gender', 'role', 'password']));
 
             switch ($user->role->value) {
                 case UserRole::Bendahara->value:
@@ -245,6 +269,8 @@ class UserController extends Controller
 
     public function edit(Request $request, User $user)
     {
+        $this->ensureManageable($user);
+
         $role = $user->role->value;
         $genders = Common::option('gender');
 
@@ -261,8 +287,12 @@ class UserController extends Controller
 
     public function update(UserRequest $request, User $user)
     {
-        if (empty($request->password)) {
-            unset($request->password);
+        $this->ensureManageable($user);
+
+        $data = $request->safe()->only(['name', 'phone', 'email', 'gender']);
+
+        if (filled($request->password)) {
+            $data['password'] = $request->password;
         }
 
         $isKasirUnit = $user->role == UserRole::KasirUnit;
@@ -277,8 +307,8 @@ class UserController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($request, $user, $isKasirUnit) {
-            $user->update($request->except('level_education'));
+        DB::transaction(function () use ($request, $user, $isKasirUnit, $data) {
+            $user->update($data);
 
             // Kasir Unit lama: kosong = tanpa batas jenjang
             if ($isKasirUnit) {
@@ -291,6 +321,8 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
+        $this->ensureManageable($user);
+
         // Akun kepala sekolah adalah akun pegawai, jadi cukup dikembalikan ke role pegawai
         if ($user->role == UserRole::KepalaSekolah) {
             DB::transaction(function () use ($user) {
@@ -331,7 +363,7 @@ class UserController extends Controller
     public function updateProfile(UserProfileRequest $request)
     {
         $user = Auth::user();
-        $user->update($request->all());
+        $user->update($request->safe()->only(['name', 'email', 'phone', 'gender']));
 
         return Redirect::route('user.profile')->with('success', __('message.update_success', ['label' => __($this->title)]));
     }

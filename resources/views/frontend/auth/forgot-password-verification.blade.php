@@ -3,11 +3,11 @@
 @section('content')
 <p class="h4 fw-semibold mb-2">{{ __('label.whatsapp_verification') }}</p>
 <div class="mb-3">
-    Kami telah mengirim Kode Verifikasi ke Akun Whatsapp Anda dengan Nomor : <b>{{ Common::phoneFormat($user->phone) }}</b>.
+    Kami telah mengirim Kode Verifikasi ke Akun Whatsapp Anda dengan Nomor : <b>{{ Common::phoneFormat($phone) }}</b>.
     Silahkan cek dan masukan Kode yang Anda terima pada form dibawah ini :
 </div>
 
-<form id="form-register" method="post" action="{{ route('auth.store.forgot-password.verification', $user->encrypted_id) }}" class="form-block mb-4">
+<form id="form-register" method="post" action="{{ route('auth.store.forgot-password.verification') }}" class="form-block mb-4">
     @csrf
 
     @isset($errors->all()[0])

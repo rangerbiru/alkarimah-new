@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Controllers\UserController;
+use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -29,26 +31,42 @@ class UserRequest extends FormRequest
      */
     public function rules(): array
     {
+        $user = $this->route('user');
+        $isUpdate = $this->method() == 'PUT' && $user instanceof User;
+
         $rules = [
             'name' => 'required|max:100',
-            'phone' => 'required|max:20|unique:branch',
-            'email' => 'required|max:200|email|unique:branch',
-            'gender' => 'required',
+            'phone' => [
+                'required',
+                'max:20',
+                Rule::unique('users', 'phone')->whereNull('deleted_at'),
+            ],
+            'email' => [
+                'required',
+                'max:200',
+                'email',
+                Rule::unique('users', 'email'),
+            ],
+            'gender' => ['required', Rule::in(['male', 'female'])],
+            'role' => ['required', Rule::in(UserController::MANAGED_ROLES)],
             'password' => 'required|min:8',
             'password_confirm' => 'required|same:password',
         ];
 
-        if ($this->method() == 'PUT') {
-            $rules['phone'] = [
-                'required',
-                'max:20',
-                Rule::unique('App\Models\Branch', 'phone')->ignore($this->branch)
-            ];
+        if ($isUpdate) {
+            // Role tidak pernah diubah lewat form ini
+            unset($rules['role']);
+
+            // Nomor HP lama bisa saja dipakai bersama akun lain; hanya periksa bila diganti
+            $rules['phone'] = $this->phone === $user->phone
+                ? 'required|max:20'
+                : ['required', 'max:20', Rule::unique('users', 'phone')->whereNull('deleted_at')->ignore($user->id)];
 
             $rules['email'] = [
                 'required',
                 'max:200',
-                Rule::unique('App\Models\Branch', 'email')->ignore($this->branch)
+                'email',
+                Rule::unique('users', 'email')->ignore($user->id),
             ];
 
             $rules['password'] = 'nullable|min:8';

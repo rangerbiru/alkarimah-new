@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    // Pengiriman WhatsApp hanya nyata di APP_ENV=production DAN WHATSAPP_ENABLED tidak false.
+    'whatsapp' => [
+        'enabled' => env('WHATSAPP_ENABLED', true),
+    ],
+
 ];
