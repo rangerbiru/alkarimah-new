@@ -18,4 +18,11 @@ return [
     'server_busy' => 'Sorry server is busy, please try again later',
     'student_out_of_level' => 'This student is outside the education levels you may access',
     'deposit_already_deposited' => 'Some transactions were already deposited or are outside your education levels; the deposit was cancelled. Reload the transaction list.',
+    'account_link_students_one_parent' => 'The selected students must belong to the same parent record, or none of them may have a parent record.',
+    'account_link_parent_required' => 'Select the students / parent record to link.',
+    'account_link_success' => 'The parent record has been linked to the employee account.',
+    'account_unlink_success' => 'The parent record has been unlinked from the employee account.',
+    'registration_linked_to_employee' => 'Your number belongs to an employee account. Your parent record has been linked; please sign in with your employee account.',
+    'account_link_parent_has_account' => 'This student\'s parent already has an account. Merge it from Parent > Edit > Merge with Employee Account.',
+    'account_link_mixed_selection' => 'Select students that all have a parent record (one parent) or none of them do; do not mix.',
 ];

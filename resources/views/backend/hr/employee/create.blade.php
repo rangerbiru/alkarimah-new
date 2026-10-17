@@ -152,6 +152,8 @@
                 </div>
             </div>
 
+            @include('backend.hr.employee.partials.also-parent')
+
             <x-section-form
                 :label="__('label.user_account')"
                 icon="fa-solid fa-user-circle"

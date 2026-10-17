@@ -18,4 +18,11 @@ return [
     'server_busy' => 'Maaf server sedang sibuk, silahkan coba lagi nanti',
     'student_out_of_level' => 'Siswa ini berada di luar jenjang yang boleh Anda akses',
     'deposit_already_deposited' => 'Sebagian transaksi sudah disetor atau berada di luar jenjang Anda, setoran dibatalkan. Muat ulang daftar transaksi.',
+    'account_link_students_one_parent' => 'Santri yang dipilih harus berasal dari satu data orang tua yang sama, atau semuanya belum punya data orang tua.',
+    'account_link_parent_required' => 'Pilih santri / data orang tua yang akan dihubungkan.',
+    'account_link_success' => 'Data orang tua berhasil dihubungkan ke akun pegawai.',
+    'account_unlink_success' => 'Data orang tua berhasil diputuskan dari akun pegawai.',
+    'registration_linked_to_employee' => 'Nomor Anda terdaftar sebagai akun pegawai. Data orang tua sudah dihubungkan; silakan login dengan akun pegawai Anda.',
+    'account_link_parent_has_account' => 'Orang tua santri ini sudah punya akun. Gabungkan lewat menu Orang Tua > Edit > Gabungkan dengan akun pegawai.',
+    'account_link_mixed_selection' => 'Pilih santri yang semuanya sudah punya data orang tua (satu orang tua) atau semuanya belum punya data orang tua, jangan dicampur.',
 ];

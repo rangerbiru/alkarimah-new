@@ -96,6 +96,24 @@ class ParentController extends Controller
         return response()->json($response);
     }
 
+    /**
+     * Pesan bila nomor HP dimiliki akun staf (pegawai) selain akun orang tua ini: arahkan admin ke
+     * fitur "Gabungkan dengan akun pegawai" alih-alih sekadar "nomor sudah ada".
+     */
+    private function phoneOwnedByStaff(?string $phone, ?int $exceptUserId): ?string
+    {
+        if (empty($phone)) {
+            return null;
+        }
+
+        $staff = User::wherePhone($phone)
+            ->when($exceptUserId, fn ($q) => $q->where('id', '!=', $exceptUserId))
+            ->where('role', '!=', UserRole::OrangTua->value)
+            ->first();
+
+        return $staff ? __('string.phone_owned_by_employee', ['name' => $staff->name]) : null;
+    }
+
     public function create()
     {
         $genders = Common::option('gender');
@@ -114,7 +132,9 @@ class ParentController extends Controller
         $user_count = User::wherePhone($request->phone)->count();
 
         if (!empty($request->password) && $user_count > 0)
-            return Redirect::route('academic.parent.create')->withErrors(__('string.account_with_this_phone_exists'))->withInput();
+            return Redirect::route('academic.parent.create')
+                ->withErrors($this->phoneOwnedByStaff($request->phone, null) ?? __('string.account_with_this_phone_exists'))
+                ->withInput();
 
         DB::transaction(function () use ($request) {
             $merge = [];
@@ -163,12 +183,14 @@ class ParentController extends Controller
     {
         $parent->load('user');
         $genders = Common::option('gender');
+        $linked_employee = app(\App\Services\AccountLinker::class)->linkedEmployee($parent);
         $provinces = Region::select('id', 'name')->province()->pluck('name', 'id');
 
         return view($this->path . 'edit', [
             'title' => __($this->title),
             'icon' => $this->icon,
             'parent' => $parent,
+            'linked_employee' => $linked_employee,
             'genders' => $genders,
             'provinces' => $provinces,
         ]);
@@ -176,21 +198,27 @@ class ParentController extends Controller
 
     public function update(ParentRequest $request, Parents $parent)
     {
-        if (empty($parent->id_user)) {
+        $edit = fn () => Redirect::route('academic.parent.edit', $parent->encrypted_id);
+        $linkedToStaff = $parent->user && $parent->user->role != UserRole::OrangTua;
+
+        if ($linkedToStaff) {
+            // Data orang tua yang digabung ke akun pegawai: nomor HP, nama akun, dan password mengikuti akun pegawai
+            $request->merge(['phone' => $parent->user->phone, 'password' => null, 'password_confirm' => null]);
+        } elseif (empty($parent->id_user)) {
             if (!empty($request->password)) {
                 $user_count = User::wherePhone($request->phone)->count();
 
                 if ($user_count > 0)
-                    return Redirect::route('academic.parent.create')->withErrors(__('string.account_with_this_phone_exists'))->withInput();
+                    return $edit()->withErrors($this->phoneOwnedByStaff($request->phone, null) ?? __('string.account_with_this_phone_exists'))->withInput();
             }
         } else {
             $user_count = User::wherePhone($request->phone)->where('id', '!=', $parent->id_user)->count();
 
             if ($user_count > 0)
-                return Redirect::route('academic.parent.create')->withErrors(__('string.account_with_this_phone_exists'))->withInput();
+                return $edit()->withErrors($this->phoneOwnedByStaff($request->phone, $parent->id_user) ?? __('string.account_with_this_phone_exists'))->withInput();
         }
 
-        DB::transaction(function () use ($request, $parent) {
+        DB::transaction(function () use ($request, $parent, $linkedToStaff) {
             $relation_old = $parent->id_relation;
             $merge = [];
 
@@ -220,7 +248,7 @@ class ParentController extends Controller
                         'email' => strtolower(explode(' ', $request->name)[0]) . '_' . $user->id . '@binabbas.org'
                     ]);
                 }
-            } else {
+            } elseif (!$linkedToStaff) {
                 $update_user = [
                     'name' => $request->name,
                     'phone' => $request->phone,
@@ -233,7 +261,7 @@ class ParentController extends Controller
                 $parent->user->update($update_user);
             }
 
-            $parent->update($request->all());
+            $parent->update($request->except(['password', 'password_confirm']));
 
             if ($relation_old != $parent->id_relation) {
                 Parents::whereIdRelation($parent->id_relation)->where('id', '!=', $parent->id)->update(['id_relation' => null]);

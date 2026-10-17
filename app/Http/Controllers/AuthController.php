@@ -9,7 +9,10 @@ use App\Http\Requests\AuthPasswordRequest;
 use App\Http\Requests\AuthRegisterRequest;
 use App\Http\Requests\AuthRequest;
 use App\Http\Requests\AuthVerificationRequest;
+use App\Models\Employee;
 use App\Models\Parents;
+use App\Services\AccountLinkException;
+use App\Services\AccountLinker;
 use App\Models\Student;
 use App\Models\User;
 use App\Support\OtpFlag;
@@ -158,9 +161,13 @@ class AuthController extends Controller
         }
 
         if ($error == false) {
-            $user = User::wherePhone($parent->phone)->whereRole(UserRole::OrangTua->value)->count();
+            // Cek semua user dengan nomor ini tanpa melihat role. Nomor yang dipakai akun pegawai
+            // tidak ditolak di sini: setelah OTP terverifikasi, data orang tua dihubungkan ke akun
+            // pegawai tsb (bukan dibuatkan akun baru).
+            $registered = User::wherePhone($parent->phone)->where('role', UserRole::OrangTua->value)->exists()
+                || ($parent->id_user && User::whereKey($parent->id_user)->exists());
 
-            if ($user > 0) {
+            if ($registered) {
                 $error = __('string.you_has_been_registered');
             }
         }
@@ -214,11 +221,32 @@ class AuthController extends Controller
             return Redirect::route('auth.register.verification', $parent->encrypted_id)->withErrors($error)->withInput();
         }
 
-        OtpFlag::grant('register', ['parent' => $parent->id, 'phone' => $parent->phone]);
-
         $parent->token = null;
         $parent->token_expired_at = null;
         $parent->save();
+
+        // Nomor ini milik akun staf: hubungkan ke akun pegawai, jangan buat user baru
+        $staffUsers = $this->staffUsersForPhone($parent->phone);
+
+        if ($staffUsers->isNotEmpty()) {
+            $employee = $staffUsers->count() === 1
+                ? Employee::withoutGlobalScopes()->where('id_user', $staffUsers->first()->id)->first()
+                : null;
+
+            try {
+                if (! $employee) {
+                    throw new AccountLinkException('no employee');
+                }
+
+                app(AccountLinker::class)->link($employee->id, $parent->id);
+            } catch (AccountLinkException) {
+                return Redirect::route('auth.register')->withErrors(__('string.phone_registered_as_employee_contact_admin'));
+            }
+
+            return Redirect::route('base')->with('success', __('message.registration_linked_to_employee'));
+        }
+
+        OtpFlag::grant('register', ['parent' => $parent->id, 'phone' => $parent->phone]);
 
         return Redirect::route('auth.register.password', $parent->encrypted_id);
     }
@@ -362,6 +390,18 @@ class AuthController extends Controller
         session()->forget(['forgot_password_phone', 'forgot_password_user']);
 
         return Redirect::route('base')->with('success', __('message.reset_password_success'));
+    }
+
+    /**
+     * Akun staf (role bukan orang-tua) yang memakai nomor HP ini.
+     */
+    private function staffUsersForPhone(?string $phone)
+    {
+        if (empty($phone)) {
+            return collect();
+        }
+
+        return User::wherePhone($phone)->where('role', '!=', UserRole::OrangTua->value)->get();
     }
 
     private function registerOtpVerified(Parents $parent): bool

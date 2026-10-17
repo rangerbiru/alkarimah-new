@@ -18,7 +18,17 @@ use App\Http\Controllers\Hr\PermitTypeController as HrPermitTypeController;
 use App\Http\Controllers\Hr\PositionController as HrPositionController;
 use App\Http\Controllers\Hr\UnitMasterController as HrUnitMasterController;
 use App\Http\Controllers\Hr\ViolationTypeMasterController as HrViolationTypeMasterController;
+use App\Http\Controllers\Hr\AccountLinkController as HrAccountLinkController;
 use Illuminate\Support\Facades\Route;
+
+Route::prefix('account-link')->name('hr.account-link.')->middleware('role:admin')->group(function () {
+    Route::get('employees', [HrAccountLinkController::class, 'employees'])->name('employees');
+    Route::post('students', [HrAccountLinkController::class, 'students'])->name('students');
+    Route::post('children', [HrAccountLinkController::class, 'children'])->name('children');
+    Route::post('preview', [HrAccountLinkController::class, 'preview'])->name('preview');
+    Route::post('link', [HrAccountLinkController::class, 'link'])->name('link');
+    Route::post('unlink', [HrAccountLinkController::class, 'unlink'])->name('unlink');
+});
 
 Route::post('allowance/datatable', [HrAllowanceController::class, 'datatable'])->name('hr.allowance.datatable')->middleware('access:bendahara');
 Route::resource('allowance', HrAllowanceController::class, ['as' => 'hr'])->except(['show'])->middleware('access:bendahara');

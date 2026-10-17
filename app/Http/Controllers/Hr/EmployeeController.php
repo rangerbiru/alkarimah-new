@@ -10,7 +10,12 @@ use App\Http\Requests\EmployeeRequest;
 use App\Models\Employee;
 use App\Models\Module;
 use App\Models\ModuleRights;
+use App\Models\Parents;
 use App\Models\Position;
+use App\Models\Scopes\BranchScope;
+use App\Models\Student;
+use App\Services\AccountLinkException;
+use App\Services\AccountLinker;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -118,7 +123,7 @@ class EmployeeController extends Controller
         $yesno = Common::option('yesno');
         $positions = Position::select('id', 'name')->orderBy('name')->pluck('name', 'id');
 
-        return view($this->path . 'create', [
+        return view($this->path . 'create', $this->alsoParentData(null) + [
             'title' => __($this->title['employee']),
             'icon' => $this->icon,
             'genders' => $genders,
@@ -131,24 +136,140 @@ class EmployeeController extends Controller
 
     public function store(EmployeeRequest $request)
     {
-        DB::transaction(function () use ($request) {
-            $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => $request->password,
-                'role' => UserRole::Pegawai,
-                'phone' => $request->phone,
-                'gender' => $request->gender,
-            ]);
+        $link = $this->linkSelection($request);
 
-            $request->merge([
-                'id_user' => $user->id
-            ]);
+        try {
+            DB::transaction(function () use ($request, $link) {
+                $user = User::create([
+                    'name' => $request->name,
+                    'email' => $request->email,
+                    'password' => $request->password,
+                    'role' => UserRole::Pegawai,
+                    'phone' => $request->phone,
+                    'gender' => $request->gender,
+                ]);
 
-            Employee::create($request->all());
-        });
+                $request->merge([
+                    'id_user' => $user->id
+                ]);
+
+                $employee = Employee::create($request->except(['also_parent', 'link_students']));
+
+                $this->performLink($employee, $link);
+            });
+        } catch (AccountLinkException $e) {
+            return Redirect::back()->withErrors($e->getMessage())->withInput($request->except(['password', 'password_confirm']));
+        }
 
         return Redirect::route('hr.employee.index')->with('success', __('message.create_success', ['label' => __($this->title['employee'])]));
+    }
+
+    /**
+     * Pilihan "Juga Orang Tua" dari santri yang dipilih (link_students[]). Hanya admin. Hasil:
+     *  - ['parent' => id]      semua santri dari satu data orang tua (yang belum punya akun)
+     *  - ['students' => [ids]] semua santri belum punya data orang tua: data orang tua baru dibuat dari data pegawai
+     */
+    private function linkSelection(Request $request): ?array
+    {
+        $encrypted = array_filter((array) $request->input('link_students', []));
+
+        if (! $encrypted || $request->input('also_parent') != 1) {
+            return null;
+        }
+
+        abort_unless(Auth::user()->hasRole(UserRole::Admin->value), 403);
+
+        $ids = [];
+
+        foreach ($encrypted as $value) {
+            try {
+                $ids[] = (int) \Illuminate\Support\Facades\Crypt::decrypt($value);
+            } catch (\Throwable) {
+                abort(422);
+            }
+        }
+
+        $fail = fn (string $key) => throw \Illuminate\Validation\ValidationException::withMessages([
+            'link_students' => __('message.'.$key),
+        ]);
+
+        $parentIds = collect(app(AccountLinker::class)->activeParentIds($ids))->unique()->values();
+
+        if ($parentIds->isEmpty()) {
+            $fail('account_link_parent_required');
+        }
+
+        if ($parentIds->count() === 1 && $parentIds->first() === null) {
+            return ['students' => $ids];
+        }
+
+        if ($parentIds->contains(fn ($id) => $id === null)) {
+            $fail('account_link_mixed_selection');
+        }
+
+        if ($parentIds->count() !== 1) {
+            $fail('account_link_students_one_parent');
+        }
+
+        // Orang tua yang sudah punya akun digabung lewat form edit orang tua (ada preview akun lama)
+        $parent = Parents::withoutGlobalScope(BranchScope::class)->find($parentIds->first());
+
+        if ($parent && $parent->id_user && User::whereKey($parent->id_user)->exists()) {
+            $fail('account_link_parent_has_account');
+        }
+
+        return ['parent' => (int) $parentIds->first()];
+    }
+
+    private function performLink(Employee $employee, ?array $link): void
+    {
+        if (! $link) {
+            return;
+        }
+
+        $linker = app(AccountLinker::class);
+
+        if (isset($link['parent'])) {
+            $linker->link($employee->id, $link['parent']);
+        } else {
+            $linker->linkNew($employee->id, $link['students']);
+        }
+    }
+
+    /**
+     * Data untuk bagian "Juga Orang Tua" di form pegawai.
+     */
+    private function alsoParentData(?Employee $employee): array
+    {
+        $parent = $employee?->id_user
+            ? Parents::withoutGlobalScope(BranchScope::class)->where('id_user', $employee->id_user)->first()
+            : null;
+
+        // Santri yang dipilih sebelum validasi gagal (old input), agar pilihan tidak hilang
+        $oldIds = [];
+
+        foreach ((array) old('link_students', []) as $value) {
+            try {
+                $oldIds[] = (int) \Illuminate\Support\Facades\Crypt::decrypt($value);
+            } catch (\Throwable) {
+            }
+        }
+
+        $selected = $oldIds
+            ? Student::withoutGlobalScope(BranchScope::class)->whereIn('id', $oldIds)->get(['id', 'id_parent', 'name', 'nis'])
+                ->map(fn ($st) => [
+                    'id' => $st->encrypted_id, 'name' => $st->name, 'nis' => $st->nis,
+                    'parent_key' => \Illuminate\Support\Facades\Crypt::encrypt($st->id_parent),
+                ])->values()
+            : collect();
+
+        return [
+            'selected_students' => $selected,
+            'linked_parent' => $parent,
+            'linked_children' => $parent
+                ? Student::withoutGlobalScope(BranchScope::class)->with('class:id,name')->where('id_parent', $parent->id)->orderBy('name')->get(['id', 'id_class', 'name', 'nis'])
+                : collect(),
+        ];
     }
 
     public function storeRights(Request $request, Employee $employee)
@@ -212,7 +333,7 @@ class EmployeeController extends Controller
         $yesno = Common::option('yesno');
         $positions = Position::select('id', 'name')->orderBy('name')->pluck('name', 'id');
 
-        return view($this->path . 'edit', [
+        return view($this->path . 'edit', $this->alsoParentData($employee) + [
             'title' => __($this->title['employee']),
             'icon' => $this->icon,
             'employee' => $employee,
@@ -226,21 +347,34 @@ class EmployeeController extends Controller
 
     public function update(EmployeeRequest $request, Employee $employee)
     {
-        DB::transaction(function () use ($request, $employee) {
-            $employee->update($request->all());
+        $link = $this->linkSelection($request);
 
-            $update_user = [
-                'name' => $request->name,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'gender' => $request->gender
-            ];
+        try {
+            DB::transaction(function () use ($request, $employee, $link) {
+                $employee->update($request->except(['also_parent', 'link_students']));
 
-            if (!empty($request->password))
-                $update_user['password'] = $request->password;
+                $update_user = [
+                    'name' => $request->name,
+                    'email' => $request->email,
+                    'phone' => $request->phone,
+                    'gender' => $request->gender
+                ];
 
-            $employee->user->update($update_user);
-        });
+                if (!empty($request->password))
+                    $update_user['password'] = $request->password;
+
+                $employee->user->update($update_user);
+
+                // Orang tua yang terhubung ke akun ini memakai nomor HP akun yang sama
+                Parents::withoutGlobalScope(BranchScope::class)
+                    ->where('id_user', $employee->id_user)
+                    ->update(['phone' => $employee->user->phone]);
+
+                $this->performLink($employee, $link);
+            });
+        } catch (AccountLinkException $e) {
+            return Redirect::back()->withErrors($e->getMessage())->withInput($request->except(['password', 'password_confirm']));
+        }
 
         return Redirect::route('hr.employee.index')->with('success', __('message.update_success', ['label' => __($this->title['employee'])]));
     }

@@ -200,6 +200,8 @@
                 </div>
             </div>
 
+            @include('backend.academic.parent.partials.link-employee')
+
             <x-form.button-submit :cancel-route="route('academic.parent.index')" />
         </form>
     </div>
