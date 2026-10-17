@@ -1,26 +1,6 @@
 {{-- Children of the employee-as-parent: picked from all students in a modal. Shown only when "is_parent" is Yes.
-     Children whose parent has an account are pickable too: the controller asks for a merge confirmation (link_preview) --}}
-@if (session('link_preview'))
-    @php $lp = session('link_preview'); @endphp
-    <div class="alert alert-warning" id="link-confirm">
-        <h6 class="mb-2">{{ __('string.link_confirm_title') }}</h6>
-        <p class="mb-2">{{ __('string.link_confirm_body', ['parent' => $lp['parent']['name']]) }}</p>
-        <ul class="mb-2">
-            @foreach ($lp['children'] as $c)
-                <li>{{ $c['name'] }} ({{ $c['nis'] }}) - {{ $c['class'] }}</li>
-            @endforeach
-        </ul>
-        @foreach ($lp['warnings'] as $w)
-            <p class="mb-1 text-danger">{{ $w }}</p>
-        @endforeach
-        <div class="form-check">
-            <input type="checkbox" class="form-check-input" id="confirm_link_parent" name="confirm_link_parent" value="{{ $lp['token'] }}">
-            <label class="form-check-label" for="confirm_link_parent">{{ __('string.link_confirm_check') }}</label>
-        </div>
-        <small class="text-muted">{{ __('string.link_confirm_hint') }}</small>
-    </div>
-@endif
-
+     Only students without a parent can be picked. Students that already have a parent show a badge: merging goes
+     through Parents > Edit > "Gabungkan dengan akun pegawai" (the server refuses them too) --}}
 <div id="children-box" class="mb-4">
     <label>{{ __('label.children') }}</label>
 
@@ -54,6 +34,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+                <small class="text-muted d-block mb-2">{{ __('string.child_merge_hint') }}</small>
                 <table id="table-children" class="table table-bordered text-nowrap w-100">
                     <thead>
                         <tr>
@@ -81,7 +62,9 @@
         $(document).ready(function() {
             const label_choose = "{{ __('label.choose') }}"
             const label_selected = "{{ __('string.child_selected') }}"
-            const label_locked = "{{ __('string.child_has_parent_account') }}"
+            const label_account = "{{ __('string.child_has_parent_account') }}"
+            const label_exists = "{{ __('string.child_has_parent_record') }}"
+            const hint_merge = "{{ __('string.child_merge_hint') }}"
             let table_children = null
 
             function toggleChildrenBox() {
@@ -130,10 +113,13 @@
                                 if (isSelected(row.encrypted_id, label))
                                     return '<span class="badge bg-success">' + label_selected + '</span>'
 
-                                // The parent has an account: still pickable, the form asks for a merge confirmation
-                                const note = row.has_account ? '<span class="badge bg-light text-muted me-1">' + label_locked + '</span>' : ''
+                                if (row.parent_state == "account")
+                                    return '<span class="badge bg-light text-muted" title="' + hint_merge + '">' + label_account + '</span>'
 
-                                return note + '<button type="button" class="btn btn-primary btn-sm pick-child">' + label_choose + '</button>'
+                                if (row.parent_state == "exists")
+                                    return '<span class="badge bg-light text-muted" title="' + hint_merge + '">' + label_exists + '</span>'
+
+                                return '<button type="button" class="btn btn-primary btn-sm pick-child">' + label_choose + '</button>'
                             }
                         }
                     ]

@@ -169,13 +169,39 @@ class AccountAliasTest extends ModuleAccessTestCase
         )->once();
     }
 
-    public function test_login_route_is_throttled(): void
+    public function test_login_is_limited_per_identifier_and_ip_not_per_ip(): void
     {
-        foreach (range(1, 20) as $i) {
-            $this->post(route('auth.authenticate'), ['username' => 'x'.$i, 'password' => 'y'])->assertStatus(302);
+        $phone = $this->phone();
+        $victim = $this->createUser('kasir');
+        DB::table('users')->where('id', $victim->id)->update(['phone' => $phone]);
+        $other = $this->createUser('kasir');
+
+        foreach (range(1, 10) as $i) {
+            $this->assertNull($this->loginAs($phone, 'salah'));
+            $this->assertStringContainsString('Salah', session('errors')->first());
         }
 
-        $this->post(route('auth.authenticate'), ['username' => 'x', 'password' => 'y'])->assertStatus(429);
+        // percobaan ke-11 untuk identifier yang sama ditolak walau passwordnya benar
+        $this->assertNull($this->loginAs($phone, 'secret'));
+        $this->assertStringContainsString(substr(__('string.login_too_many_attempts', ['seconds' => 1]), 0, 25), session('errors')->first());
+
+        // identifier lain dari IP yang sama tidak terkunci
+        $this->assertSame($other->id, $this->loginAs($other->phone, 'secret'));
+    }
+
+    public function test_a_successful_login_clears_the_failed_attempts(): void
+    {
+        $user = $this->createUser('kasir');
+
+        foreach (range(1, 9) as $i) {
+            $this->assertNull($this->loginAs($user->phone, 'salah'));
+        }
+        $this->assertSame($user->id, $this->loginAs($user->phone, 'secret'));
+
+        foreach (range(1, 9) as $i) {
+            $this->assertNull($this->loginAs($user->phone, 'salah'));
+        }
+        $this->assertSame($user->id, $this->loginAs($user->phone, 'secret'));
     }
 
     public function test_an_old_session_of_the_alias_is_redirected_to_the_employee_account(): void

@@ -30,7 +30,7 @@ return [
     'child_already_linked' => ':name is already registered as your child.',
     'child_has_other_parent' => ':name is already linked to another parent account. Please contact the Admin.',
     'child_linked' => 'Child added successfully.',
-    'children_multiple_accounted_parents' => 'The picked children belong to more than one parent that already has an account (:parents). Clean up the duplicate data first, for example with Merge on one of the parents, then try again.',
+    'child_has_parent_use_merge' => ':name already has a parent record (:parent). Use Parents → Merge with employee account.',
     'children_invalid' => 'The selected children are invalid.',
     'child_has_other_parent_admin' => ':name is already linked to another parent account (:parent). Move the student from the Students menu if this is correct.',
     'parent_similar_exists' => 'A parent record with a similar name or phone already exists: :list. Use the Parents menu, Edit, Merge with Employee Account section, instead of creating a new parent record.',

@@ -23,7 +23,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -120,6 +122,9 @@ class AuthController extends Controller
     // Maksimum kandidat akun (email / nomor HP sama) yang password-nya dicek per percobaan login
     private const LOGIN_MAX_CANDIDATES = 10;
 
+    // Percobaan gagal per menit untuk satu kombinasi identifier + IP
+    private const LOGIN_MAX_ATTEMPTS = 10;
+
     public function authenticate(AuthRequest $request)
     {
         if (! $request->validated()) {
@@ -130,9 +135,21 @@ class AuthController extends Controller
         $password = (string) $request->password;
         $remember = (bool) $request->remember;
 
+        // Pembatasan per kombinasi identifier + IP (pola login bawaan Laravel): satu akun yang diserang
+        // tidak mengunci staf lain di jaringan pondok yang sama
+        $throttleKey = Str::lower(str_replace('-', '', $username)).'|'.$request->ip();
+
+        if (RateLimiter::tooManyAttempts($throttleKey, self::LOGIN_MAX_ATTEMPTS)) {
+            return back()->withErrors([
+                'useraccount' => __('string.login_too_many_attempts', ['seconds' => RateLimiter::availableIn($throttleKey)]),
+            ]);
+        }
+
         $result = $this->resolveLoginAccount($username, $password);
 
         if (is_string($result)) {
+            RateLimiter::hit($throttleKey, 60);
+
             return back()->withErrors(['useraccount' => $result]);
         }
 
@@ -150,6 +167,7 @@ class AuthController extends Controller
             }
         }
 
+        RateLimiter::clear($throttleKey);
         Auth::login($user, $remember);
         User::whereId($user->id)->update(['lastlogin_at' => date('Y-m-d H:i:s')]);
         $request->session()->regenerate();
