@@ -123,11 +123,10 @@ class AccountLinkTest extends ModuleAccessTestCase
         $this->assertTrue(User::withoutGlobalScopes()->find($user->id)->has_dual_role);
     }
 
-    public function test_link_moves_allowlisted_rows_and_disables_old_account(): void
+    public function test_link_moves_allowlisted_rows_and_turns_old_account_into_alias(): void
     {
         [$user, $employee] = $this->employeeAccount();
         [$oldUser, $parent, $rows] = $this->parentWithAccount();
-        DB::table('sessions')->insert(['id' => 'sess'.random_int(1, 999999), 'user_id' => $oldUser->id, 'payload' => '', 'last_activity' => time()]);
 
         $result = $this->linker->link($employee->id, $parent->id);
 
@@ -140,12 +139,11 @@ class AccountLinkTest extends ModuleAccessTestCase
         // causer_type lain tidak disentuh
         $this->assertSame($oldUser->id, (int) DB::table('activity_log')->where('id', $rows['foreign'])->value('causer_id'));
 
+        // akun lama tidak dihapus: menjadi alias akun pegawai
         $old = User::withoutGlobalScopes()->withTrashed()->find($oldUser->id);
-        $this->assertNotNull($old->deleted_at);
-        $this->assertNull(User::find($oldUser->id));
-        $this->assertSame(0, DB::table('sessions')->where('user_id', $oldUser->id)->count());
-        // akun lama tidak bisa login
-        $this->assertFalse(Auth::attempt(['phone' => $oldUser->phone, 'password' => 'secret']));
+        $this->assertNull($old->deleted_at);
+        $this->assertSame($user->id, (int) $old->linked_user_id);
+        $this->assertSame($user->id, (int) DB::table('parent')->where('id', $parent->id)->value('id_user'));
         // password akun pegawai tidak berubah
         $this->assertTrue(password_verify('secret', User::withoutGlobalScopes()->find($user->id)->password));
     }
@@ -176,7 +174,7 @@ class AccountLinkTest extends ModuleAccessTestCase
         $restored = User::withoutGlobalScopes()->find($oldUser->id);
         $this->assertNotNull($restored);
         $this->assertNull($restored->deleted_at);
-        $this->assertNull(DB::table('users')->where('id', $oldUser->id)->value('deleted_by'));
+        $this->assertNull($restored->linked_user_id);
         foreach ($rows['activity'] as $id) {
             $this->assertSame($oldUser->id, (int) DB::table('activity_log')->where('id', $id)->value('causer_id'));
         }
@@ -384,16 +382,57 @@ class AccountLinkTest extends ModuleAccessTestCase
         $this->assertTrue(User::withoutGlobalScopes()->find($user->id)->has_dual_role);
     }
 
-    public function test_employee_form_refuses_children_whose_parent_has_an_account_and_saves_nothing(): void
+    public function test_employee_form_asks_for_confirmation_when_the_child_parent_has_an_account(): void
     {
         $admin = $this->createUser('admin');
-        $owned = $this->studentRow($this->parentRow($this->createUser('orang-tua')->id)->id, 'Anak Ortu Punya Akun');
+        $oldUser = $this->createUser('orang-tua');
+        $parent = $this->parentRow($oldUser->id, $oldUser->phone, self::BRANCH_ID, 'Ortu Berakun');
+        $owned = $this->studentRow($parent->id, 'Anak Ortu Punya Akun');
         $payload = $this->employeePayload(['is_parent' => 1, 'children' => [$this->enc($owned)]]);
 
-        $this->actingAs($admin)->post(route('hr.employee.store'), $payload)->assertSessionHasErrors('children');
+        $this->actingAs($admin)->post(route('hr.employee.store'), $payload)
+            ->assertRedirect()->assertSessionHas('link_preview')->assertSessionMissing('errors');
 
+        // belum ada yang tersimpan
         $this->assertNull(User::withoutGlobalScopes()->where('email', $payload['email'])->first());
         $this->assertSame(0, DB::table('employee')->where('nip', $payload['nip'])->count());
+        $this->assertSame($oldUser->id, (int) DB::table('parent')->where('id', $parent->id)->value('id_user'));
+        $this->assertNull(User::withoutGlobalScopes()->find($oldUser->id)->linked_user_id);
+
+        // konfirmasi untuk orang tua lain ditolak
+        $other = $this->parentRow($this->createUser('orang-tua')->id);
+        $this->actingAs($admin)->post(route('hr.employee.store'), $payload + ['confirm_link_parent' => $other->encrypted_id])
+            ->assertSessionHas('link_preview');
+        $this->assertSame(0, DB::table('employee')->where('nip', $payload['nip'])->count());
+
+        // dikonfirmasi: akun pegawai dibuat, akun orang tua lama menjadi alias, anak tetap pada baris orang tua yang sama
+        $this->actingAs($admin)->post(route('hr.employee.store'), $payload + ['confirm_link_parent' => $parent->encrypted_id])
+            ->assertRedirect(route('hr.employee.index'));
+
+        $user = User::withoutGlobalScopes()->where('email', $payload['email'])->first();
+        $this->assertSame($user->id, (int) DB::table('parent')->where('id', $parent->id)->value('id_user'));
+        $this->assertSame($user->id, (int) User::withoutGlobalScopes()->find($oldUser->id)->linked_user_id);
+        $this->assertSame($parent->id, (int) DB::table('student')->where('id', $owned)->value('id_parent'));
+        $this->assertSame(1, DB::table('parent')->where('id_user', $user->id)->count());
+        $this->assertTrue(User::withoutGlobalScopes()->find($user->id)->has_dual_role);
+    }
+
+    public function test_employee_form_refuses_children_of_two_parents_with_accounts(): void
+    {
+        $admin = $this->createUser('admin');
+        $a = $this->parentRow($this->createUser('orang-tua')->id, null, self::BRANCH_ID, 'Ortu Alpha');
+        $b = $this->parentRow($this->createUser('orang-tua')->id, null, self::BRANCH_ID, 'Ortu Beta');
+        $payload = $this->employeePayload(['is_parent' => 1, 'children' => [
+            $this->enc($this->studentRow($a->id, 'Anak A')), $this->enc($this->studentRow($b->id, 'Anak B')),
+        ]]);
+
+        $response = $this->actingAs($admin)->post(route('hr.employee.store'), $payload + ['confirm_link_parent' => $a->encrypted_id]);
+
+        $response->assertSessionHasErrors('children');
+        $message = session('errors')->first('children');
+        $this->assertStringContainsString('Ortu Alpha', $message);
+        $this->assertStringContainsString('Ortu Beta', $message);
+        $this->assertNull(User::withoutGlobalScopes()->where('email', $payload['email'])->first());
     }
 
     public function test_employee_form_without_is_parent_creates_no_parent_record(): void
@@ -435,10 +474,10 @@ class AccountLinkTest extends ModuleAccessTestCase
             'draw' => 1, 'start' => 0, 'length' => 100, 'search' => ['value' => 'Santri '],
         ])->assertOk()->json('data'))->keyBy('name');
 
-        $this->assertFalse((bool) $rows['Santri Bebas']['locked']);
-        $this->assertFalse((bool) $rows['Santri Tanpa Ortu']['locked']);
+        $this->assertFalse((bool) $rows['Santri Bebas']['has_account']);
+        $this->assertFalse((bool) $rows['Santri Tanpa Ortu']['has_account']);
         $this->assertSame('-', $rows['Santri Tanpa Ortu']['parent']);
-        $this->assertTrue((bool) $rows['Santri Punya Akun']['locked']);
+        $this->assertTrue((bool) $rows['Santri Punya Akun']['has_account']);
     }
 
     public function test_employee_form_pages_render_the_children_picker(): void

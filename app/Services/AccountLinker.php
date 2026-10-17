@@ -16,12 +16,14 @@ use Illuminate\Support\Facades\DB;
  * orang tua (employee.id_user = parent.id_user). Dipicu admin, tidak pernah otomatis.
  *
  * link():    parent.id_user -> user pegawai. Bila orang tua punya akun sendiri (role orang-tua), kolom
- *            referensi di config/account-link.php dipindah ke user pegawai lalu akun lama di-soft-delete.
+ *            referensi di config/account-link.php dipindah ke user pegawai dan akun lama menjadi ALIAS
+ *            (users.linked_user_id = user pegawai): tidak dihapus, masih bisa dipakai login dengan
+ *            passwordnya sendiri, tetapi sesinya selalu milik akun pegawai (AuthController, ResolveAlias).
  *            parent.phone disamakan dengan users.phone pegawai. Data rollback disimpan di account_link_log.
- * unlink():  mengembalikan kondisi dari entri rollback.
+ * unlink():  mengosongkan linked_user_id dan mengembalikan kondisi dari entri rollback.
  * preview(): hanya baca: apa yang akan terjadi dan apa yang menghalangi.
  *
- * Password tidak pernah diubah: orang tua yang digabung login dengan password akun pegawai.
+ * Password tidak pernah diubah: akun pegawai dan akun alias masing-masing tetap memakai passwordnya.
  *
  * Batasan rollback: baris yang dibuat user pegawai SETELAH penggabungan tidak bisa dibedakan, sehingga
  * tetap milik user pegawai setelah unlink().
@@ -101,7 +103,8 @@ class AccountLinker
             $before = [
                 'parent_id_user' => $parent->id_user,
                 'parent_phone' => $parent->phone,
-                'old_user_deleted' => $oldUser !== null,
+                'old_user_deleted' => false,
+                'old_user_alias' => $oldUser !== null,
             ];
 
             $moved = [];
@@ -115,16 +118,16 @@ class AccountLinker
                         $moved["{$table}.{$column}"] = $ids;
                     }
                 }
-
-                // Sesi aktif akun lama tidak boleh dipakai lagi
-                DB::table('sessions')->where('user_id', $oldUser->id)->delete();
             }
 
             $parent->id_user = $employeeUser->id;
             $parent->phone = $employeeUser->phone;
             $parent->saveQuietly();
 
-            $oldUser?->delete();
+            if ($oldUser) {
+                // Query builder: tanpa event model (activity log dicatat sekali di audit())
+                User::withoutGlobalScopes()->whereKey($oldUser->id)->update(['linked_user_id' => $employeeUser->id]);
+            }
 
             $logId = DB::table('account_link_log')->insertGetId([
                 'action' => 'link',
@@ -156,9 +159,9 @@ class AccountLinker
      *
      * @throws AccountLinkException
      */
-    public function unlink(int $parentId): array
+    public function unlink(int $parentId, string $reason = 'manual', bool $requireEmployee = true): array
     {
-        return DB::transaction(function () use ($parentId) {
+        return DB::transaction(function () use ($parentId, $reason, $requireEmployee) {
             $parent = Parents::withoutGlobalScope(BranchScope::class)->lockForUpdate()->find($parentId);
 
             if (! $parent || ! $parent->id_user) {
@@ -167,7 +170,7 @@ class AccountLinker
 
             $employee = Employee::withoutGlobalScopes()->withTrashed()->where('id_user', $parent->id_user)->first();
 
-            if (! $employee) {
+            if (! $employee && $requireEmployee) {
                 throw new AccountLinkException('Akun orang tua ini bukan akun pegawai.');
             }
 
@@ -194,7 +197,12 @@ class AccountLinker
                 if ($log->old_user_id) {
                     $old = User::withoutGlobalScopes()->withTrashed()->lockForUpdate()->find($log->old_user_id);
 
-                    if ($old && $old->trashed()) {
+                    if ($old && ($before['old_user_alias'] ?? false)) {
+                        // Hanya bila masih alias dari akun pegawai ini
+                        User::withoutGlobalScopes()->whereKey($old->id)->where('linked_user_id', $employeeUserId)
+                            ->update(['linked_user_id' => null]);
+                    } elseif ($old && $old->trashed()) {
+                        // Entri lama (sebelum akun alias): akun orang tua dulu di-soft-delete
                         $old->restore();
                         DB::table('users')->where('id', $old->id)->update(['deleted_by' => null]);
                     }
@@ -218,7 +226,7 @@ class AccountLinker
 
             DB::table('account_link_log')->insert([
                 'action' => 'unlink',
-                'employee_id' => $employee->id,
+                'employee_id' => $employee?->id,
                 'parent_id' => $parent->id,
                 'employee_user_id' => $employeeUserId,
                 'old_user_id' => $restoredUserId,
@@ -228,9 +236,66 @@ class AccountLinker
                 'link_id' => $log?->id,
             ]);
 
-            $this->audit('unlink', $parent, $employee, User::withoutGlobalScopes()->find($employeeUserId), null, $movedRows);
+            $this->audit('unlink', $parent, $employee, User::withoutGlobalScopes()->withTrashed()->find($employeeUserId), null, $movedRows, $reason);
 
             return ['restored_user_id' => $restoredUserId, 'moved_rows' => $movedRows, 'had_log' => $log !== null];
+        });
+    }
+
+    /**
+     * Akun alias (akun orang tua lama) dari penggabungan orang tua ini, bila masih aktif sebagai alias.
+     */
+    public function aliasOf(Parents $parent): ?User
+    {
+        if (! $parent->id_user) {
+            return null;
+        }
+
+        $oldUserId = DB::table('account_link_log')
+            ->where('parent_id', $parent->id)->where('action', 'link')
+            ->where('employee_user_id', $parent->id_user)->whereNull('rolled_back_at')
+            ->orderByDesc('id')->value('old_user_id');
+
+        return $oldUserId
+            ? User::withoutGlobalScopes()->where('linked_user_id', $parent->id_user)->find($oldUserId)
+            : null;
+    }
+
+    /**
+     * Akun pegawai (user) dihapus / pegawainya dihapus: lepaskan semua alias yang menunjuk ke akun itu,
+     * sehingga akun orang tua lama kembali normal. Dicatat ke activity_log (log_name account-link).
+     *
+     * @return int jumlah alias yang dilepas
+     */
+    public function unlinkAliasesOf(int $employeeUserId, string $reason): int
+    {
+        return DB::transaction(function () use ($employeeUserId, $reason) {
+            $released = 0;
+
+            $parentIds = DB::table('account_link_log')
+                ->where('action', 'link')->where('employee_user_id', $employeeUserId)->whereNull('rolled_back_at')
+                ->pluck('parent_id')->unique();
+
+            foreach ($parentIds as $parentId) {
+                $parent = Parents::withoutGlobalScope(BranchScope::class)->withTrashed()->find($parentId);
+
+                if ($parent && $parent->id_user === $employeeUserId) {
+                    $released += $this->unlink($parentId, $reason, false)['restored_user_id'] ? 1 : 0;
+                }
+            }
+
+            // Alias yang tidak punya entri log (diisi manual): cukup dilepas
+            $left = User::withoutGlobalScopes()->where('linked_user_id', $employeeUserId)->get(['id']);
+
+            foreach ($left as $alias) {
+                User::withoutGlobalScopes()->whereKey($alias->id)->update(['linked_user_id' => null]);
+                activity('account-link')->causedBy(Auth::user())->withProperties([
+                    'event' => 'alias-released', 'alias_user_id' => $alias->id, 'employee_user_id' => $employeeUserId, 'reason' => $reason,
+                ])->log('Account alias released');
+                $released++;
+            }
+
+            return $released;
         });
     }
 
@@ -316,11 +381,17 @@ class AccountLinker
                 $block('already_linked', 'Orang tua ini sudah terhubung ke akun pegawai tersebut.');
             } elseif ($parentUser && ! $parentUser->trashed()) {
                 if ($parentUser->role !== UserRole::OrangTua) {
-                    $block('old_user_not_parent', 'Orang tua ini sudah terhubung ke akun staf lain ('.$parentUser->name.'); akun staf tidak boleh dinonaktifkan.');
+                    $block('old_user_not_parent', 'Orang tua ini sudah terhubung ke akun staf lain ('.$parentUser->name.'); akun staf tidak boleh dijadikan alias.');
+                } elseif ($parentUser->linked_user_id) {
+                    $block('old_user_is_alias', 'Akun orang tua ini sudah menjadi alias dari akun pegawai lain.');
                 } else {
                     $oldUser = $parentUser;
                 }
             }
+        }
+
+        if ($employeeUser && $employeeUser->linked_user_id) {
+            $block('employee_user_is_alias', 'Akun pegawai ini adalah alias dari akun lain.');
         }
 
         if ($employeeUser) {
@@ -367,18 +438,19 @@ class AccountLinker
         ];
     }
 
-    private function audit(string $event, Parents $parent, Employee $employee, ?User $employeeUser, ?User $oldUser, int $movedRows): void
+    private function audit(string $event, Parents $parent, ?Employee $employee, ?User $employeeUser, ?User $oldUser, int $movedRows, ?string $reason = null): void
     {
         activity('account-link')
             ->causedBy(Auth::user())
             ->performedOn($parent)
             ->withProperties([
                 'event' => $event,
-                'employee_id' => $employee->id,
+                'employee_id' => $employee?->id,
                 'parent_id' => $parent->id,
                 'employee_user_id' => $employeeUser?->id,
                 'old_user_id' => $oldUser?->id,
                 'moved_rows' => $movedRows,
+                'reason' => $reason,
             ])
             ->log("Account {$event}");
     }

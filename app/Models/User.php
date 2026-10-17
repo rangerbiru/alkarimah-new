@@ -28,7 +28,7 @@ class User extends Authenticatable
     // role, branch, and auth tokens are never mass assignable: set them explicitly (forceCreate/forceFill)
     protected $guarded = [
         'id', 'created_at', 'created_by', 'updated_at', 'updated_by', 'deleted_at', 'deleted_by',
-        'role', 'branch_id', 'token', 'token_expired_at', 'remember_token', 'email_verified_at', 'lastlogin_at',
+        'role', 'linked_user_id', 'branch_id', 'token', 'token_expired_at', 'remember_token', 'email_verified_at', 'lastlogin_at',
     ];
 
     /**
@@ -61,6 +61,18 @@ class User extends Authenticatable
             'role' => UserRole::class,
             'gender' => Gender::class,
         ];
+    }
+
+    // Alias: the old parent account merged into an employee account. It can still log in, but the
+    // session always belongs to the employee account (see ResolveAlias)
+    public function linkedTo()
+    {
+        return $this->belongsTo(self::class, 'linked_user_id')->withoutGlobalScopes()->withTrashed();
+    }
+
+    public function aliases()
+    {
+        return $this->hasMany(self::class, 'linked_user_id');
     }
 
     protected function encryptedId(): Attribute

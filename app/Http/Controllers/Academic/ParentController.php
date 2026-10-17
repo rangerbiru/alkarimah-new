@@ -191,6 +191,7 @@ class ParentController extends Controller
             'icon' => $this->icon,
             'parent' => $parent,
             'linked_employee' => $linked_employee,
+            'alias_user' => $linked_employee ? app(\App\Services\AccountLinker::class)->aliasOf($parent) : null,
             'genders' => $genders,
             'provinces' => $provinces,
         ]);

@@ -30,6 +30,7 @@ return [
     'child_already_linked' => ':name sudah terdaftar sebagai anak Anda.',
     'child_has_other_parent' => ':name sudah terhubung dengan akun orang tua lain. Silakan hubungi Admin.',
     'child_linked' => 'Data anak berhasil ditambahkan.',
+    'children_multiple_accounted_parents' => 'Anak yang dipilih berasal dari lebih dari satu orang tua yang sudah punya akun (:parents). Bereskan data ganda dulu, misalnya lewat Gabungkan di salah satu orang tua, lalu ulangi.',
     'children_invalid' => 'Data anak yang dipilih tidak valid.',
     'child_has_other_parent_admin' => ':name sudah terhubung dengan akun orang tua lain (:parent). Pindahkan lewat menu Data Santri jika memang benar.',
     'parent_similar_exists' => 'Sudah ada data orang tua dengan nama atau No. HP serupa: :list. Gunakan menu Orang Tua, Edit, bagian Gabungkan dengan Akun Pegawai, bukan membuat data orang tua baru.',

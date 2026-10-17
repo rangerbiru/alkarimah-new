@@ -9,7 +9,10 @@
         <div class="alert alert-info d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
                 <div>{{ __('string.parent_linked_to_employee') }}: <b>{{ $linked_employee->name }}</b> ({{ $linked_employee->nip ?: '-' }})</div>
-                <small>{{ __('string.account_link_login_info') }}</small>
+                <small class="d-block">{{ __('string.account_link_login_info') }}</small>
+                @if ($alias_user)
+                    <small class="d-block">{{ __('string.account_link_alias_info', ['account' => ($alias_user->email ?: $alias_user->phone)]) }}</small>
+                @endif
             </div>
             <button type="button" class="btn btn-sm btn-outline-danger" id="btn-unlink-employee">{{ __('label.unlink') }}</button>
         </div>
@@ -83,7 +86,7 @@
                             <ul>${children}</ul>`
 
                         if (d.old_user)
-                            html += `<p>Akun orang tua lama <b>${esc(d.old_user.name)}</b> (${esc(d.old_user.email)}) akan dinonaktifkan; ${d.moved_rows} baris riwayat dipindahkan.</p>`
+                            html += `<p>Akun orang tua lama <b>${esc(d.old_user.name)}</b> (${esc(d.old_user.email)}) tetap bisa dipakai login dan menjadi alias akun pegawai; ${d.moved_rows} baris riwayat dipindahkan.</p>`
 
                         d.warnings.forEach(w => html += `<p class="text-warning mb-1">${esc(w)}</p>`)
 

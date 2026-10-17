@@ -3,7 +3,7 @@
 Deploy SETELAH bagian 1 dan 2. Ada 1 migration baru (tabel `account_link_log`). Tidak ada perubahan data saat deploy; data baru berubah hanya ketika admin menekan Hubungkan / Putuskan.
 
 ## Fitur
-1. **Form pegawai (create/edit)** — mengikuti PPIA: radio "Apakah pegawai ini juga sebagai Orang Tua Santri?" (`is_parent`). Bila Ya, daftar anak ditampilkan sebagai label (bisa dihapus dengan ✕, kecuali anak yang sudah tertaut) dan tombol "Pilih Anak" membuka modal datatable semua santri (NIS, nama, kelas, orang tua) dengan kolom **Aksi di kanan**: tombol **Pilih** (menjadi badge **Terpilih**), atau badge kecil **Ortu punya akun** bila orang tua santri itu sudah punya akun (tidak bisa dipilih). Santri tanpa data orang tua (`id_parent` kosong) tetap tampil dan bisa dipilih.
+1. **Form pegawai (create/edit)** — mengikuti PPIA: radio "Apakah pegawai ini juga sebagai Orang Tua Santri?" (`is_parent`). Bila Ya, daftar anak ditampilkan sebagai label (bisa dihapus dengan ✕, kecuali anak yang sudah tertaut) dan tombol "Pilih Anak" membuka modal datatable semua santri (NIS, nama, kelas, orang tua) dengan kolom **Aksi di kanan**: tombol **Pilih** (menjadi badge **Terpilih**), atau badge kecil **Ortu punya akun** bila orang tua santri itu sudah punya akun (tetap bisa dipilih: form meminta konfirmasi penggabungan, lihat `2026-10-17-bagian-3b-akun-alias.md`). Santri tanpa data orang tua (`id_parent` kosong) tetap tampil dan bisa dipilih.
    - Saat disimpan (satu transaksi): dibuat satu baris orang tua untuk akun pegawai (nama, nomor HP akun, jenis kelamin; cabang dari akun) dan anak terpilih dipindahkan ke baris itu (`student.id_parent`). Anak yang orang tuanya punya akun ditolak dengan pesan (tidak ada yang tersimpan).
    - Sebelum membuat baris orang tua baru, dicari data orang tua yang sudah ada dengan nomor HP (10 digit terakhir) atau nama yang sama (gelar setelah koma diabaikan). Bila ada, tidak ada yang tersimpan dan admin diarahkan ke Orang Tua > Edit > Gabungkan dengan Akun Pegawai. Akun yang sudah punya baris orang tua dibiarkan.
    - Memilih "Tidak" tidak pernah menghapus data orang tua yang sudah ada. Edit pegawai menyamakan `parent.phone` dengan nomor akun.
@@ -14,12 +14,12 @@ Deploy SETELAH bagian 1 dan 2. Ada 1 migration baru (tabel `account_link_log`). 
 
 ## Aturan penggabungan (`App\Services\AccountLinker`)
 - `preview(employeeId, parentId)`: hanya baca. Data pegawai, orang tua, akun lama, daftar anak, pemblokir, peringatan, jumlah baris yang dipindah.
-- `link()`: satu transaksi, `lockForUpdate` pada parent, employee, dan kedua user. Menjalankan semua pemblokir, `parent.id_user` = user pegawai, memindahkan kolom allowlist dari akun lama lalu soft-delete akun lama (+ hapus sesi aktifnya), `parent.phone` = nomor akun pegawai, simpan entri rollback di `account_link_log`, catat ke `activity_log` (`log_name = account-link`).
-- `unlink()`: mengembalikan `parent.id_user`, `parent.phone`, memulihkan akun lama (restore), dan mengembalikan baris yang masih menunjuk ke user pegawai. **Batasan**: baris yang dibuat setelah penggabungan tetap milik user pegawai. Tanpa entri rollback (mis. dihubungkan manual lewat SQL), `unlink` hanya melepas `parent.id_user` (parent jadi tanpa akun login).
+- `link()`: satu transaksi, `lockForUpdate` pada parent, employee, dan kedua user. Menjalankan semua pemblokir, `parent.id_user` = user pegawai, memindahkan kolom allowlist dari akun lama lalu menjadikan akun lama ALIAS (`users.linked_user_id`, tidak dihapus; lihat bagian 3b), `parent.phone` = nomor akun pegawai, simpan entri rollback di `account_link_log`, catat ke `activity_log` (`log_name = account-link`).
+- `unlink()`: mengembalikan `parent.id_user`, `parent.phone`, mengosongkan `linked_user_id` akun lama, dan mengembalikan baris yang masih menunjuk ke user pegawai. **Batasan**: baris yang dibuat setelah penggabungan tetap milik user pegawai. Tanpa entri rollback (mis. dihubungkan manual lewat SQL), `unlink` hanya melepas `parent.id_user` (parent jadi tanpa akun login).
 - Password tidak pernah diubah; orang tua yang digabung login dengan email/HP + password akun pegawai.
 
 ### Pemblokir
-Pegawai nonaktif/dihapus; akun pegawai hilang; orang tua dihapus; orang tua sudah terhubung ke akun pegawai itu; akun orang tua lama bukan ber-role `orang-tua` (akun staf tidak dinonaktifkan); akun pegawai sudah terhubung ke orang tua lain; nomor akun pegawai sudah dipakai data orang tua lain; cabang pegawai berbeda dari cabang orang tua/santri (BranchScope memfilter `Parents`/`Student`/`Transaction` dengan `users.branch_id`, sehingga data anak tidak terlihat setelah digabung — terbukti dari kode, diuji dengan data buatan karena DB lokal hanya satu cabang).
+Pegawai nonaktif/dihapus; akun pegawai hilang; orang tua dihapus; orang tua sudah terhubung ke akun pegawai itu; akun orang tua lama bukan ber-role `orang-tua` (akun staf tidak dijadikan alias); akun pegawai sudah terhubung ke orang tua lain; nomor akun pegawai sudah dipakai data orang tua lain; cabang pegawai berbeda dari cabang orang tua/santri (BranchScope memfilter `Parents`/`Student`/`Transaction` dengan `users.branch_id`, sehingga data anak tidak terlihat setelah digabung — terbukti dari kode, diuji dengan data buatan karena DB lokal hanya satu cabang).
 
 ### Allowlist kolom referensi (`config/account-link.php`)
 Hasil verifikasi per kolom (DB lokal, kode, dan role pemilik nilai):
@@ -63,7 +63,7 @@ Migration `make_student_id_parent_nullable` hanya menyamakan skema: di database 
 - Kode: kembalikan file dari backup. Tabel `account_link_log` boleh dibiarkan; bila perlu `php artisan migrate:rollback --step=1` (menghapus jejak rollback, jadi lakukan hanya setelah semua penggabungan diputus).
 
 ## Batasan / catatan
-- Login dengan nomor HP kembar belum diubah (`Auth::attempt` hanya mencoba satu baris per nomor). Penggabungan mengurangi kasusnya karena akun orang tua lama dinonaktifkan.
+- Login dengan nomor HP kembar belum diubah (`Auth::attempt` hanya mencoba satu baris per nomor). Sudah ditangani di bagian 3b (login mencoba semua kandidat).
 - Registrasi dengan nomor pegawai menggabungkan otomatis setelah OTP (sesuai spesifikasi). Bila satu nomor HP dipakai bersama oleh pegawai dan orang tua yang berbeda orang, OTP tetap sampai ke pemilik nomor; admin sebaiknya menggunakan fitur Putuskan bila itu terjadi.
 - Gabungkan akun di form edit orang tua hanya untuk admin (`role:admin`).
 - Konflik kepentingan kasir (bagian 4) belum aktif: kasir yang digabung sebagai orang tua masih bisa memproses tagihan anaknya sendiri sampai bagian 4 dideploy.

@@ -34,11 +34,11 @@ Route::post('forgot-password', [AuthController::class, 'storeForgotPassword'])->
 Route::post('forgot-password/verification', [AuthController::class, 'storeForgotPasswordVerification'])->name('auth.store.forgot-password.verification')->middleware('throttle:10,1');
 Route::post('forgot-password/accounts', [AuthController::class, 'storeForgotPasswordAccounts'])->name('auth.store.forgot-password.accounts');
 Route::post('reset-password', [AuthController::class, 'storeResetPassword'])->name('auth.store.reset-password');
-Route::post('authenticate', [AuthController::class, 'authenticate'])->name('auth.authenticate');
+Route::post('authenticate', [AuthController::class, 'authenticate'])->name('auth.authenticate')->middleware('throttle:20,1');
 Route::post('moota/notification/{bank}', [MootaController::class, 'notification'])->whereIn('bank', ['bsi'])->name('moota.notification');
 Route::get('captcha-refresh', [CaptchaController::class, 'refresh'])->name('captcha.refresh');
 
-Route::group(['middleware' => ['auth', 'parent.allowlist', 'initialize.backend']], function () {
+Route::group(['middleware' => ['auth', 'resolve.alias', 'parent.allowlist', 'initialize.backend']], function () {
     Route::prefix('academic')->group(function () {
         require __DIR__.'/academic.php';
     });

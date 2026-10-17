@@ -5,6 +5,7 @@ use App\Http\Middleware\AccessRights;
 use App\Http\Middleware\EnsureParentHasChildren;
 use App\Http\Middleware\InitializeBackend;
 use App\Http\Middleware\ParentRouteAllowlist;
+use App\Http\Middleware\ResolveAlias;
 use App\Http\Middleware\Role;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'initialize.backend' => InitializeBackend::class,
             'parent.allowlist' => ParentRouteAllowlist::class,
             'parent.has-children' => EnsureParentHasChildren::class,
+            'resolve.alias' => ResolveAlias::class,
             'role' => Role::class,
             'access' => Access::class,
             'accessRights' => AccessRights::class,

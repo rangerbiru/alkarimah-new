@@ -13,6 +13,7 @@ use App\Models\Employee;
 use App\Models\Parents;
 use App\Services\AccountLinkException;
 use App\Services\AccountLinker;
+use App\Models\Scopes\BranchScope;
 use App\Models\Student;
 use App\Models\User;
 use App\Support\OtpFlag;
@@ -20,6 +21,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redirect;
 
 class AuthController extends Controller
@@ -114,46 +117,134 @@ class AuthController extends Controller
         ]);
     }
 
+    // Maksimum kandidat akun (email / nomor HP sama) yang password-nya dicek per percobaan login
+    private const LOGIN_MAX_CANDIDATES = 10;
+
     public function authenticate(AuthRequest $request)
     {
-        if ($request->validated()) {
-            $remember = ($request->remember) ? true : false;
-            $auth_email = ['email' => $request->username, 'password' => $request->password];
-            $auth_phone = ['phone' => str_replace('-', '', $request->username), 'password' => $request->password];
-
-            if (Auth::attempt($auth_email, $remember) or Auth::attempt($auth_phone, $remember)) {
-                // A dual-role user can still log in as an employee without active students. An inactive
-                // employee who is also a parent counts as a parent only
-                if ((Auth::user()->is_orang_tua || Auth::user()->acts_as_parent_only) && ! Auth::user()->has_dual_role) {
-                    $student = Student::whereIdParent(Auth::user()->parent->id)->count();
-
-                    if ($student == 0) {
-                        Auth::logout();
-
-                        return back()->withErrors([
-                            'useraccount' => 'Data Siswa Anda belum ada, harap hubungi Admin untuk mendaftarkan data siswa Anda',
-                        ]);
-                    }
-                }
-
-                User::whereId(Auth::id())->update(['lastlogin_at' => date('Y-m-d H:i:s')]);
-                $request->session()->regenerate();
-
-                return Redirect::intended(route('dashboard.index'));
-            }
-
-            return back()->withErrors([
-                'useraccount' => 'Email / No. HP atau Password Salah',
-            ]);
-        } else {
+        if (! $request->validated()) {
             return back()->withInput($request->all);
         }
+
+        $username = trim((string) $request->username);
+        $password = (string) $request->password;
+        $remember = (bool) $request->remember;
+
+        $result = $this->resolveLoginAccount($username, $password);
+
+        if (is_string($result)) {
+            return back()->withErrors(['useraccount' => $result]);
+        }
+
+        $user = $result;
+
+        // A dual-role user can still log in as an employee without active students. An inactive
+        // employee who is also a parent counts as a parent only
+        if (($user->role == UserRole::OrangTua || $user->acts_as_parent_only) && ! $user->has_dual_role) {
+            $parent = $user->parent;
+
+            if (! $parent || Student::withoutGlobalScope(BranchScope::class)->whereIdParent($parent->id)->count() == 0) {
+                return back()->withErrors([
+                    'useraccount' => 'Data Siswa Anda belum ada, harap hubungi Admin untuk mendaftarkan data siswa Anda',
+                ]);
+            }
+        }
+
+        Auth::login($user, $remember);
+        User::whereId($user->id)->update(['lastlogin_at' => date('Y-m-d H:i:s')]);
+        $request->session()->regenerate();
+
+        return Redirect::intended(route('dashboard.index'));
+    }
+
+    /**
+     * Cari SEMUA akun dengan email / nomor HP ini, cek password ke masing-masing, lalu selesaikan ke akun
+     * tujuan (akun alias -> akun pegawainya). Tepat satu akun tujuan -> User. Selain itu -> pesan error.
+     */
+    private function resolveLoginAccount(string $username, string $password): User|string
+    {
+        $failed = 'Email / No. HP atau Password Salah';
+        $phone = str_replace('-', '', $username);
+
+        $candidates = User::query()
+            ->where(function ($query) use ($username, $phone) {
+                $query->where('email', $username);
+
+                // Nomor kosong atau "0" tidak pernah dipakai mencari akun
+                if ($phone !== '' && $phone !== '0') {
+                    $query->orWhere('phone', $phone);
+                }
+            })
+            ->orderBy('id')
+            ->limit(self::LOGIN_MAX_CANDIDATES + 1)
+            ->get();
+
+        if ($candidates->count() > self::LOGIN_MAX_CANDIDATES) {
+            Log::warning('login-too-many-candidates', [
+                'username' => $username,
+                'candidates' => User::where('email', $username)->orWhere('phone', $phone)->count(),
+                'checked' => self::LOGIN_MAX_CANDIDATES,
+            ]);
+            $candidates = $candidates->take(self::LOGIN_MAX_CANDIDATES);
+        }
+
+        if ($candidates->isEmpty()) {
+            // Waktu respons sama dengan akun yang ada: tidak membocorkan keberadaan akun
+            Hash::check($password, '$2y$12$.bWkvtr5/Bsd7xlIMTZCZesLfvWBPfLQ/JyQBuaLN6Dk2zmCpaU6O');
+
+            return $failed;
+        }
+
+        $targets = collect();
+
+        foreach ($candidates as $candidate) {
+            if (! Hash::check($password, $candidate->password)) {
+                continue;
+            }
+
+            if (! $candidate->linked_user_id) {
+                $targets->put($candidate->id, $candidate);
+
+                continue;
+            }
+
+            $target = User::find($candidate->linked_user_id);
+
+            // Tujuan alias harus akun pegawai yang masih ada dan bukan alias juga
+            if (! $target || $target->linked_user_id) {
+                Log::warning('login-alias-target-invalid', ['alias_user_id' => $candidate->id, 'target' => $candidate->linked_user_id]);
+
+                continue;
+            }
+
+            $targets->put($target->id, $target);
+        }
+
+        if ($targets->isEmpty()) {
+            return $failed;
+        }
+
+        if ($targets->count() > 1) {
+            Log::warning('login-ambiguous-accounts', [
+                'username' => $username,
+                'target_user_ids' => $targets->keys()->all(),
+            ]);
+
+            return __('string.login_ambiguous_accounts');
+        }
+
+        return $targets->first();
     }
 
     public function storeRegister(AuthRegisterRequest $request)
     {
         $error = false;
         $parent = Parents::select('id', 'phone')->wherePhone($request->phone)->first();
+
+        // Nomor akun alias (akun orang tua lama yang digabung ke akun pegawai) sudah punya akun
+        if (User::wherePhone($request->phone)->whereNotNull('linked_user_id')->exists()) {
+            return Redirect::route('auth.register')->withErrors(__('string.you_has_been_registered'))->withInput();
+        }
 
         if (empty($parent)) {
             $error = __('string.you_not_registered_as_parent');

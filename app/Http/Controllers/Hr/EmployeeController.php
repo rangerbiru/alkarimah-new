@@ -16,6 +16,9 @@ use App\Models\Position;
 use App\Models\Scopes\BranchScope;
 use App\Models\Student;
 use App\Models\User;
+use App\Services\AccountLinkException;
+use App\Services\AccountLinker;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -141,11 +144,15 @@ class EmployeeController extends Controller
 
     public function store(EmployeeRequest $request)
     {
+        $owner = null;
+
         if ($request->boolean('is_parent')) {
-            $this->assertNoSimilarParent($request);
+            $owner = $this->childrenOwnerWithAccount($request, null);
+            $this->assertNoSimilarParent($request, null, $owner?->id);
+            $owner && $this->requireLinkConfirmation($request, $owner, null);
         }
 
-        DB::transaction(function () use ($request) {
+        DB::transaction(function () use ($request, $owner) {
             $user = User::forceCreate([
                 'name' => $request->name,
                 'email' => $request->email,
@@ -159,10 +166,12 @@ class EmployeeController extends Controller
                 'id_user' => $user->id
             ]);
 
-            Employee::create($request->except(['is_parent', 'children']));
+            $employee = Employee::create($request->except(['is_parent', 'children', 'confirm_link_parent']));
 
             if ($request->boolean('is_parent')) {
-                $parent = $this->ensureParentRecord($user, $request);
+                $parent = $owner
+                    ? $this->linkOwnerParent($employee, $owner)
+                    : $this->ensureParentRecord($user, $request);
                 $this->linkChildren($parent, $request->input('children', []), $user->id);
             }
         });
@@ -249,12 +258,16 @@ class EmployeeController extends Controller
 
     public function update(EmployeeRequest $request, Employee $employee)
     {
+        $owner = null;
+
         if ($request->boolean('is_parent')) {
-            $this->assertNoSimilarParent($request, $employee->id_user);
+            $owner = $this->childrenOwnerWithAccount($request, $employee->id_user);
+            $this->assertNoSimilarParent($request, $employee->id_user, $owner?->id);
+            $owner && $this->requireLinkConfirmation($request, $owner, $employee);
         }
 
-        DB::transaction(function () use ($request, $employee) {
-            $employee->update($request->except(['is_parent', 'children']));
+        DB::transaction(function () use ($request, $employee, $owner) {
+            $employee->update($request->except(['is_parent', 'children', 'confirm_link_parent']));
 
             $update_user = [
                 'name' => $request->name,
@@ -274,7 +287,9 @@ class EmployeeController extends Controller
 
             // "No" never deletes an existing parent record: it may still have students attached
             if ($request->boolean('is_parent')) {
-                $parent = $this->ensureParentRecord($employee->user, $request);
+                $parent = $owner
+                    ? $this->linkOwnerParent($employee, $owner)
+                    : $this->ensureParentRecord($employee->user, $request);
                 $this->linkChildren($parent, $request->input('children', []), $employee->id_user);
             }
         });
@@ -284,7 +299,11 @@ class EmployeeController extends Controller
 
     public function destroy(Employee $employee)
     {
-        $employee->delete();
+        // Akun orang tua lama yang menjadi alias akun pegawai ini kembali normal
+        DB::transaction(function () use ($employee) {
+            $employee->delete();
+            app(AccountLinker::class)->unlinkAliasesOf($employee->id_user, 'employee-deleted');
+        });
 
         $response = [
             'status' => true,
@@ -432,7 +451,7 @@ class EmployeeController extends Controller
     // "Also a parent" must not create a second parent record for someone who already is one. If a parent
     // record with the same phone or name exists, the admin is sent to Parents > Edit > merge instead.
     // Nothing is saved. A user that already has a parent record (linked or not) is left alone
-    private function assertNoSimilarParent(Request $request, $user_id = null): void
+    private function assertNoSimilarParent(Request $request, $user_id = null, $except_parent_id = null): void
     {
         if ($user_id && Parents::withoutGlobalScope(BranchScope::class)->withTrashed()->whereIdUser($user_id)->exists()) {
             return;
@@ -442,6 +461,7 @@ class EmployeeController extends Controller
         $last_ten = Phone::lastTen($request->phone);
 
         $similar = Parents::select('id', 'id_user', 'name', 'phone')
+            ->when($except_parent_id, fn ($query) => $query->where('id', '!=', $except_parent_id))
             ->where(function ($query) use ($name, $last_ten) {
                 if ($last_ten) {
                     $query->orWhereRaw("RIGHT(REPLACE(REPLACE(REPLACE(phone, '-', ''), ' ', ''), '+', ''), 10) = ?", [$last_ten]);
@@ -529,8 +549,8 @@ class EmployeeController extends Controller
             'name' => $s->name,
             'class' => $s->class?->name ?? '-',
             'parent' => $s->parent?->name ?? '-',
-            // Another parent logs in with this child: not for the form to take over
-            'locked' => $s->parent && $s->parent->id_user && $s->parent->id_user != $user_id,
+            // The child's parent already has an account: picking it goes through the merge confirmation
+            'has_account' => $s->parent && $s->parent->id_user && $s->parent->id_user != $user_id,
         ]);
 
         return response()->json([
@@ -539,6 +559,81 @@ class EmployeeController extends Controller
             'recordsFiltered' => $student_count_filter,
             'data' => $student_arr,
         ]);
+    }
+
+    // Picked children whose parent already has a login account (other than this employee's). One such
+    // parent: the form merges that account into the employee account after an explicit confirmation
+    // (AccountLinker, the old parent account becomes an alias). Two different ones: refused
+    private function childrenOwnerWithAccount(Request $request, $user_id): ?Parents
+    {
+        try {
+            $ids = collect($request->input('children', []))->map(fn ($id) => Crypt::decrypt((string) $id))->unique()->values();
+        } catch (DecryptException $e) {
+            throw ValidationException::withMessages(['children' => __('message.children_invalid')]);
+        }
+
+        if ($ids->isEmpty()) {
+            return null;
+        }
+
+        $parent_ids = Student::whereIn('id', $ids)->pluck('id_parent')->filter()->unique();
+
+        $owners = Parents::withoutGlobalScope(BranchScope::class)
+            ->withTrashed()
+            ->whereIn('id', $parent_ids)
+            ->whereNotNull('id_user')
+            ->when($user_id, fn ($query) => $query->where('id_user', '!=', $user_id))
+            ->get()
+            ->filter(fn ($parent) => User::withoutGlobalScopes()->whereKey($parent->id_user)->exists())
+            ->values();
+
+        if ($owners->count() > 1) {
+            throw ValidationException::withMessages(['children' => __('message.children_multiple_accounted_parents', [
+                'parents' => $owners->pluck('name')->implode(' & '),
+            ])]);
+        }
+
+        return $owners->first();
+    }
+
+    // Nothing is saved until the admin ticks the confirmation for this very parent
+    private function requireLinkConfirmation(Request $request, Parents $owner, ?Employee $employee): void
+    {
+        try {
+            $confirmed = $request->filled('confirm_link_parent')
+                && (int) Crypt::decrypt((string) $request->input('confirm_link_parent')) === $owner->id;
+        } catch (DecryptException $e) {
+            $confirmed = false;
+        }
+
+        if ($confirmed) {
+            return;
+        }
+
+        $preview = app(AccountLinker::class)->preview($employee?->id, $owner->id);
+
+        if (! $preview['can_link']) {
+            throw ValidationException::withMessages(['children' => $preview['blockers'][0]['message']]);
+        }
+
+        // Passwords are not sent back to the browser: they are typed again on the confirmed submit
+        throw new HttpResponseException(
+            Redirect::back()
+                ->withInput($request->except(['password', 'password_confirm', 'confirm_link_parent']))
+                ->with('link_preview', $preview + ['token' => $owner->encrypted_id])
+        );
+    }
+
+    // Merges the picked children's parent account into this employee account and returns the parent row
+    private function linkOwnerParent(Employee $employee, Parents $owner): Parents
+    {
+        try {
+            app(AccountLinker::class)->link($employee->id, $owner->id);
+        } catch (AccountLinkException $e) {
+            throw ValidationException::withMessages(['children' => $e->getMessage()]);
+        }
+
+        return Parents::withoutGlobalScope(BranchScope::class)->findOrFail($owner->id);
     }
 
     // Children picked on the form become this parent's students. student.id_parent is NOT NULL, so

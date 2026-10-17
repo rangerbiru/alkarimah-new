@@ -1,5 +1,26 @@
 {{-- Children of the employee-as-parent: picked from all students in a modal. Shown only when "is_parent" is Yes.
-     Already linked children cannot be removed here (student.id_parent is NOT NULL): move them from the student page --}}
+     Children whose parent has an account are pickable too: the controller asks for a merge confirmation (link_preview) --}}
+@if (session('link_preview'))
+    @php $lp = session('link_preview'); @endphp
+    <div class="alert alert-warning" id="link-confirm">
+        <h6 class="mb-2">{{ __('string.link_confirm_title') }}</h6>
+        <p class="mb-2">{{ __('string.link_confirm_body', ['parent' => $lp['parent']['name']]) }}</p>
+        <ul class="mb-2">
+            @foreach ($lp['children'] as $c)
+                <li>{{ $c['name'] }} ({{ $c['nis'] }}) - {{ $c['class'] }}</li>
+            @endforeach
+        </ul>
+        @foreach ($lp['warnings'] as $w)
+            <p class="mb-1 text-danger">{{ $w }}</p>
+        @endforeach
+        <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="confirm_link_parent" name="confirm_link_parent" value="{{ $lp['token'] }}">
+            <label class="form-check-label" for="confirm_link_parent">{{ __('string.link_confirm_check') }}</label>
+        </div>
+        <small class="text-muted">{{ __('string.link_confirm_hint') }}</small>
+    </div>
+@endif
+
 <div id="children-box" class="mb-4">
     <label>{{ __('label.children') }}</label>
 
@@ -109,10 +130,10 @@
                                 if (isSelected(row.encrypted_id, label))
                                     return '<span class="badge bg-success">' + label_selected + '</span>'
 
-                                if (row.locked)
-                                    return '<span class="badge bg-light text-muted">' + label_locked + '</span>'
+                                // The parent has an account: still pickable, the form asks for a merge confirmation
+                                const note = row.has_account ? '<span class="badge bg-light text-muted me-1">' + label_locked + '</span>' : ''
 
-                                return '<button type="button" class="btn btn-primary btn-sm pick-child">' + label_choose + '</button>'
+                                return note + '<button type="button" class="btn btn-primary btn-sm pick-child">' + label_choose + '</button>'
                             }
                         }
                     ]

@@ -11,6 +11,7 @@ use App\Http\Requests\UserRequest;
 use App\Models\Employee;
 use App\Models\Menu;
 use App\Models\User;
+use App\Services\AccountLinker;
 use App\Models\UserRights;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -338,7 +339,10 @@ class UserController extends Controller
             ]);
         }
 
-        $user->delete();
+        DB::transaction(function () use ($user) {
+            app(AccountLinker::class)->unlinkAliasesOf($user->id, 'user-deleted');
+            $user->delete();
+        });
 
         $response = [
             'status' => true,
