@@ -114,6 +114,25 @@ class DualRoleTest extends ModuleAccessTestCase
         $this->actingAs($user)->get(route('finance.balance.topup'))->assertOk();
     }
 
+    public static function staffRoles(): array
+    {
+        return [['kepala-sekolah'], ['wali-kelas'], ['kasir'], ['kasir-unit'], ['bendahara'], ['penanggung-jawab-tabungan'], ['pegawai']];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('staffRoles')]
+    public function test_any_staff_role_with_an_employee_row_can_also_be_a_parent(string $role): void
+    {
+        $user = $this->dualPegawai(true, $role);
+
+        $this->assertTrue($user->has_dual_role);
+        $this->assertSame($role, $user->menu_role->value);
+
+        // sidebar (menu peran sendiri + menu orang tua) dirender di setiap halaman backend
+        $this->actingAs($user)->get(route('academic.student.children'))
+            ->assertOk()->assertSee('Anak Uji')->assertSee(__('label.parent_menu'))->assertSee(route('academic.student.children'), false);
+        $this->actingAs($user)->get(route('finance.balance.index'))->assertOk();
+    }
+
     public function test_dual_account_registered_with_the_parent_role_gets_the_employee_menu(): void
     {
         $user = $this->createUser('orang-tua', [\App\Constants\Modules::CreateAbsence]);
