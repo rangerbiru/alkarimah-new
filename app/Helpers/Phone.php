@@ -4,14 +4,17 @@ namespace App\Helpers;
 
 class Phone
 {
-    /**
-     * 10 digit terakhir nomor HP (tanpa karakter non-digit) untuk membandingkan nomor yang ditulis
-     * dengan format berbeda (08.., +62.., 62..). Null bila nomor kosong atau terlalu pendek.
-     */
-    public static function lastTen(?string $phone): ?string
+    // Numbers are stored as 08xx, 628xx, +62 8xx, with dashes or spaces. The last 10 digits are
+    // the part that survives every format, so two numbers are "the same" when those match
+    public static function lastTen($phone): ?string
     {
         $digits = preg_replace('/\D/', '', (string) $phone);
 
-        return strlen($digits) >= 8 ? substr($digits, -10) : null;
+        return strlen($digits) >= 10 ? substr($digits, -10) : null;
+    }
+
+    public static function digits($phone): string
+    {
+        return preg_replace('/\D/', '', (string) $phone);
     }
 }

@@ -34,7 +34,8 @@ class EmployeeRequest extends FormRequest
             'nik' => 'nullable|max:116|unique:employee',
             'name' => 'required|max:150',
             'phone' => 'required|max:20|unique:employee',
-            'email' => 'required|max:200|email|unique:employee',
+            // The email is copied to the login account too, so it must be free in users as well
+            'email' => 'required|max:200|email|unique:employee|unique:users,email',
             'gender' => 'required',
             'marital_status' => 'required',
             'address' => 'required',
@@ -44,6 +45,9 @@ class EmployeeRequest extends FormRequest
             'task_main' => 'required',
             'password' => 'required|min:8',
             'password_confirm' => 'required|same:password',
+            'is_parent' => 'required|in:0,1',
+            'children' => 'nullable|array|max:20',
+            'children.*' => 'string',
         ];
 
         if ($this->method() == 'PUT') {
@@ -64,7 +68,8 @@ class EmployeeRequest extends FormRequest
 
             $rules['email'] = [
                 'required', 'max:200',
-                Rule::unique('App\Models\Employee', 'email')->ignore($this->employee)
+                Rule::unique('App\Models\Employee', 'email')->ignore($this->employee),
+                Rule::unique('users', 'email')->ignore($this->employee->id_user)
             ];
 
             $rules['password'] = 'nullable|min:8';
@@ -96,6 +101,8 @@ class EmployeeRequest extends FormRequest
             'task_main' => __('label.main_task'),
             'password' => __('label.password'),
             'password_confirm' => __('label.confirm_password'),
+            'is_parent' => __('label.is_also_parent'),
+            'children' => __('label.children'),
         ];
     }
 

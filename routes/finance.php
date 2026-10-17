@@ -11,7 +11,7 @@ use App\Http\Controllers\Finance\TransactionController as FinanceTransactionCont
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('balance')->group(function () {
-    Route::get('/', [FinanceBalanceController::class, 'index'])->name('finance.balance.index')->middleware('role:orang-tua');
+    Route::get('/', [FinanceBalanceController::class, 'index'])->name('finance.balance.index')->middleware(['role:orang-tua', 'parent.has-children']);
     Route::get('history', [FinanceBalanceController::class, 'history'])->name('finance.balance.history')->middleware('role:orang-tua');
     Route::get('waiting/{transaction}', [FinanceBalanceController::class, 'waiting'])->name('finance.balance.waiting')->middleware('role:orang-tua');
 
@@ -78,7 +78,7 @@ Route::post('donation/datatable', [FinanceDonationController::class, 'datatable'
 Route::resource('donation', FinanceDonationController::class, ['as' => 'finance'])->except(['show'])->middleware('access:kasir');
 
 Route::prefix('payment')->group(function () {
-    Route::get('/', [FinancePaymentController::class, 'index'])->name('finance.payment.index')->middleware('role:orang-tua');
+    Route::get('/', [FinancePaymentController::class, 'index'])->name('finance.payment.index')->middleware(['role:orang-tua', 'parent.has-children']);
     Route::get('waiting/{transaction}', [FinancePaymentController::class, 'waiting'])->name('finance.payment.waiting')->middleware('role:orang-tua');
     Route::get('history', [FinancePaymentController::class, 'history'])->name('finance.payment.history')->middleware('role:orang-tua');
     Route::get('/{transaction}', [FinancePaymentController::class, 'show'])->name('finance.payment.show')->middleware('role:orang-tua');
@@ -150,7 +150,7 @@ Route::prefix('report')->group(function () {
 });
 
 Route::prefix('savings')->group(function () {
-    Route::get('/', [FinanceSavingsController::class, 'index'])->name('finance.savings.index')->middleware('role:orang-tua');
+    Route::get('/', [FinanceSavingsController::class, 'index'])->name('finance.savings.index')->middleware(['role:orang-tua', 'parent.has-children']);
     Route::get('history', [FinanceSavingsController::class, 'history'])->name('finance.savings.history')->middleware('role:orang-tua');
     Route::get('history/withdrawal', [FinanceSavingsController::class, 'historyWithdrawal'])->name('finance.savings.history.withdrawal')->middleware('access:penanggung-jawab-tabungan');
     Route::get('deposit', [FinanceSavingsController::class, 'deposit'])->name('finance.savings.deposit')->middleware('access:kasir,kasir-unit');

@@ -25,4 +25,12 @@ return [
     'registration_linked_to_employee' => 'Nomor Anda terdaftar sebagai akun pegawai. Data orang tua sudah dihubungkan; silakan login dengan akun pegawai Anda.',
     'account_link_parent_has_account' => 'Orang tua santri ini sudah punya akun. Gabungkan lewat menu Orang Tua > Edit > Gabungkan dengan akun pegawai.',
     'account_link_mixed_selection' => 'Pilih santri yang semuanya sudah punya data orang tua (satu orang tua) atau semuanya belum punya data orang tua, jangan dicampur.',
+    'child_required' => 'Data anak belum ada. Tambahkan data anak terlebih dahulu di menu Data Anak.',
+    'child_not_found' => 'Santri dengan NIS dan tanggal lahir tersebut tidak ditemukan.',
+    'child_already_linked' => ':name sudah terdaftar sebagai anak Anda.',
+    'child_has_other_parent' => ':name sudah terhubung dengan akun orang tua lain. Silakan hubungi Admin.',
+    'child_linked' => 'Data anak berhasil ditambahkan.',
+    'children_invalid' => 'Data anak yang dipilih tidak valid.',
+    'child_has_other_parent_admin' => ':name sudah terhubung dengan akun orang tua lain (:parent). Pindahkan lewat menu Data Santri jika memang benar.',
+    'parent_similar_exists' => 'Sudah ada data orang tua dengan nama atau No. HP serupa: :list. Gunakan menu Orang Tua, Edit, bagian Gabungkan dengan Akun Pegawai, bukan membuat data orang tua baru.',
 ];

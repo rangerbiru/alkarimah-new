@@ -165,7 +165,7 @@ class UserController extends Controller
         }
 
         DB::transaction(function () use ($request, $employee) {
-            $employee->user->update(['role' => UserRole::KepalaSekolah]);
+            $employee->user->forceFill(['role' => UserRole::KepalaSekolah])->save();
             $employee->user->syncEducationLevels($request->level_education);
         });
 
@@ -228,7 +228,9 @@ class UserController extends Controller
     public function store(UserRequest $request)
     {
         DB::transaction(function () use ($request) {
-            $user = User::create($request->safe()->only(['name', 'phone', 'email', 'gender', 'role', 'password']));
+            // role is not mass assignable: set explicitly from the validated, whitelisted value
+            $user = User::forceCreate($request->safe()->only(['name', 'phone', 'email', 'gender', 'role', 'password'])
+                + ['role' => $request->validated('role')]);
 
             switch ($user->role->value) {
                 case UserRole::Bendahara->value:
@@ -326,7 +328,7 @@ class UserController extends Controller
         // Akun kepala sekolah adalah akun pegawai, jadi cukup dikembalikan ke role pegawai
         if ($user->role == UserRole::KepalaSekolah) {
             DB::transaction(function () use ($user) {
-                $user->update(['role' => UserRole::Pegawai]);
+                $user->forceFill(['role' => UserRole::Pegawai])->save();
                 $user->syncEducationLevels([]);
             });
 

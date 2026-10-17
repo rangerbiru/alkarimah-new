@@ -102,4 +102,10 @@ return [
     'phone_registered_as_employee_contact_admin' => 'Nomor HP ini terdaftar sebagai akun pegawai dan belum dapat dihubungkan otomatis. Silakan hubungi Admin.',
     'remove_parent_selection' => 'Hapus pilihan (seluruh anak dari orang tua ini)',
     'account_link_new_parent_info' => 'Santri ini belum punya data orang tua. Data orang tua baru akan dibuat dari data pegawai (nama, jenis kelamin, nomor HP akun) dan santri terpilih dikaitkan ke data tersebut.',
+    'info_parent_record_kept' => 'Data orang tua sudah ada. Memilih "Tidak" tidak menghapus data tersebut.',
+    'no_children_yet' => 'Belum ada data anak.',
+    'add_child_info' => 'Masukkan NIS dan tanggal lahir anak Anda yang sudah terdaftar sebagai santri.',
+    'no_children_selected' => 'Belum ada anak yang dipilih.',
+    'child_selected' => 'Terpilih',
+    'child_has_parent_account' => 'Ortu punya akun',
 ];

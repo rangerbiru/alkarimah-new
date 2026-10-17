@@ -1,52 +1,50 @@
-# Bagian 2 — Aplikasi dua peran (pegawai yang juga orang tua)
+# Bagian 2 — Aplikasi dua peran (pegawai yang juga orang tua), model PPIA
 
-Deploy SETELAH bagian 1 (`2026-10-17-bagian-1-keamanan.md`). Tidak ada migration dan tidak ada perubahan data.
-Bagian ini belum menyediakan cara menghubungkan akun (itu bagian 3); status dua peran murni dari `parent.id_user = users.id` milik pegawai.
+Mengikuti PPIA (commit `6ac6c75` dual-role dan `17e20e3` role mass-assignment). Deploy SETELAH bagian 1.
+Tidak ada migration pada bagian ini. Status dua peran murni dari data: akun punya baris `employee` (belum dihapus) DAN baris `parent` (belum dihapus) — `employee.id_user = parent.id_user`.
 
 ## Perilaku
-- **Menu digabung**: pegawai/staf yang punya baris `parent` aktif dan santri melihat menu stafnya ditambah "Menu Orang Tua" (Anak Saya, Pembayaran, Tabungan Saldo, Uang Saku), di sidebar desktop dan mobile, plus pintasan di dashboard pegawai.
-- **Konteks per request**: request ke route khusus orang tua (`role:orang-tua`, atau route bersama yang tidak dipenuhi user sebagai staf) dijalankan sebagai orang tua: `users.role` di memori diganti `orang-tua` untuk request itu saja. Event `saving` di model `User` selalu mengembalikan role asli sehingga role override TIDAK PERNAH tersimpan ke DB. Request ke route staf tetap sebagai staf.
-- **Modul Hak Akses**: berlaku seperti biasa pada route staf. Pada request konteks orang tua, `hasAccess()` dan `moduleIds()` kosong dan `accessRights:` menolak.
-- **Pegawai nonaktif yang juga orang tua**: diperlakukan sebagai orang tua saja (seluruh request konteks orang tua, tanpa menu staf; route staf ditolak). Login ditolak bila tidak punya santri (pesan yang sama dengan orang tua biasa). Pegawai nonaktif yang bukan orang tua tidak berubah.
-- **Orang tua tanpa santri** yang juga pegawai aktif: tetap masuk sebagai pegawai, menu orang tua tidak tampil.
-- **Akun satu peran**: tidak berubah.
-- Route baru `academic.student.children` ("Anak Saya", `role:orang-tua`): daftar anak untuk orang tua (route `academic.student.index` untuk admin menampilkan seluruh santri).
-- Perbaikan tambahan: orang tua hanya boleh membuka/mengubah santri miliknya (`academic.student.show/edit/update.parent` memberi 404 bila bukan anaknya; sebelumnya tidak dicek).
+- **User** (`app/Models/User.php`): accessor `is_employee`, `is_parent`, `has_dual_role`, `menu_role`, `is_inactive_employee`, `acts_as_parent_only`. `users.role` tidak pernah diubah/dioverride.
+- **Role middleware**: akun dua peran boleh membuka route `role:orang-tua`; akun dua peran yang terdaftar dengan role `orang-tua` juga boleh membuka route `role:pegawai`. Route di luar kedua kelompok (mis. kasir tanpa modul) tetap ditolak.
+- **Menu digabung**: sidebar desktop dan mobile, dashboard pegawai (pintasan), dan bottom nav mengikuti `menu_role`. Menu "Menu Orang Tua" (Data Anak, Pembayaran, Tabungan Saldo, Uang Saku) ditambahkan di bawah menu pegawai.
+- **Data Anak** (`academic.student.children`): daftar anak. Akun dua peran menambah anak dengan NIS + tanggal lahir (`academic.student.store.child`, throttle 10/menit). Anak yang orang tuanya punya akun sendiri tidak pernah diambil alih; pesan sama untuk NIS tidak ada dan tanggal lahir salah.
+- **Pembayaran / Tabungan Saldo / Uang Saku** untuk orang tua tanpa anak: diarahkan ke Data Anak dengan Swal (`parent.has-children`).
+- **Transaksi**: transaksi buatan akun dua peran lewat route orang tua (`finance.payment.store`, `finance.balance.store`, `finance.savings.store`) diberi masa berlaku seperti transaksi orang tua, kecuali akun itu kasir / kasir-unit (setoran kasir tetap setoran kasir).
+- **Login**: akun dua peran boleh masuk sebagai pegawai tanpa santri. Orang tua biasa tanpa santri tetap ditolak.
+- **Pegawai nonaktif yang juga orang tua** (aturan tambahan Al-Karimah): diperlakukan sebagai orang tua saja (`acts_as_parent_only`): route staf ditolak, `menu_role` = orang-tua, login ditolak bila tidak punya santri. Pegawai nonaktif yang bukan orang tua tidak berubah.
+- **Kepemilikan santri**: halaman santri orang tua (show/edit/update) memberi 403 bila bukan anaknya; `updateParent` memakai data tervalidasi.
+- **Allowlist route orang tua** (permintaan Al-Karimah, tidak ada di PPIA): `config/parent_access.php`, `PARENT_ROUTE_MODE=log|enforce` (default `log`). Berlaku untuk akun dengan `menu_role = orang-tua` (orang tua biasa dan pegawai nonaktif-orang tua), TIDAK untuk akun dua peran. Mode `log` mencatat `parent-route-outside-allowlist` (route, user, waktu); `enforce` mengarahkan ke dashboard. Test gagal bila ada route ber-`orang-tua` yang belum terdaftar.
 
-## Allowlist route orang tua (akun orang tua biasa dan konteks orang tua)
-`config/parent_access.php`, saklar `.env`: `PARENT_ROUTE_MODE=log|enforce` (default `log`).
-- `log`: route di luar allowlist tetap boleh, dicatat ke log: `parent-route-outside-allowlist` dengan route, method, user_id, waktu.
-- `enforce`: route di luar allowlist diarahkan ke dashboard (JSON 403 untuk AJAX).
+### Batasan model ini (berbeda dari rancangan override per request yang sebelumnya)
+- Akun dua peran **wajib punya baris pegawai**. Akun `kasir`/`bendahara`/`wali-kelas` murni yang tidak punya baris pegawai tidak dihitung dua peran (di Al-Karimah hanya sedikit akun staf yang punya baris pegawai; kasir biasanya pegawai dengan modul Kasir).
+- Endpoint yang dipakai bersama staf dan orang tua memutuskan tampilan lewat hak akses staf (`hasAccess`): kasir/kasir-unit yang juga orang tua mendapat perilaku kasir pada `finance.savings.store` dan `finance.savings.history`. Konflik kepentingan kasir (bagian 4) menutup celah transaksi untuk anak sendiri.
+- Modul Hak Akses tetap berlaku untuk akun dua peran (tidak dimatikan saat membuka halaman orang tua).
 
-Memantau log:
+## File yang berubah
+- `app/Models/User.php`, `app/Http/Middleware/Role.php`, `EnsureParentHasChildren.php` (baru), `ParentRouteAllowlist.php` (baru), `bootstrap/app.php`, `routes/web.php` (grup auth + `parent.allowlist`)
+- `app/Models/Transaction.php`, `app/Http/Controllers/AuthController.php`, `DashboardController.php`, `Academic/StudentController.php` (children, storeChild, kepemilikan), `Academic/StudentPermitController.php`
+- `app/Http/Requests/StudentChildRequest.php` (baru)
+- `routes/academic.php`, `routes/finance.php`
+- `config/parent_access.php`
+- View: `layouts/backend/sidebar.blade.php`, `sidebar-menu-parent.blade.php`, `layouts/mobile/index|sidebar.blade.php`, `backend/dashboard/pegawai.blade.php`, `dashboard/partials/parent-shortcut.blade.php`, `academic/student/index-parent.blade.php`
+- `lang/{id,en}/{label,message,string}.php`
+- Test saja: `tests/Feature/DualRoleTest.php`
+
+## Migration / perintah
+Tidak ada migration. Bila server memakai cache: `php artisan config:clear && php artisan route:clear`. Opsional `.env`: `PARENT_ROUTE_MODE=log`.
+
+## Memantau allowlist
 ```bash
 grep 'parent-route-outside-allowlist' storage/logs/laravel-*.log | sed -E 's/.*"route":"([^"]*)".*/\1/' | sort | uniq -c | sort -rn
 ```
-Tambahkan route yang sah ke `config/parent_access.php` sebelum mengganti ke `enforce`. Test `test_every_parent_route_is_in_the_allowlist_config` gagal bila ada route ber-`orang-tua` yang belum terdaftar.
-
-## File yang berubah
-- `app/Models/User.php` (isParent/isEmployee/hasMultipleRoles/actAs/clearActAs, event saving/saved, syncOriginal, moduleIds)
-- `app/Http/Middleware/ActiveRole.php` (baru), `AccessRights.php`, `bootstrap/app.php` (alias `active.role`), `routes/web.php` (grup auth + `active.role`)
-- `app/Http/Controllers/AuthController.php` (aturan login pegawai nonaktif-orang tua), `Academic/StudentController.php` (children, kepemilikan santri)
-- `routes/academic.php` (route children)
-- `config/parent_access.php` (baru)
-- `resources/views/layouts/backend/sidebar.blade.php`, `layouts/backend/sidebar-menu-parent.blade.php` (baru), `layouts/mobile/sidebar.blade.php`, `backend/dashboard/pegawai.blade.php`, `backend/dashboard/partials/parent-shortcut.blade.php` (baru)
-- `lang/{id,en}/label.php`, `lang/{id,en}/string.php`
-- Test saja: `tests/Feature/DualRoleTest.php`
-
-## Migration / perintah artisan
-Tidak ada migration. Bila server memakai cache: `php artisan config:clear && php artisan route:clear` (lalu cache ulang bila dipakai). Opsional di `.env`: `PARENT_ROUTE_MODE=log`.
+Tambahkan route yang sah ke `config/parent_access.php` sebelum mengganti ke `enforce`.
 
 ## Verifikasi setelah deploy
-1. Orang tua biasa: login, dashboard, pembayaran, saldo, uang saku, "santri" berfungsi seperti sebelumnya. Log hanya mencatat route yang memang di luar allowlist.
-2. Pegawai biasa (bukan orang tua): tidak ada "Menu Orang Tua"; membuka `/academic/student/children` diarahkan ke dashboard.
-3. Buat data uji: hubungkan satu parent ke `users.id` seorang pegawai (SQL manual: `UPDATE parent SET id_user=<id user pegawai> WHERE id=<id parent>`; hanya untuk uji, cara resmi ada di bagian 3). Login sebagai pegawai tsb: dashboard menampilkan pintasan dan sidebar menampilkan Menu Orang Tua; "Anak Saya" menampilkan hanya anaknya; menu staf (modul) tetap berfungsi; pada halaman orang tua sidebar menampilkan tautan Dashboard.
-4. Pastikan `users.role` pegawai tsb tetap `pegawai` di DB setelah membuka halaman orang tua dan mengubah profil.
-5. Kasir yang juga orang tua: halaman kasir tetap kasir, "Pembayaran" membuka tampilan orang tua.
+1. Orang tua biasa: dashboard, pembayaran, saldo, uang saku, Data Anak berfungsi seperti sebelumnya (tanpa tombol Tambah Anak).
+2. Pegawai biasa: tidak ada "Menu Orang Tua"; `/academic/student/children` diarahkan ke dashboard.
+3. Akun uji dua peran (lihat bagian 3 untuk cara menghubungkan): dashboard menampilkan pintasan, sidebar menampilkan Menu Orang Tua, Data Anak bisa menambah anak dengan NIS + tanggal lahir, menu pegawai (modul) tetap berfungsi.
+4. Dua peran tanpa anak: Pembayaran / Saldo / Uang Saku mengarah ke Data Anak dengan notifikasi.
+5. `users.role` akun dua peran tetap sama di DB.
 
 ## Rollback
-Kembalikan file dari backup dan jalankan `config:clear` / `route:clear`. Tidak ada perubahan data.
-
-## Batasan
-- Login dengan nomor HP kembar belum diubah (dibahas bersama bagian 3).
-- Konflik kepentingan kasir (kasir tidak boleh memproses tagihan anaknya sendiri) dikerjakan di bagian 4; sebelum itu, kasir yang juga orang tua masih bisa memproses tagihan anaknya.
+Kembalikan file dari backup, `config:clear` / `route:clear`. Tidak ada perubahan data.

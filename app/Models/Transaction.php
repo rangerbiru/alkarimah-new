@@ -326,7 +326,15 @@ class Transaction extends Model
             $model->branch_id = Auth::user()->branch_id;
             $model->created_by = Auth::id();
 
-            if (Auth::user()->role->value == UserRole::OrangTua->value) {
+            // Parent-made requests expire; a dual-role user (employee + parent) pays through the parent routes
+            // (a cashier who is also a parent still records cashier deposits as a cashier)
+            $user = Auth::user();
+            $by_parent = $user->role->value == UserRole::OrangTua->value
+                || ($user->has_dual_role
+                    && request()->routeIs('finance.payment.store', 'finance.balance.store', 'finance.savings.store')
+                    && ! ($user->hasAccess('kasir') || $user->hasAccess('kasir-unit')));
+
+            if ($by_parent) {
                 $model->expired_at = date('Y-m-d H:i:s', strtotime('+2 day'));
                 $model->expired_view_at = date('Y-m-d H:i:s', strtotime('+1 day'));
             }

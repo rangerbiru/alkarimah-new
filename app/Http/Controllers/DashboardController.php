@@ -51,7 +51,8 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->role == UserRole::OrangTua) {
+        // A dual-role user (employee + parent) gets the employee dashboard with parent shortcuts
+        if ($user->menu_role == UserRole::OrangTua) {
             // setcookie('paycode', rand(100, 999), time() + (86400 * 30), "/");
             // setcookie('paycode', '', time() - 3600, '/');
             return $this->orangTua();
@@ -61,7 +62,7 @@ class DashboardController extends Controller
             return $this->waliKelas();
         } elseif ($user->role == UserRole::Kasir || $user->role == UserRole::KasirUnit) {
             return $this->kasir();
-        } elseif ($user->role == UserRole::Pegawai || $user->role == UserRole::KepalaSekolah) {
+        } elseif ($user->menu_role == UserRole::Pegawai || $user->role == UserRole::KepalaSekolah) {
             return $this->pegawai();
         } else {
             return $this->admin();

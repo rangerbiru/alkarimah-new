@@ -23,8 +23,6 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('account-link')->name('hr.account-link.')->middleware('role:admin')->group(function () {
     Route::get('employees', [HrAccountLinkController::class, 'employees'])->name('employees');
-    Route::post('students', [HrAccountLinkController::class, 'students'])->name('students');
-    Route::post('children', [HrAccountLinkController::class, 'children'])->name('children');
     Route::post('preview', [HrAccountLinkController::class, 'preview'])->name('preview');
     Route::post('link', [HrAccountLinkController::class, 'link'])->name('link');
     Route::post('unlink', [HrAccountLinkController::class, 'unlink'])->name('unlink');
@@ -37,6 +35,7 @@ Route::prefix('employee')->group(function () {
     Route::get('rights/{employee}', [HrEmployeeController::class, 'rights'])->name('hr.employee.rights')->middleware('role:admin');
 
     Route::post('datatable', [HrEmployeeController::class, 'datatable'])->name('hr.employee.datatable')->middleware(['role:admin,pegawai', 'accessRights:'.Modules::AdminHumanResource]);
+    Route::post('datatable/student', [HrEmployeeController::class, 'datatableStudent'])->name('hr.employee.datatable.student')->middleware(['role:admin,pegawai', 'accessRights:'.Modules::AdminHumanResource]);
     Route::post('rights/{employee}', [HrEmployeeController::class, 'storeRights'])->name('hr.employee.store.rights')->middleware('role:admin');
 
     Route::post('/import', [HrEmployeeController::class, 'import'])

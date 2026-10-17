@@ -432,7 +432,7 @@ class ExecuteCommand extends Command
                     $email = null;
             }
 
-            $user = User::create([
+            $user = User::forceCreate([
                 'name' => $name,
                 'email' => $email,
                 'password' => '123.321!',

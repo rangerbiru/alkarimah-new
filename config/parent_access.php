@@ -16,6 +16,7 @@ return [
         // Route khusus orang tua
         'academic.student.index',
         'academic.student.children',
+        'academic.student.store.child',
         'academic.student.show',
         'academic.student.edit',
         'academic.student.update.parent',

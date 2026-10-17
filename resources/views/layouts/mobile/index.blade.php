@@ -153,7 +153,7 @@
                     <div class="label">{{ __('label.home') }}</div>
                 </a>
             </li>
-            @if (Auth::user()->hasRole('pegawai') || Auth::user()->hasRole('kepala-sekolah'))
+            @if (in_array(Auth::user()->menu_role->value, ['pegawai', 'kepala-sekolah']))
                 <li class="nav-item">
                     <a class="nav-link{{ $set_bt_dakwah }}" href="#" onclick="maintenance()">
                         <i class="fa-solid fa-mosque"></i>
@@ -219,6 +219,14 @@
         <script>
             $(document).ready(function() {
                 setNotifSuccess("{{ session()->get('success') }}", false)
+            })
+        </script>
+    @endif
+
+    @if (session()->has('info'))
+        <script>
+            $(document).ready(function() {
+                setNotifInfo("{{ session()->get('info') }}")
             })
         </script>
     @endif

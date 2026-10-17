@@ -6,7 +6,7 @@ Berdiri sendiri: tidak bergantung pada fitur dua peran. Tidak ada migration dan 
 
 | Kode | Masalah | Perbaikan |
 |---|---|---|
-| A | `PUT /profile` memakai `$request->all()`, user bisa mengubah role sendiri | Hanya `name, email, phone, gender` yang disimpan (`safe()->only`) |
+| A | `PUT /profile` memakai `$request->all()`, user bisa mengubah role sendiri | Hanya `name, email, phone, gender` yang disimpan (`safe()->only`). Model `User::$guarded` juga menutup `role, branch_id, token, token_expired_at, remember_token, email_verified_at, lastlogin_at` (seperti PPIA): penulis yang sah memakai `forceCreate` / `forceFill` (registrasi, orang tua, pegawai, cabang, kepala sekolah, reset password, import, seeder) |
 | B | `POST/PUT/DELETE /user*` tanpa middleware, `User::create($request->all())` | Route dikunci `role:admin,super-admin`; hanya field whitelist; role wajib salah satu dari bendahara, kasir, kasir-unit, wali-kelas, penanggung-jawab-tabungan; edit/update/hapus hanya akun role tsb di cabang admin (selain itu 404) |
 | C | `UserRequest` memakai `unique:branch` | Unik terhadap tabel `users` (email: semua baris; telepon: yang belum dihapus, dan hanya diperiksa bila nomor diganti) |
 | D | Registrasi ortu: set password tanpa OTP terverifikasi | Setelah OTP benar, session menyimpan tanda terikat ke parent + nomor HP, berlaku 15 menit, dibuang setelah dipakai. OTP juga dikosongkan setelah terverifikasi |
@@ -41,6 +41,9 @@ Sebelum: hanya `auth` + `initialize.backend` (semua user yang login, termasuk or
 Catatan: `super-admin` tetap bisa mengakses branch, setting, dan user. Untuk `whatsapp.send.bill-due-date`, `student.import`, `employee.import`, super-admin ikut aturan route saudaranya (tidak punya akses), karena halaman pemakainya juga tidak terbuka untuk super-admin.
 
 Route lain tanpa middleware (`academic/*`, `employee/*`, dst.) sengaja **tidak diubah** di bagian ini.
+
+## Audit (hanya SELECT)
+`docs/security/role-mass-assignment-audit.sql` (dari PPIA): jalankan di produksi untuk memeriksa apakah celah role pernah disalahgunakan (akun staf yang tampak seperti orang tua, perubahan role di activity_log oleh pelaku bukan admin, user yang dibuat oleh bukan admin).
 
 ## File yang berubah
 - `app/Http/Controllers/AuthController.php`, `UserController.php`, `Employee/TahfidzController.php` (guard `sendToWa`)

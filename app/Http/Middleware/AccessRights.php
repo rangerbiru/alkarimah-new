@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Enums\UserRole;
+use App\Models\ModuleRights;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,8 +24,7 @@ class AccessRights
         if (Auth::user()?->role === UserRole::Admin)
             return $next($request);
 
-        // Lewat User::moduleIds() agar modul tidak berlaku saat bertindak sebagai orang tua
-        $module_rights = Auth::user()?->moduleIds() ?? [];
+        $module_rights = ModuleRights::select('id_module')->whereIdUser(Auth::id())->pluck('id_module', 'id_module')->toArray();
 
         if (in_array($module, $module_rights))
             return $next($request);

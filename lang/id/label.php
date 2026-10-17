@@ -734,4 +734,10 @@ return [
     'parent_has_account' => 'Ortu punya akun',
     'parent_deleted' => 'Ortu dihapus',
     'no_parent_record' => 'Belum ada data orang tua',
+    'my_children' => 'Data Anak',
+    'is_also_parent' => 'Apakah pegawai ini juga sebagai Orang Tua Santri?',
+    'add_child' => 'Tambah Anak',
+    'children' => 'Anak',
+    'select_children' => 'Pilih Anak',
+    'parent_menu' => 'Menu Orang Tua',
 ];

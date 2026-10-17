@@ -2,8 +2,9 @@
 
 use App\Http\Middleware\Access;
 use App\Http\Middleware\AccessRights;
-use App\Http\Middleware\ActiveRole;
+use App\Http\Middleware\EnsureParentHasChildren;
 use App\Http\Middleware\InitializeBackend;
+use App\Http\Middleware\ParentRouteAllowlist;
 use App\Http\Middleware\Role;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -20,7 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'initialize.backend' => InitializeBackend::class,
-            'active.role' => ActiveRole::class,
+            'parent.allowlist' => ParentRouteAllowlist::class,
+            'parent.has-children' => EnsureParentHasChildren::class,
             'role' => Role::class,
             'access' => Access::class,
             'accessRights' => AccessRights::class,

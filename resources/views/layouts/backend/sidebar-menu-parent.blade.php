@@ -1,9 +1,9 @@
-{{-- Menu orang tua untuk pegawai yang juga orang tua santri (menu pegawai dan orang tua tampil bersamaan) --}}
+{{-- Parent menu for a dual-role user (employee + parent). Single-role parents keep their own navigation --}}
 @php
-    $set_parent_payment = $controller == 'finance' && $action == 'payment' ? ' active' : '';
-    $set_parent_balance = $controller == 'finance' && $action == 'balance' ? ' active' : '';
-    $set_parent_savings = $controller == 'finance' && $action == 'savings' ? ' active' : '';
-    $set_parent_children = $controller == 'academic' && $action == 'student' && ($function ?? '') == 'children' ? ' active' : '';
+    $set_parent_payment = ($controller == 'finance' && $action == 'payment') ? ' active' : '';
+    $set_parent_balance = ($controller == 'finance' && $action == 'balance') ? ' active' : '';
+    $set_parent_savings = ($controller == 'finance' && $action == 'savings') ? ' active' : '';
+    $set_parent_children = ($controller == 'academic' && $action == 'student' && $function == 'children') ? ' active' : '';
 @endphp
 
 <li class="slide__category"><span class="category-name">{{ __('label.parent_menu') }}</span></li>

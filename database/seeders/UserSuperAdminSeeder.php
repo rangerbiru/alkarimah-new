@@ -16,7 +16,7 @@ class UserSuperAdminSeeder extends Seeder
      */
     public function run(): void
     {
-        User::create([
+        User::forceCreate([
             'name' => 'Al-Karimah',
             'email' => 'office@alkarimah.org',
             'phone' => '085212223424',
@@ -24,7 +24,7 @@ class UserSuperAdminSeeder extends Seeder
             'role' => EnumsUserRole::SuperAdmin,
         ]);
 
-        User::create([
+        User::forceCreate([
             'name' => 'Admin Al-Karimah',
             'email' => 'admin@alkarimah.org',
             'phone' => '085212223424',
@@ -32,7 +32,7 @@ class UserSuperAdminSeeder extends Seeder
             'role' => EnumsUserRole::Admin,
         ]);
 
-        User::create([
+        User::forceCreate([
             'name' => 'Ponpes Al-Karimah',
             'email' => 'alkarimahponpes@gmail.com',
             'phone' => '085212223424',

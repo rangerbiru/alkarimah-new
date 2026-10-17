@@ -149,100 +149,10 @@ class AccountLinker
 
 
     /**
-     * Preview untuk santri yang belum punya data orang tua (id_parent kosong): link akan membuat data
-     * orang tua baru dari data pegawai (nama, nomor HP akun, jenis kelamin) lalu mengaitkan santri tsb.
-     * Read-only.
-     *
-     * @param  array<int, int>  $studentIds
-     */
-    public function previewNew(?int $employeeId, array $studentIds): array
-    {
-        $state = $this->inspectNew($employeeId, $studentIds);
-
-        return [
-            'can_link' => empty($state->blockers),
-            'blockers' => $state->blockers,
-            'warnings' => [],
-            'new_parent' => true,
-            'employee' => $state->employee ? [
-                'id' => $state->employee->id, 'name' => $state->employee->name,
-                'nip' => $state->employee->nip, 'phone' => $state->employee->phone,
-            ] : null,
-            'parent' => [
-                'id' => null,
-                'name' => $state->employee?->name,
-                'phone' => $state->employee_user?->phone,
-            ],
-            'old_user' => null,
-            'children' => $state->students->map(fn ($st) => ['name' => $st->name, 'nis' => $st->nis, 'class' => $st->class?->name ?? '-'])->values()->all(),
-            'moved' => [],
-            'moved_rows' => 0,
-            'new_parent_phone' => $state->employee_user?->phone,
-        ];
-    }
-
-    /**
-     * Buat data orang tua untuk akun pegawai dan kaitkan santri yang dipilih (semuanya belum punya orang tua).
-     *
-     * @param  array<int, int>  $studentIds
-     * @return array{link_id: int, parent_id: int, moved_rows: int, old_user_id: null}
-     *
-     * @throws AccountLinkException
-     */
-    public function linkNew(int $employeeId, array $studentIds): array
-    {
-        return DB::transaction(function () use ($employeeId, $studentIds) {
-            $employee = Employee::withoutGlobalScopes()->lockForUpdate()->find($employeeId);
-            $employee && User::withoutGlobalScopes()->withTrashed()->where('id', $employee->id_user)->lockForUpdate()->get();
-            Student::withoutGlobalScopes()->whereIn('id', $studentIds)->lockForUpdate()->get();
-
-            $state = $this->inspectNew($employeeId, $studentIds);
-
-            if (! empty($state->blockers)) {
-                throw new AccountLinkException($state->blockers[0]['message'], $state->blockers);
-            }
-
-            $user = $state->employee_user;
-            $ids = $state->students->pluck('id')->all();
-            $previous = $state->students->mapWithKeys(fn ($st) => [$st->id => $st->id_parent])->all();
-
-            $parentId = DB::table('parent')->insertGetId([
-                'id_user' => $user->id,
-                'name' => $employee->name,
-                'phone' => $user->phone,
-                'gender' => $employee->gender instanceof \BackedEnum ? $employee->gender->value : $employee->gender,
-                'branch_id' => $user->branch_id,
-                'created_by' => Auth::id() ?? 0,
-            ]);
-
-            DB::table('student')->whereIn('id', $ids)->update(['id_parent' => $parentId]);
-
-            $logId = DB::table('account_link_log')->insertGetId([
-                'action' => 'link',
-                'employee_id' => $employee->id,
-                'parent_id' => $parentId,
-                'employee_user_id' => $user->id,
-                'old_user_id' => null,
-                'actor_id' => Auth::id(),
-                'before' => json_encode([
-                    'parent_id_user' => null, 'parent_phone' => null, 'old_user_deleted' => false,
-                    'created_parent' => true, 'student_ids' => $ids, 'previous_parent' => $previous,
-                ]),
-                'moved' => json_encode([]),
-            ]);
-
-            $parent = Parents::withoutGlobalScopes()->find($parentId);
-            $this->audit('link', $parent, $employee, $user, null, 0);
-
-            return ['link_id' => $logId, 'parent_id' => $parentId, 'moved_rows' => 0, 'old_user_id' => null];
-        });
-    }
-
-    /**
      * Putuskan parent dari akun pegawai dan kembalikan kondisi sebelum link() bila ada entri rollback.
      * Tanpa entri (misalnya dihubungkan manual lewat SQL), parent hanya dilepas dari akun pegawai.
      *
-     * @return array{restored_user_id: int|null, moved_rows: int, had_log: bool, removed_parent: bool}
+     * @return array{restored_user_id: int|null, moved_rows: int, had_log: bool}
      *
      * @throws AccountLinkException
      */
@@ -269,7 +179,6 @@ class AccountLinker
 
             $movedRows = 0;
             $restoredUserId = null;
-            $removedParent = false;
 
             if ($log) {
                 $before = json_decode($log->before, true);
@@ -295,32 +204,11 @@ class AccountLinker
 
                 $parent->id_user = $before['parent_id_user'];
                 $parent->phone = $before['parent_phone'];
-
-                // Data orang tua dibuat otomatis dari santri tanpa orang tua: bila belum dipakai (saldo 0,
-                // tidak ada santri lain), kembalikan santri ke kondisi tanpa orang tua dan hapus data itu
-                if (! empty($before['created_parent'])) {
-                    $recorded = $before['student_ids'] ?? [];
-                    $studentCount = DB::table('student')->where('id_parent', $parent->id)->count();
-                    $matching = DB::table('student')->where('id_parent', $parent->id)->whereIn('id', $recorded)->count();
-
-                    if ((float) $parent->balance == 0.0 && $studentCount === $matching) {
-                        foreach ($recorded as $studentId) {
-                            DB::table('student')->where('id', $studentId)->where('id_parent', $parent->id)
-                                ->update(['id_parent' => $before['previous_parent'][$studentId] ?? null]);
-                        }
-                        $parent->id_user = null;
-                        $parent->saveQuietly();
-                        DB::table('parent')->where('id', $parent->id)->update(['deleted_at' => now(), 'deleted_by' => Auth::id()]);
-                        $removedParent = true;
-                    }
-                }
             } else {
                 $parent->id_user = null;
             }
 
-            if (! $removedParent) {
-                $parent->saveQuietly();
-            }
+            $parent->saveQuietly();
 
             if ($log) {
                 DB::table('account_link_log')->where('id', $log->id)->update([
@@ -342,26 +230,8 @@ class AccountLinker
 
             $this->audit('unlink', $parent, $employee, User::withoutGlobalScopes()->find($employeeUserId), null, $movedRows);
 
-            return ['restored_user_id' => $restoredUserId, 'moved_rows' => $movedRows, 'had_log' => $log !== null, 'removed_parent' => $removedParent];
+            return ['restored_user_id' => $restoredUserId, 'moved_rows' => $movedRows, 'had_log' => $log !== null];
         });
-    }
-
-    /**
-     * Untuk tiap santri: id data orang tua yang aktif, atau null bila santri belum punya (id_parent kosong,
-     * data orangtuanya tidak ada, atau sudah dihapus).
-     *
-     * @param  array<int, int>  $studentIds
-     * @return array<int, int|null>
-     */
-    public function activeParentIds(array $studentIds): array
-    {
-        $students = Student::withoutGlobalScopes()->whereIn('id', $studentIds)->get(['id', 'id_parent']);
-        $active = Parents::withoutGlobalScope(BranchScope::class)
-            ->whereIn('id', $students->pluck('id_parent')->filter()->all())->pluck('id')->all();
-
-        return $students->mapWithKeys(fn ($st) => [
-            $st->id => ($st->id_parent && in_array($st->id_parent, $active, true)) ? (int) $st->id_parent : null,
-        ])->all();
     }
 
     /**
@@ -494,67 +364,6 @@ class AccountLinker
             'old_user' => $oldUser,
             'blockers' => $blockers,
             'warnings' => $warnings,
-        ];
-    }
-
-    /**
-     * Pemblokir untuk membuat data orang tua baru dari akun pegawai. Read-only.
-     *
-     * @param  array<int, int>  $studentIds
-     */
-    private function inspectNew(?int $employeeId, array $studentIds): object
-    {
-        $blockers = [];
-        $block = function (string $code, string $message) use (&$blockers) {
-            $blockers[] = ['code' => $code, 'message' => $message];
-        };
-
-        $employee = $employeeId ? Employee::withoutGlobalScopes()->withTrashed()->find($employeeId) : null;
-        $employeeUser = $employee ? User::withoutGlobalScopes()->withTrashed()->find($employee->id_user) : null;
-        $students = Student::withoutGlobalScope(BranchScope::class)->with('class:id,name')
-            ->whereIn('id', $studentIds)->orderBy('name')->get();
-
-        if ($employeeId && ! $employee) {
-            $block('employee_missing', 'Data pegawai tidak ditemukan.');
-        }
-
-        if ($employee && ($employee->trashed() || ! $employee->status)) {
-            $block('employee_inactive', 'Pegawai nonaktif atau sudah dihapus.');
-        }
-
-        if ($employee && (! $employeeUser || $employeeUser->trashed())) {
-            $block('employee_user_missing', 'Akun pegawai tidak ditemukan atau sudah dihapus.');
-        }
-
-        if ($students->isEmpty() || $students->count() !== count(array_unique($studentIds))) {
-            $block('students_missing', 'Santri yang dipilih tidak ditemukan.');
-        }
-
-        if (collect($this->activeParentIds($students->pluck('id')->all()))->contains(fn ($id) => $id !== null)) {
-            $block('students_have_parent', 'Salah satu santri yang dipilih sudah punya data orang tua.');
-        }
-
-        if ($employeeUser) {
-            $other = Parents::withoutGlobalScope(BranchScope::class)->withTrashed()->where('id_user', $employeeUser->id)->first();
-
-            if ($other) {
-                $block('user_has_other_parent', 'Akun pegawai ini sudah terhubung ke data orang tua ('.$other->name.').');
-            }
-
-            if ($employeeUser->phone && Parents::withoutGlobalScope(BranchScope::class)->where('phone', $employeeUser->phone)->exists()) {
-                $block('phone_used_by_other_parent', 'Nomor HP pegawai sudah dipakai data orang tua lain.');
-            }
-
-            if ($students->contains(fn ($st) => $st->branch_id != $employeeUser->branch_id)) {
-                $block('branch_mismatch', 'Cabang pegawai berbeda dengan cabang santri; data anak tidak akan terlihat.');
-            }
-        }
-
-        return (object) [
-            'employee' => $employee,
-            'employee_user' => $employeeUser,
-            'students' => $students,
-            'blockers' => $blockers,
         ];
     }
 

@@ -92,7 +92,7 @@ class BranchController extends Controller
         DB::transaction(function() use($request) {
             $branch = Branch::create($request->all());
 
-            $user = User::create([
+            $user = User::forceCreate([
                 'name' => $request->username,
                 'email' => $request->email,
                 'password' => $request->password,

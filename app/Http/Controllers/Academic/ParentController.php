@@ -151,7 +151,7 @@ class ParentController extends Controller
             if (empty($request->password)) {
                 $parent = Parents::create($request->all());
             } else {
-                $user = User::create([
+                $user = User::forceCreate([
                     'name' => $request->name,
                     'email' => strtolower(explode(' ', $request->name)[0]) . '_' . date('YmdHis') . '@binabbas.org',
                     'phone' => $request->phone,
@@ -233,7 +233,7 @@ class ParentController extends Controller
 
             if (empty($parent->id_user)) {
                 if (!empty($request->password)) {
-                    $user = User::create([
+                    $user = User::forceCreate([
                         'name' => $request->name,
                         'email' => strtolower(explode(' ', $request->name)[0]) . '_' . $parent->id . '@binabbas.org',
                         'phone' => $request->phone,

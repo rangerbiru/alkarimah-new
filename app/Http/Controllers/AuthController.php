@@ -122,10 +122,9 @@ class AuthController extends Controller
             $auth_phone = ['phone' => str_replace('-', '', $request->username), 'password' => $request->password];
 
             if (Auth::attempt($auth_email, $remember) or Auth::attempt($auth_phone, $remember)) {
-                // Orang tua tanpa santri tidak boleh masuk. Pegawai nonaktif yang juga orang tua dihitung
-                // sebagai orang tua saja; pegawai aktif yang juga orang tua tetap masuk sebagai pegawai
-                // (menu orang tua baru tampil bila ada santri).
-                if (Auth::user()->is_orang_tua || Auth::user()->isParentOnlyAccount()) {
+                // A dual-role user can still log in as an employee without active students. An inactive
+                // employee who is also a parent counts as a parent only
+                if ((Auth::user()->is_orang_tua || Auth::user()->acts_as_parent_only) && ! Auth::user()->has_dual_role) {
                     $student = Student::whereIdParent(Auth::user()->parent->id)->count();
 
                     if ($student == 0) {
@@ -257,7 +256,7 @@ class AuthController extends Controller
             return Redirect::route('auth.register')->withErrors(__('string.otp_session_invalid'));
         }
 
-        $user = User::create([
+        $user = User::forceCreate([
             'name' => $parent->name,
             'email' => strtolower(explode(' ', $parent->name)[0]).'_'.$parent->id.'@binabbas.org',
             'phone' => $parent->phone,
@@ -379,11 +378,11 @@ class AuthController extends Controller
             return Redirect::route('auth.forgot-password')->withErrors(__('string.otp_session_invalid'));
         }
 
-        $user->update([
+        $user->forceFill([
             'password' => $request->password,
             'token' => null,
             'token_expired_at' => null,
-        ]);
+        ])->save();
 
         OtpFlag::forget('forgot_phone');
         OtpFlag::forget('forgot_user');

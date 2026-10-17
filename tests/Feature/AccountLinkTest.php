@@ -120,7 +120,7 @@ class AccountLinkTest extends ModuleAccessTestCase
         $this->assertNull($result['old_user_id']);
         $this->assertSame(1, DB::table('account_link_log')->where('parent_id', $parent->id)->where('action', 'link')->count());
         $this->assertSame(1, DB::table('activity_log')->where('log_name', 'account-link')->where('subject_id', $parent->id)->count());
-        $this->assertTrue(User::withoutGlobalScopes()->find($user->id)->hasMultipleRoles());
+        $this->assertTrue(User::withoutGlobalScopes()->find($user->id)->has_dual_role);
     }
 
     public function test_link_moves_allowlisted_rows_and_disables_old_account(): void
@@ -295,38 +295,6 @@ class AccountLinkTest extends ModuleAccessTestCase
         }
     }
 
-    public function test_preview_from_selected_students_requires_a_single_parent(): void
-    {
-        $admin = $this->createUser('admin');
-        [, $employee] = $this->employeeAccount();
-        $parentA = $this->parentRow(null, null, self::BRANCH_ID, 'Ortu A');
-        $parentB = $this->parentRow(null, null, self::BRANCH_ID, 'Ortu B');
-        $s1 = $this->studentRow($parentA->id, 'Anak 1');
-        $s2 = $this->studentRow($parentA->id, 'Anak 2');
-        $s3 = $this->studentRow($parentB->id, 'Anak 3');
-        $enc = fn ($id) => \Illuminate\Support\Facades\Crypt::encrypt($id);
-
-        $this->actingAs($admin)->postJson(route('hr.account-link.preview'), [
-            'employee' => $employee->encrypted_id, 'students' => [$enc($s1), $enc($s3)],
-        ])->assertStatus(422)->assertJsonPath('status', false);
-
-        $this->actingAs($admin)->postJson(route('hr.account-link.preview'), [
-            'employee' => $employee->encrypted_id, 'students' => [$enc($s1), $enc($s2)],
-        ])->assertOk()->assertJsonPath('data.parent.name', 'Ortu A')->assertJsonPath('data.can_link', true)
-            ->assertJsonCount(2, 'data.children');
-    }
-
-    public function test_student_datatable_lists_students_with_their_parent(): void
-    {
-        $admin = $this->createUser('admin');
-        $parent = $this->parentRow(null, '081211112222', self::BRANCH_ID, 'Ortu Cari');
-        $this->studentRow($parent->id, 'Santri Cari Saya');
-
-        $this->actingAs($admin)->postJson(route('hr.account-link.students'), [
-            'draw' => 1, 'start' => 0, 'length' => 10, 'search' => ['value' => 'Santri Cari Saya'],
-        ])->assertOk()->assertJsonPath('recordsFiltered', 1)->assertJsonPath('data.0.parent_name', 'Ortu Cari');
-    }
-
     public function test_employee_search_suggests_same_phone_but_never_links(): void
     {
         $admin = $this->createUser('admin');
@@ -368,309 +336,11 @@ class AccountLinkTest extends ModuleAccessTestCase
             'nip' => 'NIP'.random_int(100000, 999999), 'name' => 'Pegawai Baru', 'phone' => $this->phone(),
             'email' => 'pegawai'.random_int(100000, 999999).'@example.test', 'gender' => 'male', 'marital_status' => 1,
             'address' => 'Alamat', 'placement' => 'Pusat', 'status_employment' => 1, 'status_teacher' => 0,
-            'task_main' => 'Mengajar', 'password' => 'password123', 'password_confirm' => 'password123',
+            'task_main' => 'Mengajar', 'password' => 'password123', 'password_confirm' => 'password123', 'is_parent' => 0,
         ], $overrides);
     }
 
-    public function test_employee_form_creates_employee_and_links_selected_parent(): void
-    {
-        $admin = $this->createUser('admin');
-        $parent = $this->parentRow(null, '081300000009');
-        $student = $this->studentRow($parent->id);
-        $payload = $this->employeePayload(['also_parent' => 1, 'link_students' => [\Illuminate\Support\Facades\Crypt::encrypt($student)]]);
-
-        $this->actingAs($admin)->post(route('hr.employee.store'), $payload)->assertRedirect(route('hr.employee.index'));
-
-        $employeeUser = User::withoutGlobalScopes()->where('email', $payload['email'])->first();
-        $this->assertNotNull($employeeUser);
-        $this->assertSame('pegawai', $employeeUser->role->value);
-        $this->assertSame($employeeUser->id, (int) Parents::withoutGlobalScopes()->find($parent->id)->id_user);
-        $this->assertSame($payload['phone'], Parents::withoutGlobalScopes()->find($parent->id)->phone);
-    }
-
-    public function test_employee_form_rolls_back_everything_when_link_is_blocked(): void
-    {
-        $admin = $this->createUser('admin');
-        $parent = $this->parentRow();
-        $student = $this->studentRow($parent->id, 'Anak Beda Cabang', self::BRANCH_ID + 1);
-        $payload = $this->employeePayload(['also_parent' => 1, 'link_students' => [\Illuminate\Support\Facades\Crypt::encrypt($student)]]);
-
-        $this->actingAs($admin)->post(route('hr.employee.store'), $payload)->assertSessionHasErrors();
-
-        $this->assertNull(User::withoutGlobalScopes()->where('email', $payload['email'])->first());
-        $this->assertSame(0, DB::table('employee')->where('nip', $payload['nip'])->count());
-        $this->assertNull(Parents::withoutGlobalScopes()->find($parent->id)->id_user);
-    }
-
-    public function test_employee_form_rejects_children_of_different_parents_and_keeps_input(): void
-    {
-        $admin = $this->createUser('admin');
-        $a = $this->studentRow($this->parentRow()->id, 'Anak A');
-        $b = $this->studentRow($this->parentRow()->id, 'Anak B');
-        $enc = fn ($id) => \Illuminate\Support\Facades\Crypt::encrypt($id);
-        $payload = $this->employeePayload(['also_parent' => 1, 'link_students' => [$enc($a), $enc($b)]]);
-
-        $this->actingAs($admin)->post(route('hr.employee.store'), $payload)->assertSessionHasErrors('link_students');
-
-        $this->assertNull(User::withoutGlobalScopes()->where('email', $payload['email'])->first());
-        $this->assertCount(2, session()->getOldInput('link_students'));
-    }
-
-    public function test_student_datatable_marks_parents_that_already_have_an_account(): void
-    {
-        $admin = $this->createUser('admin');
-        [$user] = $this->employeeAccount();
-        $linked = $this->parentRow($user->id, $user->phone, self::BRANCH_ID, 'Ortu Tergabung');
-        $this->studentRow($linked->id, 'Santri Tergabung');
-        $free = $this->parentRow(null, null, self::BRANCH_ID, 'Ortu Bebas');
-        $this->studentRow($free->id, 'Santri Bebas');
-        $withAccount = $this->parentRow($this->createUser('orang-tua')->id, null, self::BRANCH_ID, 'Ortu Punya Akun');
-        $this->studentRow($withAccount->id, 'Santri Punya Akun');
-
-        $rows = collect($this->actingAs($admin)->postJson(route('hr.account-link.students'), [
-            'draw' => 1, 'start' => 0, 'length' => 100, 'search' => ['value' => 'Santri '],
-        ])->assertOk()->json('data'))->keyBy('name');
-
-        $this->assertTrue($rows['Santri Tergabung']['parent_has_account']);
-        $this->assertTrue($rows['Santri Punya Akun']['parent_has_account']);
-        $this->assertFalse($rows['Santri Bebas']['parent_has_account']);
-        $this->assertNotSame($rows['Santri Bebas']['parent_key'], $rows['Santri Punya Akun']['parent_key']);
-    }
-
-    public function test_children_endpoint_returns_all_siblings_of_the_same_parent(): void
-    {
-        $admin = $this->createUser('admin');
-        $parent = $this->parentRow();
-        $first = $this->studentRow($parent->id, 'Anak Pertama');
-        $this->studentRow($parent->id, 'Anak Kedua');
-        $this->studentRow($parent->id, 'Anak Ketiga');
-        $this->studentRow($this->parentRow()->id, 'Anak Orang Lain');
-        $enc = \Illuminate\Support\Facades\Crypt::encrypt($first);
-
-        $response = $this->actingAs($admin)->postJson(route('hr.account-link.children'), ['student' => $enc])->assertOk();
-
-        $this->assertSame(['Anak Kedua', 'Anak Ketiga', 'Anak Pertama'], collect($response->json('data.children'))->pluck('name')->sort()->values()->all());
-    }
-
-    public function test_employee_form_links_the_parent_with_all_its_children_when_one_child_is_sent(): void
-    {
-        $admin = $this->createUser('admin');
-        $parent = $this->parentRow(null, '081300000010');
-        $one = $this->studentRow($parent->id, 'Anak Satu');
-        $this->studentRow($parent->id, 'Anak Dua');
-        $payload = $this->employeePayload(['also_parent' => 1, 'link_students' => [\Illuminate\Support\Facades\Crypt::encrypt($one)]]);
-
-        $this->actingAs($admin)->post(route('hr.employee.store'), $payload)->assertRedirect(route('hr.employee.index'));
-
-        $user = User::withoutGlobalScopes()->where('email', $payload['email'])->first();
-        $this->assertSame($user->id, (int) Parents::withoutGlobalScopes()->find($parent->id)->id_user);
-        $this->assertSame(2, DB::table('student')->where('id_parent', $parent->id)->count());
-        $this->assertTrue(User::withoutGlobalScopes()->find($user->id)->hasMultipleRoles());
-    }
-
     // ---------- santri tanpa data orang tua (id_parent kosong) ----------
-
-    public function test_student_datatable_lists_students_without_a_parent_record(): void
-    {
-        $admin = $this->createUser('admin');
-        $this->studentRow(null, 'Santri Tanpa Ortu');
-        $deleted = $this->parentRow(null, null, self::BRANCH_ID, 'Ortu Dihapus');
-        $this->studentRow($deleted->id, 'Santri Ortu Dihapus');
-        DB::table('parent')->where('id', $deleted->id)->update(['deleted_at' => now()]);
-
-        $rows = collect($this->actingAs($admin)->postJson(route('hr.account-link.students'), [
-            'draw' => 1, 'start' => 0, 'length' => 100, 'search' => ['value' => 'Santri '],
-        ])->assertOk()->json('data'))->keyBy('name');
-
-        $this->assertSame('none', $rows['Santri Tanpa Ortu']['parent_key']);
-        $this->assertFalse($rows['Santri Tanpa Ortu']['parent_has_account']);
-        $this->assertNull($rows['Santri Tanpa Ortu']['parent_name']);
-        // data orang tuanya sudah dihapus: dianggap belum punya data orang tua (bisa dipilih)
-        $this->assertSame('none', $rows['Santri Ortu Dihapus']['parent_key']);
-        $this->assertFalse($rows['Santri Ortu Dihapus']['parent_has_account']);
-    }
-
-    public function test_children_endpoint_returns_only_the_student_when_there_is_no_parent_record(): void
-    {
-        $admin = $this->createUser('admin');
-        $one = $this->studentRow(null, 'Yatim A');
-        $this->studentRow(null, 'Yatim B');
-
-        $response = $this->actingAs($admin)->postJson(route('hr.account-link.children'), [
-            'student' => \Illuminate\Support\Facades\Crypt::encrypt($one),
-        ])->assertOk()->assertJsonPath('data.parent_key', 'none');
-
-        $this->assertSame(['Yatim A'], collect($response->json('data.children'))->pluck('name')->all());
-    }
-
-    public function test_preview_for_students_without_parent_describes_a_new_parent_record(): void
-    {
-        $admin = $this->createUser('admin');
-        [$user, $employee] = $this->employeeAccount();
-        $a = $this->studentRow(null, 'Anak Baru 1');
-        $b = $this->studentRow(null, 'Anak Baru 2');
-        $enc = fn ($id) => \Illuminate\Support\Facades\Crypt::encrypt($id);
-
-        $this->actingAs($admin)->postJson(route('hr.account-link.preview'), [
-            'employee' => $employee->encrypted_id, 'students' => [$enc($a), $enc($b)],
-        ])->assertOk()
-            ->assertJsonPath('data.new_parent', true)
-            ->assertJsonPath('data.can_link', true)
-            ->assertJsonPath('data.parent.phone', $user->phone)
-            ->assertJsonCount(2, 'data.children');
-
-        $this->assertSame(0, DB::table('parent')->where('id_user', $user->id)->count());
-        $this->assertNull(DB::table('student')->where('id', $a)->value('id_parent'));
-    }
-
-    public function test_mixed_selection_of_students_with_and_without_parent_is_rejected(): void
-    {
-        $admin = $this->createUser('admin');
-        [, $employee] = $this->employeeAccount();
-        $withParent = $this->studentRow($this->parentRow()->id, 'Punya Ortu');
-        $without = $this->studentRow(null, 'Tanpa Ortu');
-        $enc = fn ($id) => \Illuminate\Support\Facades\Crypt::encrypt($id);
-
-        $this->actingAs($admin)->postJson(route('hr.account-link.preview'), [
-            'employee' => $employee->encrypted_id, 'students' => [$enc($withParent), $enc($without)],
-        ])->assertStatus(422);
-
-        $payload = $this->employeePayload(['also_parent' => 1, 'link_students' => [$enc($withParent), $enc($without)]]);
-        $this->actingAs($admin)->post(route('hr.employee.store'), $payload)->assertSessionHasErrors('link_students');
-        $this->assertNull(User::withoutGlobalScopes()->where('email', $payload['email'])->first());
-    }
-
-    public function test_employee_form_creates_a_parent_record_for_students_without_parent(): void
-    {
-        $admin = $this->createUser('admin');
-        $a = $this->studentRow(null, 'Anak Tanpa Ortu 1');
-        $b = $this->studentRow(null, 'Anak Tanpa Ortu 2');
-        $enc = fn ($id) => \Illuminate\Support\Facades\Crypt::encrypt($id);
-        $payload = $this->employeePayload(['name' => 'Pegawai Ortu Baru', 'also_parent' => 1, 'link_students' => [$enc($a), $enc($b)]]);
-
-        $this->actingAs($admin)->post(route('hr.employee.store'), $payload)->assertRedirect(route('hr.employee.index'));
-
-        $user = User::withoutGlobalScopes()->where('email', $payload['email'])->first();
-        $parent = Parents::withoutGlobalScopes()->where('id_user', $user->id)->first();
-        $this->assertNotNull($parent);
-        $this->assertSame('Pegawai Ortu Baru', $parent->name);
-        $this->assertSame($payload['phone'], $parent->phone);
-        $this->assertSame(self::BRANCH_ID, (int) $parent->branch_id);
-        $this->assertSame($parent->id, (int) DB::table('student')->where('id', $a)->value('id_parent'));
-        $this->assertSame($parent->id, (int) DB::table('student')->where('id', $b)->value('id_parent'));
-        $this->assertTrue(User::withoutGlobalScopes()->find($user->id)->hasMultipleRoles());
-    }
-
-    public function test_unlink_removes_the_parent_record_created_from_the_employee(): void
-    {
-        [$user, $employee] = $this->employeeAccount();
-        $a = $this->studentRow(null, 'Anak X');
-        $result = $this->linker->linkNew($employee->id, [$a]);
-
-        $unlink = $this->linker->unlink($result['parent_id']);
-
-        $this->assertTrue($unlink['removed_parent']);
-        $this->assertNull(DB::table('student')->where('id', $a)->value('id_parent'));
-        $this->assertNotNull(DB::table('parent')->where('id', $result['parent_id'])->value('deleted_at'));
-        $this->assertNull(Parents::withoutGlobalScopes()->where('id_user', $user->id)->first());
-        $this->assertFalse(User::withoutGlobalScopes()->find($user->id)->isParent());
-    }
-
-    public function test_unlink_keeps_a_created_parent_record_that_is_already_in_use(): void
-    {
-        [, $employee] = $this->employeeAccount();
-        $a = $this->studentRow(null, 'Anak Y');
-        $result = $this->linker->linkNew($employee->id, [$a]);
-        DB::table('parent')->where('id', $result['parent_id'])->update(['balance' => 50000]);
-
-        $unlink = $this->linker->unlink($result['parent_id']);
-
-        $this->assertFalse($unlink['removed_parent']);
-        $parent = Parents::withoutGlobalScopes()->find($result['parent_id']);
-        $this->assertNotNull($parent);
-        $this->assertNull($parent->id_user);
-        $this->assertSame($result['parent_id'], (int) DB::table('student')->where('id', $a)->value('id_parent'));
-    }
-
-    public function test_students_whose_parent_row_is_missing_or_deleted_get_a_new_parent_and_are_restored_on_unlink(): void
-    {
-        [, $employee] = $this->employeeAccount();
-        $deleted = $this->parentRow(null, null, self::BRANCH_ID, 'Ortu Dihapus');
-        $a = $this->studentRow($deleted->id, 'Anak Ortu Dihapus');
-        DB::table('parent')->where('id', $deleted->id)->update(['deleted_at' => now()]);
-        $dangling = $this->studentRow(999999991, 'Anak Ortu Hilang');
-
-        $result = $this->linker->linkNew($employee->id, [$a, $dangling]);
-
-        $this->assertSame($result['parent_id'], (int) DB::table('student')->where('id', $a)->value('id_parent'));
-        $this->assertSame($result['parent_id'], (int) DB::table('student')->where('id', $dangling)->value('id_parent'));
-
-        $this->linker->unlink($result['parent_id']);
-
-        $this->assertSame($deleted->id, (int) DB::table('student')->where('id', $a)->value('id_parent'));
-        $this->assertSame(999999991, (int) DB::table('student')->where('id', $dangling)->value('id_parent'));
-    }
-
-    public function test_new_parent_record_blockers(): void
-    {
-        [$user, $employee] = $this->employeeAccount();
-        $orphan = $this->studentRow(null, 'Yatim');
-
-        // santri yang sudah punya orang tua
-        $owned = $this->studentRow($this->parentRow()->id, 'Sudah Punya');
-        $this->assertContains('students_have_parent', $this->codes($this->linker->previewNew($employee->id, [$owned])['blockers']));
-
-        // cabang berbeda
-        $otherBranch = $this->studentRow(null, 'Cabang Lain', self::BRANCH_ID + 1);
-        $this->assertContains('branch_mismatch', $this->codes($this->linker->previewNew($employee->id, [$otherBranch])['blockers']));
-
-        // pegawai nonaktif
-        DB::table('employee')->where('id', $employee->id)->update(['status' => 0]);
-        $this->assertContains('employee_inactive', $this->codes($this->linker->previewNew($employee->id, [$orphan])['blockers']));
-        DB::table('employee')->where('id', $employee->id)->update(['status' => 1]);
-
-        // akun pegawai sudah punya data orang tua
-        $this->parentRow($user->id, $user->phone);
-        $this->assertContains('user_has_other_parent', $this->codes($this->linker->previewNew($employee->id, [$orphan])['blockers']));
-
-        $this->expectException(AccountLinkException::class);
-        $this->linker->linkNew($employee->id, [$orphan]);
-    }
-
-    public function test_employee_form_refuses_a_parent_that_already_has_an_account(): void
-    {
-        $admin = $this->createUser('admin');
-        $parent = $this->parentRow($this->createUser('orang-tua')->id);
-        $student = $this->studentRow($parent->id);
-        $payload = $this->employeePayload(['also_parent' => 1, 'link_students' => [\Illuminate\Support\Facades\Crypt::encrypt($student)]]);
-
-        $this->actingAs($admin)->post(route('hr.employee.store'), $payload)->assertSessionHasErrors('link_students');
-
-        $this->assertNull(User::withoutGlobalScopes()->where('email', $payload['email'])->first());
-    }
-
-    public function test_employee_form_without_also_parent_does_not_link(): void
-    {
-        $admin = $this->createUser('admin');
-        $parent = $this->parentRow();
-        $student = $this->studentRow($parent->id);
-        $payload = $this->employeePayload(['also_parent' => 0, 'link_students' => [\Illuminate\Support\Facades\Crypt::encrypt($student)]]);
-
-        $this->actingAs($admin)->post(route('hr.employee.store'), $payload)->assertRedirect(route('hr.employee.index'));
-        $this->assertNull(Parents::withoutGlobalScopes()->find($parent->id)->id_user);
-    }
-
-    public function test_only_admin_can_link_from_the_employee_form(): void
-    {
-        $hrStaff = $this->createUser('pegawai', [\App\Constants\Modules::AdminHumanResource]);
-        $parent = $this->parentRow();
-        $student = $this->studentRow($parent->id);
-        $payload = $this->employeePayload(['also_parent' => 1, 'link_students' => [\Illuminate\Support\Facades\Crypt::encrypt($student)]]);
-
-        $this->actingAs($hrStaff)->post(route('hr.employee.store'), $payload)->assertForbidden();
-        $this->assertNull(Parents::withoutGlobalScopes()->find($parent->id)->id_user);
-        $this->assertNull(User::withoutGlobalScopes()->where('email', $payload['email'])->first());
-    }
 
     public function test_employee_update_keeps_linked_parent_phone_in_sync(): void
     {
@@ -689,16 +359,96 @@ class AccountLinkTest extends ModuleAccessTestCase
         $this->assertSame($newPhone, Parents::withoutGlobalScopes()->find($parent->id)->phone);
     }
 
-    public function test_employee_form_pages_render_the_also_parent_section_for_admin_only(): void
+    // ---------- form pegawai: "juga orang tua" (model PPIA) ----------
+
+    private function enc(int $id): string
+    {
+        return \Illuminate\Support\Facades\Crypt::encrypt($id);
+    }
+
+    public function test_employee_form_creates_the_parent_record_and_links_the_picked_children(): void
+    {
+        $admin = $this->createUser('admin');
+        $free = $this->studentRow($this->parentRow(null, '081300000001')->id, 'Anak Ortu Tanpa Akun');
+        $orphan = $this->studentRow(null, 'Anak Tanpa Ortu');
+        $payload = $this->employeePayload(['name' => 'Pegawai Ortu', 'is_parent' => 1, 'children' => [$this->enc($free), $this->enc($orphan)]]);
+
+        $this->actingAs($admin)->post(route('hr.employee.store'), $payload)->assertRedirect(route('hr.employee.index'));
+
+        $user = User::withoutGlobalScopes()->where('email', $payload['email'])->first();
+        $parent = Parents::withoutGlobalScopes()->where('id_user', $user->id)->first();
+        $this->assertNotNull($parent);
+        $this->assertSame($payload['phone'], $parent->phone);
+        $this->assertSame($parent->id, (int) DB::table('student')->where('id', $free)->value('id_parent'));
+        $this->assertSame($parent->id, (int) DB::table('student')->where('id', $orphan)->value('id_parent'));
+        $this->assertTrue(User::withoutGlobalScopes()->find($user->id)->has_dual_role);
+    }
+
+    public function test_employee_form_refuses_children_whose_parent_has_an_account_and_saves_nothing(): void
+    {
+        $admin = $this->createUser('admin');
+        $owned = $this->studentRow($this->parentRow($this->createUser('orang-tua')->id)->id, 'Anak Ortu Punya Akun');
+        $payload = $this->employeePayload(['is_parent' => 1, 'children' => [$this->enc($owned)]]);
+
+        $this->actingAs($admin)->post(route('hr.employee.store'), $payload)->assertSessionHasErrors('children');
+
+        $this->assertNull(User::withoutGlobalScopes()->where('email', $payload['email'])->first());
+        $this->assertSame(0, DB::table('employee')->where('nip', $payload['nip'])->count());
+    }
+
+    public function test_employee_form_without_is_parent_creates_no_parent_record(): void
+    {
+        $admin = $this->createUser('admin');
+        $student = $this->studentRow(null, 'Anak');
+        $payload = $this->employeePayload(['is_parent' => 0, 'children' => [$this->enc($student)]]);
+
+        $this->actingAs($admin)->post(route('hr.employee.store'), $payload)->assertRedirect(route('hr.employee.index'));
+
+        $user = User::withoutGlobalScopes()->where('email', $payload['email'])->first();
+        $this->assertNull(Parents::withoutGlobalScopes()->where('id_user', $user->id)->first());
+        $this->assertNull(DB::table('student')->where('id', $student)->value('id_parent'));
+    }
+
+    public function test_employee_form_does_not_create_a_duplicate_parent_record(): void
+    {
+        $admin = $this->createUser('admin');
+        $phone = $this->phone();
+        $this->parentRow(null, '+62'.substr($phone, 1), self::BRANCH_ID, 'Orang Yang Sama');
+        $payload = $this->employeePayload(['name' => 'Orang Yang Sama', 'phone' => $phone, 'is_parent' => 1]);
+
+        $this->actingAs($admin)->post(route('hr.employee.store'), $payload)->assertSessionHasErrors('is_parent');
+
+        $this->assertNull(User::withoutGlobalScopes()->where('email', $payload['email'])->first());
+        $this->assertSame(1, DB::table('parent')->where('name', 'Orang Yang Sama')->count());
+    }
+
+    public function test_student_datatable_for_the_employee_form_marks_children_whose_parent_has_an_account(): void
+    {
+        $admin = $this->createUser('admin');
+        $free = $this->parentRow(null, null, self::BRANCH_ID, 'Ortu Bebas');
+        $this->studentRow($free->id, 'Santri Bebas');
+        $this->studentRow(null, 'Santri Tanpa Ortu');
+        $withAccount = $this->parentRow($this->createUser('orang-tua')->id, null, self::BRANCH_ID, 'Ortu Punya Akun');
+        $this->studentRow($withAccount->id, 'Santri Punya Akun');
+
+        $rows = collect($this->actingAs($admin)->postJson(route('hr.employee.datatable.student'), [
+            'draw' => 1, 'start' => 0, 'length' => 100, 'search' => ['value' => 'Santri '],
+        ])->assertOk()->json('data'))->keyBy('name');
+
+        $this->assertFalse((bool) $rows['Santri Bebas']['locked']);
+        $this->assertFalse((bool) $rows['Santri Tanpa Ortu']['locked']);
+        $this->assertSame('-', $rows['Santri Tanpa Ortu']['parent']);
+        $this->assertTrue((bool) $rows['Santri Punya Akun']['locked']);
+    }
+
+    public function test_employee_form_pages_render_the_children_picker(): void
     {
         $admin = $this->createUser('admin');
         [, $employee] = $this->employeeAccount();
 
-        $this->actingAs($admin)->get(route('hr.employee.create'))->assertOk()->assertSee('also_parent', false)->assertSee(__('label.pick_children'));
-        $this->actingAs($admin)->get(route('hr.employee.edit', $employee->encrypted_id))->assertOk()->assertSee('also_parent', false);
-
-        $hrStaff = $this->createUser('pegawai', [\App\Constants\Modules::AdminHumanResource]);
-        $this->actingAs($hrStaff)->get(route('hr.employee.create'))->assertOk()->assertDontSee('also_parent', false);
+        $this->actingAs($admin)->get(route('hr.employee.create'))->assertOk()
+            ->assertSee('is_parent', false)->assertSee('modal-children', false)->assertSee(__('label.select_children'));
+        $this->actingAs($admin)->get(route('hr.employee.edit', $employee->encrypted_id))->assertOk()->assertSee('is_parent', false);
     }
 
     // ---------- form orang tua ----------

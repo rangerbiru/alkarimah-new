@@ -98,6 +98,7 @@ Route::prefix('student')->group(function () {
     Route::get('history/displacement/{student}', [AcademicStudentController::class, 'historyDisplacement'])->name('academic.student.history.displacement')->middleware(['role:admin,pegawai', 'accessRights:'.Modules::AdminAcademic]);
     Route::get('get/autocomplete', [AcademicStudentController::class, 'getAutocomplete'])->name('academic.student.get.autocomplete')->middleware('access:kasir,kasir-unit,penanggung-jawab-tabungan');
     Route::get('children', [AcademicStudentController::class, 'children'])->name('academic.student.children')->middleware('role:orang-tua');
+    Route::post('children', [AcademicStudentController::class, 'storeChild'])->name('academic.student.store.child')->middleware(['role:orang-tua', 'throttle:10,1']);
     Route::get('/{student}/edit', [AcademicStudentController::class, 'edit'])->name('academic.student.edit')->middleware('role:admin,orang-tua');
     Route::get('/{student}', [AcademicStudentController::class, 'show'])->name('academic.student.show')->middleware('role:orang-tua');
 

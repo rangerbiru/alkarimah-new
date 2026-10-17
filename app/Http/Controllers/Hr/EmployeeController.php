@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Hr;
 use App\Constants\Modules;
 use App\Enums\UserRole;
 use App\Helpers\Common;
+use App\Helpers\Phone;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\EmployeeRequest;
 use App\Models\Employee;
@@ -14,14 +15,16 @@ use App\Models\Parents;
 use App\Models\Position;
 use App\Models\Scopes\BranchScope;
 use App\Models\Student;
-use App\Services\AccountLinkException;
-use App\Services\AccountLinker;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class EmployeeController extends Controller
@@ -123,7 +126,7 @@ class EmployeeController extends Controller
         $yesno = Common::option('yesno');
         $positions = Position::select('id', 'name')->orderBy('name')->pluck('name', 'id');
 
-        return view($this->path . 'create', $this->alsoParentData(null) + [
+        return view($this->path . 'create', [
             'title' => __($this->title['employee']),
             'icon' => $this->icon,
             'genders' => $genders,
@@ -131,145 +134,40 @@ class EmployeeController extends Controller
             'employments' => $employments,
             'yesno' => $yesno,
             'positions' => $positions,
+            'children' => $this->formChildren(null),
+            'linked_children' => [],
         ]);
     }
 
     public function store(EmployeeRequest $request)
     {
-        $link = $this->linkSelection($request);
-
-        try {
-            DB::transaction(function () use ($request, $link) {
-                $user = User::create([
-                    'name' => $request->name,
-                    'email' => $request->email,
-                    'password' => $request->password,
-                    'role' => UserRole::Pegawai,
-                    'phone' => $request->phone,
-                    'gender' => $request->gender,
-                ]);
-
-                $request->merge([
-                    'id_user' => $user->id
-                ]);
-
-                $employee = Employee::create($request->except(['also_parent', 'link_students']));
-
-                $this->performLink($employee, $link);
-            });
-        } catch (AccountLinkException $e) {
-            return Redirect::back()->withErrors($e->getMessage())->withInput($request->except(['password', 'password_confirm']));
+        if ($request->boolean('is_parent')) {
+            $this->assertNoSimilarParent($request);
         }
+
+        DB::transaction(function () use ($request) {
+            $user = User::forceCreate([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => $request->password,
+                'role' => UserRole::Pegawai,
+                'phone' => $request->phone,
+                'gender' => $request->gender,
+            ]);
+
+            $request->merge([
+                'id_user' => $user->id
+            ]);
+
+            Employee::create($request->except(['is_parent', 'children']));
+
+            if ($request->boolean('is_parent')) {
+                $parent = $this->ensureParentRecord($user, $request);
+                $this->linkChildren($parent, $request->input('children', []), $user->id);
+            }
+        });
 
         return Redirect::route('hr.employee.index')->with('success', __('message.create_success', ['label' => __($this->title['employee'])]));
-    }
-
-    /**
-     * Pilihan "Juga Orang Tua" dari santri yang dipilih (link_students[]). Hanya admin. Hasil:
-     *  - ['parent' => id]      semua santri dari satu data orang tua (yang belum punya akun)
-     *  - ['students' => [ids]] semua santri belum punya data orang tua: data orang tua baru dibuat dari data pegawai
-     */
-    private function linkSelection(Request $request): ?array
-    {
-        $encrypted = array_filter((array) $request->input('link_students', []));
-
-        if (! $encrypted || $request->input('also_parent') != 1) {
-            return null;
-        }
-
-        abort_unless(Auth::user()->hasRole(UserRole::Admin->value), 403);
-
-        $ids = [];
-
-        foreach ($encrypted as $value) {
-            try {
-                $ids[] = (int) \Illuminate\Support\Facades\Crypt::decrypt($value);
-            } catch (\Throwable) {
-                abort(422);
-            }
-        }
-
-        $fail = fn (string $key) => throw \Illuminate\Validation\ValidationException::withMessages([
-            'link_students' => __('message.'.$key),
-        ]);
-
-        $parentIds = collect(app(AccountLinker::class)->activeParentIds($ids))->unique()->values();
-
-        if ($parentIds->isEmpty()) {
-            $fail('account_link_parent_required');
-        }
-
-        if ($parentIds->count() === 1 && $parentIds->first() === null) {
-            return ['students' => $ids];
-        }
-
-        if ($parentIds->contains(fn ($id) => $id === null)) {
-            $fail('account_link_mixed_selection');
-        }
-
-        if ($parentIds->count() !== 1) {
-            $fail('account_link_students_one_parent');
-        }
-
-        // Orang tua yang sudah punya akun digabung lewat form edit orang tua (ada preview akun lama)
-        $parent = Parents::withoutGlobalScope(BranchScope::class)->find($parentIds->first());
-
-        if ($parent && $parent->id_user && User::whereKey($parent->id_user)->exists()) {
-            $fail('account_link_parent_has_account');
-        }
-
-        return ['parent' => (int) $parentIds->first()];
-    }
-
-    private function performLink(Employee $employee, ?array $link): void
-    {
-        if (! $link) {
-            return;
-        }
-
-        $linker = app(AccountLinker::class);
-
-        if (isset($link['parent'])) {
-            $linker->link($employee->id, $link['parent']);
-        } else {
-            $linker->linkNew($employee->id, $link['students']);
-        }
-    }
-
-    /**
-     * Data untuk bagian "Juga Orang Tua" di form pegawai.
-     */
-    private function alsoParentData(?Employee $employee): array
-    {
-        $parent = $employee?->id_user
-            ? Parents::withoutGlobalScope(BranchScope::class)->where('id_user', $employee->id_user)->first()
-            : null;
-
-        // Santri yang dipilih sebelum validasi gagal (old input), agar pilihan tidak hilang
-        $oldIds = [];
-
-        foreach ((array) old('link_students', []) as $value) {
-            try {
-                $oldIds[] = (int) \Illuminate\Support\Facades\Crypt::decrypt($value);
-            } catch (\Throwable) {
-            }
-        }
-
-        $selected = $oldIds
-            ? Student::withoutGlobalScope(BranchScope::class)->whereIn('id', $oldIds)->get(['id', 'id_parent', 'name', 'nis'])
-                ->map(fn ($st) => [
-                    'id' => $st->encrypted_id, 'name' => $st->name, 'nis' => $st->nis,
-                    'parent_key' => \Illuminate\Support\Facades\Crypt::encrypt($st->id_parent),
-                ])->values()
-            : collect();
-
-        return [
-            'selected_students' => $selected,
-            'linked_parent' => $parent,
-            'linked_children' => $parent
-                ? Student::withoutGlobalScope(BranchScope::class)->with('class:id,name')->where('id_parent', $parent->id)->orderBy('name')->get(['id', 'id_class', 'name', 'nis'])
-                : collect(),
-        ];
     }
 
     public function storeRights(Request $request, Employee $employee)
@@ -327,13 +225,14 @@ class EmployeeController extends Controller
 
     public function edit(Employee $employee)
     {
+        $parent = Parents::withoutGlobalScope(BranchScope::class)->whereIdUser($employee->id_user)->first();
         $genders = Common::option('gender');
         $marital_statuses = Common::option('marital_status');
         $employments = Common::option('employment_status');
         $yesno = Common::option('yesno');
         $positions = Position::select('id', 'name')->orderBy('name')->pluck('name', 'id');
 
-        return view($this->path . 'edit', $this->alsoParentData($employee) + [
+        return view($this->path . 'edit', [
             'title' => __($this->title['employee']),
             'icon' => $this->icon,
             'employee' => $employee,
@@ -342,39 +241,43 @@ class EmployeeController extends Controller
             'employments' => $employments,
             'yesno' => $yesno,
             'positions' => $positions,
+            'is_parent' => (bool) $parent,
+            'children' => $this->formChildren($parent),
+            'linked_children' => $parent ? Student::whereIdParent($parent->id)->pluck('id')->all() : [],
         ]);
     }
 
     public function update(EmployeeRequest $request, Employee $employee)
     {
-        $link = $this->linkSelection($request);
-
-        try {
-            DB::transaction(function () use ($request, $employee, $link) {
-                $employee->update($request->except(['also_parent', 'link_students']));
-
-                $update_user = [
-                    'name' => $request->name,
-                    'email' => $request->email,
-                    'phone' => $request->phone,
-                    'gender' => $request->gender
-                ];
-
-                if (!empty($request->password))
-                    $update_user['password'] = $request->password;
-
-                $employee->user->update($update_user);
-
-                // Orang tua yang terhubung ke akun ini memakai nomor HP akun yang sama
-                Parents::withoutGlobalScope(BranchScope::class)
-                    ->where('id_user', $employee->id_user)
-                    ->update(['phone' => $employee->user->phone]);
-
-                $this->performLink($employee, $link);
-            });
-        } catch (AccountLinkException $e) {
-            return Redirect::back()->withErrors($e->getMessage())->withInput($request->except(['password', 'password_confirm']));
+        if ($request->boolean('is_parent')) {
+            $this->assertNoSimilarParent($request, $employee->id_user);
         }
+
+        DB::transaction(function () use ($request, $employee) {
+            $employee->update($request->except(['is_parent', 'children']));
+
+            $update_user = [
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'gender' => $request->gender
+            ];
+
+            if (!empty($request->password))
+                $update_user['password'] = $request->password;
+
+            $employee->user->update($update_user);
+
+            // The parent record of a dual-role user follows the login phone
+            Parents::withoutGlobalScopes()->whereIdUser($employee->id_user)->where('phone', '!=', $request->phone)->get()
+                ->each(fn ($parent) => $parent->update(['phone' => $request->phone]));
+
+            // "No" never deletes an existing parent record: it may still have students attached
+            if ($request->boolean('is_parent')) {
+                $parent = $this->ensureParentRecord($employee->user, $request);
+                $this->linkChildren($parent, $request->input('children', []), $employee->id_user);
+            }
+        });
 
         return Redirect::route('hr.employee.index')->with('success', __('message.update_success', ['label' => __($this->title['employee'])]));
     }
@@ -464,7 +367,7 @@ class EmployeeController extends Controller
                     continue;
                 }
 
-                $user = User::create([
+                $user = User::forceCreate([
                     'name' => $data['nama_lengkap'],
                     'email' => $data['email'],
                     'phone' => $data['telepon'],
@@ -521,6 +424,196 @@ class EmployeeController extends Controller
                 'error' => "Import gagal",
                 'errors_import' => $errors
             ]);
+        }
+    }
+
+    // Makes the employee's user also a parent: one parent row with the same id_user. Existing rows
+    // are left as they are (a soft-deleted one is restored) so a user never ends up with two
+    // "Also a parent" must not create a second parent record for someone who already is one. If a parent
+    // record with the same phone or name exists, the admin is sent to Parents > Edit > merge instead.
+    // Nothing is saved. A user that already has a parent record (linked or not) is left alone
+    private function assertNoSimilarParent(Request $request, $user_id = null): void
+    {
+        if ($user_id && Parents::withoutGlobalScope(BranchScope::class)->withTrashed()->whereIdUser($user_id)->exists()) {
+            return;
+        }
+
+        $name = $this->normalizeName($request->name);
+        $last_ten = Phone::lastTen($request->phone);
+
+        $similar = Parents::select('id', 'id_user', 'name', 'phone')
+            ->where(function ($query) use ($name, $last_ten) {
+                if ($last_ten) {
+                    $query->orWhereRaw("RIGHT(REPLACE(REPLACE(REPLACE(phone, '-', ''), ' ', ''), '+', ''), 10) = ?", [$last_ten]);
+                }
+
+                if ($name !== '') {
+                    $query->orWhereRaw('LOWER(name) LIKE ?', ['%'.$name.'%']);
+                }
+            })
+            ->limit(20)
+            ->get()
+            ->filter(fn ($parent) => ($last_ten && Phone::lastTen($parent->phone) === $last_ten)
+                || ($name !== '' && $this->normalizeName($parent->name) === $name))
+            ->take(5);
+
+        if ($similar->isNotEmpty()) {
+            throw ValidationException::withMessages(['is_parent' => __('message.parent_similar_exists', [
+                'list' => $similar->map(fn ($parent) => $parent->name.' ('.($parent->phone ?: '-').')')->implode(', '),
+            ])]);
+        }
+    }
+
+    // "Joko Warsito, S.Sos." and "joko  warsito" are the same person: drop the title after the comma
+    private function normalizeName($name): string
+    {
+        $name = Str::lower(trim(explode(',', (string) $name)[0]));
+
+        return trim(preg_replace('/[^\p{L}\p{N}]+/u', ' ', $name));
+    }
+
+    private function ensureParentRecord(User $user, Request $request): Parents
+    {
+        $parent = Parents::withoutGlobalScope(BranchScope::class)
+            ->withTrashed()
+            ->whereIdUser($user->id)
+            ->first();
+
+        if ($parent) {
+            if ($parent->trashed()) {
+                $parent->restore();
+            }
+
+            return $parent;
+        }
+
+        return Parents::create([
+            'id_user' => $user->id,
+            'name' => $request->name,
+            'phone' => $request->phone,
+            'gender' => $request->gender,
+        ]);
+    }
+
+    // Students for the "pick children" modal on the employee form
+    public function datatableStudent(Request $request)
+    {
+        $search = $request->input('search')['value'] ?? '';
+        $limit = $request->input('length');
+        $start = $request->input('start');
+        $user_id = $this->employeeUserId($request->employee);
+
+        $student = Student::select('id', 'id_parent', 'id_class', 'nis', 'name')
+            ->with([
+                'parent' => fn ($query) => $query->withoutGlobalScope(BranchScope::class)->select('id', 'id_user', 'name'),
+                'class' => fn ($query) => $query->select('id', 'name'),
+            ]);
+
+        $student_count = $student->count();
+
+        if (! empty($search)) {
+            $student->where(function ($query) use ($search) {
+                $query->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('nis', 'like', '%'.$search.'%')
+                    ->orWhereHas('class', fn ($q) => $q->where('name', 'like', '%'.$search.'%'))
+                    ->orWhereHas('parent', fn ($q) => $q->where('name', 'like', '%'.$search.'%'));
+            });
+        }
+
+        $student_count_filter = $student->count();
+        $student_data = $student->limit($limit)->offset($start)->orderBy('name')->get();
+
+        $student_arr = $student_data->map(fn ($s) => [
+            'encrypted_id' => $s->encrypted_id,
+            'nis' => $s->nis,
+            'name' => $s->name,
+            'class' => $s->class?->name ?? '-',
+            'parent' => $s->parent?->name ?? '-',
+            // Another parent logs in with this child: not for the form to take over
+            'locked' => $s->parent && $s->parent->id_user && $s->parent->id_user != $user_id,
+        ]);
+
+        return response()->json([
+            'draw' => $request->input('draw'),
+            'recordsTotal' => $student_count,
+            'recordsFiltered' => $student_count_filter,
+            'data' => $student_arr,
+        ]);
+    }
+
+    // Children picked on the form become this parent's students. student.id_parent is NOT NULL, so
+    // the form only adds: a child is moved to another parent from the student page. A child whose
+    // current parent logs in with an account of its own is refused
+    private function linkChildren(Parents $parent, array $encrypted_ids, $user_id): void
+    {
+        try {
+            $ids = collect($encrypted_ids)->map(fn ($id) => Crypt::decrypt((string) $id))->unique()->values();
+        } catch (DecryptException $e) {
+            throw ValidationException::withMessages(['children' => __('message.children_invalid')]);
+        }
+
+        if ($ids->isEmpty()) {
+            return;
+        }
+
+        $students = Student::whereIn('id', $ids)->lockForUpdate()->get();
+
+        if ($students->count() !== $ids->count()) {
+            throw ValidationException::withMessages(['children' => __('message.children_invalid')]);
+        }
+
+        $current_parents = Parents::withoutGlobalScope(BranchScope::class)
+            ->withTrashed()
+            ->whereIn('id', $students->pluck('id_parent'))
+            ->get()
+            ->keyBy('id');
+
+        foreach ($students as $student) {
+            if ($student->id_parent == $parent->id) {
+                continue;
+            }
+
+            $current = $current_parents[$student->id_parent] ?? null;
+
+            if ($current && $current->id_user && $current->id_user != $user_id) {
+                throw ValidationException::withMessages(['children' => __('message.child_has_other_parent_admin', [
+                    'name' => $student->name,
+                    'parent' => $current->name,
+                ])]);
+            }
+
+            $student->update(['id_parent' => $parent->id]);
+        }
+    }
+
+    // Children shown on the form: the ones submitted before a failed validation, else the linked ones
+    private function formChildren(?Parents $parent)
+    {
+        if (old('children')) {
+            try {
+                $ids = collect(old('children'))->map(fn ($id) => Crypt::decrypt((string) $id));
+            } catch (DecryptException $e) {
+                $ids = collect();
+            }
+
+            return Student::select('id', 'nis', 'name')->whereIn('id', $ids)->orderBy('name')->get();
+        }
+
+        return $parent
+            ? Student::select('id', 'nis', 'name')->whereIdParent($parent->id)->orderBy('name')->get()
+            : collect();
+    }
+
+    private function employeeUserId($encrypted_employee)
+    {
+        if (empty($encrypted_employee)) {
+            return null;
+        }
+
+        try {
+            return Employee::whereId(Crypt::decrypt((string) $encrypted_employee))->value('id_user');
+        } catch (DecryptException $e) {
+            return null;
         }
     }
 }

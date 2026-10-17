@@ -9,6 +9,7 @@ use App\Helpers\Common;
 use App\Helpers\Upload;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StudentChangeRequest;
+use App\Http\Requests\StudentChildRequest;
 use App\Http\Requests\StudentExculRequest;
 use App\Http\Requests\StudentParentRequest;
 use App\Http\Requests\StudentRequest;
@@ -18,6 +19,7 @@ use App\Models\Attachment;
 use App\Models\Excul;
 use App\Models\Halaqah;
 use App\Models\Parents;
+use App\Models\Scopes\BranchScope;
 use App\Models\Student;
 use App\Models\StudentAcademic;
 use App\Models\StudentDetail;
@@ -43,7 +45,7 @@ class StudentController extends Controller
 
     public function index()
     {
-        if (Auth::user()->role == UserRole::OrangTua) {
+        if (Auth::user()->menu_role == UserRole::OrangTua) {
             return $this->indexParent();
         }
 
@@ -56,16 +58,56 @@ class StudentController extends Controller
         ]);
     }
 
-    /**
-     * Daftar anak untuk orang tua. Pegawai-orang-tua membuka halaman ini dari menu orang tua
-     * (index() untuk admin menampilkan seluruh santri).
-     */
+    // Parent-only list of their own children. A dual-role user (employee + parent) reaches
+    // index() as an employee, so the parent menu links here instead
     public function children()
     {
-        return $this->indexParent();
+        return $this->indexParent(Auth::user()->has_dual_role);
     }
 
-    private function indexParent()
+    // A dual-role user (employee + parent) links an existing student to their parent record.
+    // NIS + birthdate prove they know the child; a student whose current parent logs in with
+    // an account of its own is never taken over (that is for the admin to sort out)
+    public function storeChild(StudentChildRequest $request)
+    {
+        abort_unless(Auth::user()->has_dual_role, 403);
+
+        $parent = Auth::user()->parent;
+        $birthdate = date('Y-m-d', strtotime($request->birthdate));
+
+        $error = DB::transaction(function () use ($request, $parent, $birthdate) {
+            $student = Student::whereNis($request->nis)->whereDate('birthdate', $birthdate)->lockForUpdate()->first();
+
+            // Same message for "no such NIS" and "wrong birthdate": do not confirm which NIS exist
+            if (! $student) {
+                return __('message.child_not_found');
+            }
+
+            if ($student->id_parent == $parent->id) {
+                return __('message.child_already_linked', ['name' => $student->name]);
+            }
+
+            $current = $student->id_parent
+                ? Parents::withoutGlobalScope(BranchScope::class)->withTrashed()->find($student->id_parent)
+                : null;
+
+            if ($current && $current->id_user) {
+                return __('message.child_has_other_parent', ['name' => $student->name]);
+            }
+
+            $student->update(['id_parent' => $parent->id]);
+
+            return null;
+        });
+
+        if ($error) {
+            return Redirect::route('academic.student.children')->with('error', $error)->withInput();
+        }
+
+        return Redirect::route('academic.student.children')->with('success', __('message.child_linked'));
+    }
+
+    private function indexParent($can_add_child = false)
     {
         $students = Student::select('id', 'id_class', 'nis', 'name', 'gender', 'file_photo')
             ->with([
@@ -80,17 +122,8 @@ class StudentController extends Controller
             'title' => __($this->title),
             'icon' => $this->icon,
             'students' => $students,
+            'can_add_child' => $can_add_child,
         ]);
-    }
-
-    /**
-     * Orang tua hanya boleh membuka / mengubah santri miliknya sendiri.
-     */
-    private function authorizeOwnChild(Student $student): void
-    {
-        if (Auth::user()->role == UserRole::OrangTua && $student->id_parent != Auth::user()->parent?->id) {
-            abort(404);
-        }
     }
 
     public function show(Student $student)
@@ -596,7 +629,8 @@ class StudentController extends Controller
 
     public function edit(Student $student)
     {
-        if (Auth::user()->role == UserRole::OrangTua) {
+        // Route allows admin and parents only; anyone else here got in as a parent (dual role)
+        if (Auth::user()->role != UserRole::Admin) {
             return $this->editParent($student);
         }
 
@@ -688,8 +722,9 @@ class StudentController extends Controller
     {
         $this->authorizeOwnChild($student);
 
-        $request->merge(['birthdate' => date('Y-m-d', strtotime($request->birthdate))]);
-        $student->update($request->all());
+        $data = $request->validated();
+        $data['birthdate'] = date('Y-m-d', strtotime($data['birthdate']));
+        $student->update($data);
 
         return Redirect::route('academic.student.show', $student->encrypted_id)->with('success', __('message.update_success', ['label' => __($this->title)]));
     }
@@ -839,7 +874,7 @@ class StudentController extends Controller
                     $branchId = Auth::user()->branch_id ?? 1;
 
                     // Buat Akun User
-                    $user = User::create([
+                    $user = User::forceCreate([
                         'name' => $parentName,
                         'email' => null,
                         'password' => Hash::make('12345678'),
@@ -958,5 +993,11 @@ class StudentController extends Controller
         } catch (\Exception $e) {
             return null;
         }
+    }
+
+    // Parents may only see / edit their own children
+    private function authorizeOwnChild(Student $student): void
+    {
+        abort_unless(Auth::user()->parent && $student->id_parent == Auth::user()->parent->id, 403);
     }
 }

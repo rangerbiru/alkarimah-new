@@ -459,4 +459,10 @@ return [
     'parent_has_account' => 'Parent has account',
     'parent_deleted' => 'Parent deleted',
     'no_parent_record' => 'No parent record yet',
+    'my_children' => 'My Children',
+    'is_also_parent' => 'Is this employee also a student parent?',
+    'add_child' => 'Add Child',
+    'children' => 'Children',
+    'select_children' => 'Select Children',
+    'parent_menu' => 'Parent Menu',
 ];

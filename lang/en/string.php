@@ -101,4 +101,10 @@ return [
     'phone_registered_as_employee_contact_admin' => 'This phone number belongs to an employee account and could not be linked automatically. Please contact the Admin.',
     'remove_parent_selection' => 'Remove selection (all children of this parent)',
     'account_link_new_parent_info' => 'These students have no parent record yet. A new parent record is created from the employee data (name, gender, account phone) and the selected students are attached to it.',
+    'info_parent_record_kept' => 'Parent data already exists. Choosing "No" does not delete it.',
+    'no_children_yet' => 'No children yet.',
+    'add_child_info' => 'Enter the NIS and birthdate of your child who is already registered as a student.',
+    'no_children_selected' => 'No children selected yet.',
+    'child_selected' => 'Selected',
+    'child_has_parent_account' => 'Parent has an account',
 ];

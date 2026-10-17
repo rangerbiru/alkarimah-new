@@ -25,4 +25,12 @@ return [
     'registration_linked_to_employee' => 'Your number belongs to an employee account. Your parent record has been linked; please sign in with your employee account.',
     'account_link_parent_has_account' => 'This student\'s parent already has an account. Merge it from Parent > Edit > Merge with Employee Account.',
     'account_link_mixed_selection' => 'Select students that all have a parent record (one parent) or none of them do; do not mix.',
+    'child_required' => 'No children yet. Please add your child first in the My Children menu.',
+    'child_not_found' => 'No student found with that NIS and birthdate.',
+    'child_already_linked' => ':name is already registered as your child.',
+    'child_has_other_parent' => ':name is already linked to another parent account. Please contact the Admin.',
+    'child_linked' => 'Child added successfully.',
+    'children_invalid' => 'The selected children are invalid.',
+    'child_has_other_parent_admin' => ':name is already linked to another parent account (:parent). Move the student from the Students menu if this is correct.',
+    'parent_similar_exists' => 'A parent record with a similar name or phone already exists: :list. Use the Parents menu, Edit, Merge with Employee Account section, instead of creating a new parent record.',
 ];

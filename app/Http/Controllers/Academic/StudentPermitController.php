@@ -24,7 +24,7 @@ class StudentPermitController extends Controller
     public function index()
     {
 
-        if (Auth::user()->role == UserRole::OrangTua)
+        if (Auth::user()->menu_role == UserRole::OrangTua)
             return $this->indexParent();
 
         $count = StudentPermit::count();
@@ -78,7 +78,7 @@ class StudentPermitController extends Controller
      */
     public function create()
     {
-        if (Auth::user()->role == UserRole::OrangTua)
+        if (Auth::user()->menu_role == UserRole::OrangTua)
             return $this->createParent();
 
         $permitGroup = StudentPermitGroup::with('ustadz')->select('group_id', 'ustadz_id', 'group_name')->distinct()->get();
@@ -127,7 +127,7 @@ class StudentPermitController extends Controller
      */
     public function store(Request $request)
     {
-        if (Auth::user()->role == UserRole::OrangTua)
+        if (Auth::user()->menu_role == UserRole::OrangTua)
             return $this->storeParent($request);
 
         $request->validate([
@@ -316,7 +316,7 @@ class StudentPermitController extends Controller
                 'approver' => fn($query) => $query->select('id', 'name')
             ]);
 
-        if (Auth::user()->role === UserRole::OrangTua)
+        if (Auth::user()->menu_role === UserRole::OrangTua)
             $student = $student->where('id_parent', Auth::user()->parent->id); //id_parent:3, id:3
 
         $student_count = $student->count();

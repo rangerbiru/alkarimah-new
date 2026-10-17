@@ -6,7 +6,7 @@
         $todayDate = \Carbon\Carbon::now()->format('Y-m-d');
     @endphp
 
-    @if (Auth::user()->hasMultipleRoles())
+    @if (Auth::user()->has_dual_role)
         @include('backend.dashboard.partials.parent-shortcut')
     @endif
     <div class="card mt-4">

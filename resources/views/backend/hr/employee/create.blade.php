@@ -152,7 +152,13 @@
                 </div>
             </div>
 
-            @include('backend.hr.employee.partials.also-parent')
+            <div class="row">
+                <div class="col-md-6">
+                    <x-form.radio name="is_parent" :label="__('label.is_also_parent')" :old="old('is_parent', '0')" :option="$yesno" />
+                </div>
+            </div>
+
+            @include('backend.hr.employee.form-children')
 
             <x-section-form
                 :label="__('label.user_account')"
