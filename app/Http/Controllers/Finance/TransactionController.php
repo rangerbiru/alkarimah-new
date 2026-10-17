@@ -17,6 +17,7 @@ use App\Http\Requests\TransactionCashVerifyRequest;
 use App\Http\Requests\TransactionUniqueCodeRequest;
 use App\Http\Requests\TransactionUniqueCodeVerifyRequest;
 use App\Models\BillDiscount;
+use App\Services\CashierConflict;
 use App\Models\CashDeposit;
 use App\Models\Classroom;
 use App\Models\Donation;
@@ -107,6 +108,19 @@ class TransactionController extends Controller
         }
 
         return $transactions->keyBy('id');
+    }
+
+    /**
+     * Konflik kepentingan: setoran / pembayaran yang memuat transaksi anak pelaku sendiri ditolak.
+     * Dipanggil di dalam DB::transaction setelah transaksi dikunci.
+     *
+     * @param  array<int, mixed>  $transactionIds
+     */
+    private function assertNoCashierConflict(string $action, array $transactionIds): void
+    {
+        [$students, $parents] = CashierConflict::partiesOfTransactions($transactionIds);
+
+        CashierConflict::assert(Auth::user(), $action, $students, $parents);
     }
 
     public function bill()
@@ -856,6 +870,14 @@ class TransactionController extends Controller
         $student = Student::with('parent')->inClasses($classIds)->find($request->id_student);
         $parent = $student ? $student->parent : null;
 
+        // Konflik kepentingan: tidak boleh memproses pembayaran anak sendiri (santri di request dan santri pemilik tiap tagihan)
+        CashierConflict::assert(
+            Auth::user(),
+            'bill-payment',
+            array_merge([$request->id_student], CashierConflict::studentsOfBills(array_keys($bills ?? []))),
+            $parent ? [$parent->id] : []
+        );
+
         if ($classIds !== null) {
             $ownBills = $student
                 ? TransactionBill::whereIdStudent($student->id)->whereIn('id', array_keys($bills ?? []))->count()
@@ -1028,6 +1050,8 @@ class TransactionController extends Controller
                 return;
             }
 
+            $this->assertNoCashierConflict('cash-deposit-store', $locked->keys()->all());
+
             foreach ($trans as $t) {
                 if (empty($t)) {
                     continue;
@@ -1080,6 +1104,8 @@ class TransactionController extends Controller
 
                 return;
             }
+
+            $this->assertNoCashierConflict('unique-code-deposit-store', $locked->keys()->all());
 
             foreach ($trans as $t) {
                 if (empty($t)) {
@@ -1208,6 +1234,10 @@ class TransactionController extends Controller
         $this->authorizeTransaction($transaction);
 
         DB::transaction(function () use ($request, $transaction, &$message) {
+            // Konflik kepentingan: approve maupun batal transaksi manual milik anak sendiri ditolak
+            Transaction::whereKey($transaction->id)->lockForUpdate()->pluck('id');
+            $this->assertNoCashierConflict($request->status == 'paid' ? 'pending-approve' : 'pending-cancel', [$transaction->id]);
+
             if ($request->status == 'paid') {
 
                 $original_unique_code = $transaction->unique_code;
@@ -1303,6 +1333,9 @@ class TransactionController extends Controller
                 return;
             }
 
+            // Transaksi baru dan yang sudah ada di setoran ini (yang dilepas / diedit) sama-sama diperiksa
+            $this->assertNoCashierConflict('cash-deposit-update', array_merge($locked->keys()->all(), (array) $deposit->transactions));
+
             foreach ($trans as $t) {
                 if (empty($t)) {
                     continue;
@@ -1372,6 +1405,8 @@ class TransactionController extends Controller
                 return;
             }
 
+            $this->assertNoCashierConflict('unique-code-deposit-update', array_merge($locked->keys()->all(), (array) $deposit->transactions));
+
             foreach ($trans as $t) {
                 if (empty($t)) {
                     continue;
@@ -1423,6 +1458,9 @@ class TransactionController extends Controller
     public function destroyCash(CashDeposit $deposit)
     {
         DB::transaction(function () use ($deposit) {
+            Transaction::whereIn('id', (array) $deposit->transactions)->lockForUpdate()->pluck('id');
+            $this->assertNoCashierConflict('cash-deposit-destroy', (array) $deposit->transactions);
+
             foreach ($deposit->transactions as $t) {
                 $transaction = Transaction::select('id')->whereId($t)->first();
                 $transaction->update([
@@ -1444,6 +1482,9 @@ class TransactionController extends Controller
     public function destroyUniqueCode(UniqueCodeDeposit $deposit)
     {
         DB::transaction(function () use ($deposit) {
+            Transaction::whereIn('id', (array) $deposit->transactions)->lockForUpdate()->pluck('id');
+            $this->assertNoCashierConflict('unique-code-deposit-destroy', (array) $deposit->transactions);
+
             foreach ($deposit->transactions as $t) {
                 $transaction = Transaction::select('id')->whereId($t)->first();
                 $transaction->update([
@@ -1620,6 +1661,8 @@ class TransactionController extends Controller
                 'bills' => $bills,
                 'student' => $student_id,
                 'parent_balance' => $parent_balance,
+                // Hanya peringatan di form; penolakan dilakukan server saat transaksi disimpan
+                'conflict' => CashierConflict::isOwnStudent(Auth::user(), $student_id ?: null),
             ],
         ];
 

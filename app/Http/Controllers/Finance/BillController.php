@@ -16,10 +16,12 @@ use App\Models\Classroom;
 use App\Models\ReportStudent;
 use App\Models\Scopes\ActiveScope;
 use App\Models\Student;
+use App\Services\CashierConflict;
 use App\Models\TransactionBill;
 use App\Models\Year;
 use DateTime;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Str;
@@ -791,6 +793,8 @@ class BillController extends Controller
 
     public function destroy(Request $request)
     {
+        CashierConflict::assert(Auth::user(), 'bill-destroy', [$request->student]);
+
         $bill_paid = TransactionBill::whereIdStudent($request->student)->whereIdBill($request->bill)->paid()->count();
 
         if ($bill_paid > 0) {
@@ -848,6 +852,9 @@ class BillController extends Controller
 
     public function destroySetup(Bill $bill)
     {
+        // Menghapus setup tagihan menghapus tagihan semua santri pemilik: tolak bila ada anak pelaku sendiri
+        CashierConflict::assert(Auth::user(), 'bill-setup-destroy', TransactionBill::whereIdBill($bill->id)->pluck('id_student'));
+
         $error = false;
 
         DB::transaction(function () use ($bill, &$error) {

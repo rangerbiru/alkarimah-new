@@ -31,6 +31,8 @@ return [
     'child_has_other_parent' => ':name is already linked to another parent account. Please contact the Admin.',
     'child_linked' => 'Child added successfully.',
     'child_has_parent_use_merge' => ':name already has a parent record (:parent). Use Parents → Merge with employee account.',
+    'cashier_conflict' => 'You cannot process the bills, payments, or savings of your own child. Please ask another cashier to process it.',
+    'cashier_conflict_warning' => 'Notice: this student is your child. Payments for your own child cannot be processed by you and will be rejected; ask another cashier.',
     'children_invalid' => 'The selected children are invalid.',
     'child_has_other_parent_admin' => ':name is already linked to another parent account (:parent). Move the student from the Students menu if this is correct.',
     'parent_similar_exists' => 'A parent record with a similar name or phone already exists: :list. Use the Parents menu, Edit, Merge with Employee Account section, instead of creating a new parent record.',

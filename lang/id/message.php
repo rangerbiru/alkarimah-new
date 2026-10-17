@@ -31,6 +31,8 @@ return [
     'child_has_other_parent' => ':name sudah terhubung dengan akun orang tua lain. Silakan hubungi Admin.',
     'child_linked' => 'Data anak berhasil ditambahkan.',
     'child_has_parent_use_merge' => ':name sudah punya data orang tua (:parent). Gunakan menu Orang Tua → Gabungkan dengan akun pegawai.',
+    'cashier_conflict' => 'Anda tidak dapat memproses tagihan, pembayaran, atau tabungan anak Anda sendiri. Silakan minta kasir lain untuk memprosesnya.',
+    'cashier_conflict_warning' => 'Perhatian: santri ini adalah anak Anda. Pembayaran untuk anak sendiri tidak dapat diproses oleh Anda dan akan ditolak; mintalah kasir lain.',
     'children_invalid' => 'Data anak yang dipilih tidak valid.',
     'child_has_other_parent_admin' => ':name sudah terhubung dengan akun orang tua lain (:parent). Pindahkan lewat menu Data Santri jika memang benar.',
     'parent_similar_exists' => 'Sudah ada data orang tua dengan nama atau No. HP serupa: :list. Gunakan menu Orang Tua, Edit, bagian Gabungkan dengan Akun Pegawai, bukan membuat data orang tua baru.',

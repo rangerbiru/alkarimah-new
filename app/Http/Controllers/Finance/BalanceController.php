@@ -8,6 +8,7 @@ use App\Enums\TransactionMethod;
 use App\Enums\TransactionStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Parents;
+use App\Services\CashierConflict;
 use App\Models\TopupHistory;
 use App\Models\Transaction;
 use App\Models\TransactionPaymentCode;
@@ -260,6 +261,9 @@ class BalanceController extends Controller
                 return response()->json(['status' => false, 'message' => 'Data Orang Tua tidak valid.']);
             }
 
+            // Konflik kepentingan: kasir tidak boleh mencatat topup tunai ke saldo orang tuanya sendiri
+            CashierConflict::assert(Auth::user(), 'balance-topup-cash', [], [$parent->id]);
+
             DB::transaction(function () use ($request, $nominal, $parent) {
                 $transaction = Transaction::create([
                     'id_parent' => $parent->id,
@@ -337,6 +341,8 @@ class BalanceController extends Controller
 
                     return;
                 }
+
+                CashierConflict::assert(Auth::user(), 'balance-withdrawal', [], [$parent->id]);
 
                 if ($nominal > $parent->balance) {
                     $error = __('string.parent_balance_insufficient', ['balance' => number_format($parent->balance, 0, '', '.')]);

@@ -121,6 +121,7 @@
                     <div id="loading" class="my-5 text-center">
                         <img src="{{ asset('images/loader.gif') }}" style="height: 40px;" />
                     </div>
+                    <div id="conflict-warning" class="alert alert-warning" style="display:none">{{ __('message.cashier_conflict_warning') }}</div>
                     <div id="table-bill" class="table-responsive" style="max-height: 420px;overflow-y: auto;">
                         <table class="table">
                             <thead>
@@ -212,7 +213,7 @@
             });
 
             window.LaravelDataTables = window.LaravelDataTables || {}
-            $("#loading, #table-bill, #btn-search-clear, .form-donation, .form-cicilan").hide()
+            $("#loading, #table-bill, #conflict-warning, #btn-search-clear, .form-donation, .form-cicilan").hide()
             $(".nominal-mask").inputmask({
                 alias: "nominal"
             })
@@ -275,6 +276,7 @@
             })
 
             $("#btn-search-clear").click(function() {
+                $("#conflict-warning").hide()
                 id_student = ""
                 bills = {}
                 bills_selected = {}
@@ -435,6 +437,7 @@
                     parent_balance = response.data.parent_balance || 0;
                     $("#parent-balance").html(`Rp ${moneyFormat(parent_balance)}`);
 
+                    $("#conflict-warning").toggle(!!response.data.conflict)
                     $("#table-bill tbody").html(response.data.table)
                     $("#loading").hide()
                     $("#table-bill, #btn-search-clear").show()

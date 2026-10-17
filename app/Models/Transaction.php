@@ -326,13 +326,16 @@ class Transaction extends Model
             $model->branch_id = Auth::user()->branch_id;
             $model->created_by = Auth::id();
 
-            // Parent-made requests expire; a dual-role user (employee + parent) pays through the parent routes
-            // (a cashier who is also a parent still records cashier deposits as a cashier)
+            // Parent-made requests expire; a dual-role user (employee + parent) pays through the parent routes.
+            // payment.store / balance.store are parent-only routes. savings.store is shared: a cashier records
+            // cashier deposits, unless the form sent a payment method (only the parent form does), i.e. the
+            // cashier is depositing as the parent of their own child
             $user = Auth::user();
+            $parent_route = request()->routeIs('finance.payment.store', 'finance.balance.store')
+                || (request()->routeIs('finance.savings.store')
+                    && (request()->filled('payment_method') || ! ($user->hasAccess('kasir') || $user->hasAccess('kasir-unit'))));
             $by_parent = $user->role->value == UserRole::OrangTua->value
-                || ($user->has_dual_role
-                    && request()->routeIs('finance.payment.store', 'finance.balance.store', 'finance.savings.store')
-                    && ! ($user->hasAccess('kasir') || $user->hasAccess('kasir-unit')));
+                || ($user->has_dual_role && $parent_route);
 
             if ($by_parent) {
                 $model->expired_at = date('Y-m-d H:i:s', strtotime('+2 day'));

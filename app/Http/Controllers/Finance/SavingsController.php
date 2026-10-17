@@ -22,6 +22,7 @@ use App\Models\SavingsMutation;
 use App\Models\SavingsWithdrawal;
 use App\Models\Setting;
 use App\Models\Student;
+use App\Services\CashierConflict;
 use App\Models\TopupHistory;
 use App\Models\Transaction;
 use App\Models\TransactionPaymentCode;
@@ -389,14 +390,24 @@ class SavingsController extends Controller
 
     public function store(SavingsDepositRequest $request)
     {
-        if (Auth::user()->hasAccess('kasir') || Auth::user()->hasAccess('kasir-unit'))
+        if (Auth::user()->hasAccess('kasir') || Auth::user()->hasAccess('kasir-unit')) {
+            // Setoran ortu untuk anaknya sendiri tetap boleh: form orang tua selalu mengirim payment_method
+            // (form kasir tidak), jadi kasir yang juga orang tua bisa menyetor sebagai orang tua untuk anaknya
+            if ($request->filled('payment_method') && CashierConflict::isOwnStudent(Auth::user(), (int) $request->id_student)) {
+                return $this->storeParent($request);
+            }
+
             return $this->storeCashier($request);
-        else // Orang Tua
-            return $this->storeParent($request);
+        }
+
+        return $this->storeParent($request); // Orang Tua
     }
 
     private function storeCashier($request)
     {
+        // Konflik kepentingan: kasir tidak boleh mencatat setoran tunai untuk anaknya sendiri
+        CashierConflict::assert(Auth::user(), 'savings-deposit-cash', [$request->id_student]);
+
         $student = Student::inClasses(Auth::user()->kasirUnitClassIds())->find($request->id_student);
 
         if (! $student) {
@@ -478,6 +489,8 @@ class SavingsController extends Controller
 
     public function storeWithdrawal(SavingsWithdrawalRequest $request)
     {
+        CashierConflict::assert(Auth::user(), 'savings-withdrawal-store', [$request->id_student]);
+
         DB::transaction(function() use($request) {
             $withdrawal = SavingsWithdrawal::create($request->all());
             Student::whereId($withdrawal->id_student)->decrement('balance_savings', $withdrawal->total);
@@ -505,6 +518,8 @@ class SavingsController extends Controller
 
     public function updateWithdrawal(SavingsWithdrawalRequest $request, SavingsWithdrawal $withdrawal)
     {
+        CashierConflict::assert(Auth::user(), 'savings-withdrawal-update', [$withdrawal->id_student, $request->id_student]);
+
         DB::transaction(function () use ($request, $withdrawal) {
             $total_before = $withdrawal->total;
             $withdrawal->update($request->all());
@@ -523,6 +538,8 @@ class SavingsController extends Controller
 
     public function destroyWithdrawal(SavingsWithdrawal $withdrawal)
     {
+        CashierConflict::assert(Auth::user(), 'savings-withdrawal-destroy', [$withdrawal->id_student]);
+
         DB::transaction(function () use ($withdrawal) {
             Student::whereId($withdrawal->id_student)->increment('balance_savings', $withdrawal->total);
             $withdrawal->delete();
@@ -538,6 +555,8 @@ class SavingsController extends Controller
 
     public function processWithdrawal(SavingsWithdrawalProcessRequest $request)
     {
+        CashierConflict::assert(Auth::user(), 'savings-withdrawal-process', CashierConflict::studentsOfWithdrawals(array_keys($request->bills ?? [])));
+
         $classIds = Auth::user()->kasirUnitClassIds();
 
         if ($classIds !== null) {
