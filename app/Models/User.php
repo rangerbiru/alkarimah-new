@@ -8,6 +8,7 @@ use App\Constants\Modules;
 use App\Constants\EducationLevel as EducationLevelMap;
 use App\Enums\Gender;
 use App\Enums\UserRole;
+use App\Models\Scopes\BranchScope;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -24,6 +25,17 @@ class User extends Authenticatable
     use HasFactory, LogsActivity, Notifiable, SoftDeletes;
 
     private ?array $moduleIdsCache = null;
+
+    /** Role asli saat user sedang di-override ke orang-tua (hanya di memori, tidak pernah disimpan). */
+    private ?UserRole $overriddenFrom = null;
+
+    private ?Parents $parentRecordCache = null;
+
+    private bool $parentRecordLoaded = false;
+
+    private ?array $employeeStateCache = null;
+
+    private ?bool $hasChildrenCache = null;
 
     protected $guarded = ['id', 'created_at', 'created_by', 'updated_at', 'updated_by', 'deleted_at', 'deleted_by'];
 
@@ -166,6 +178,20 @@ class User extends Authenticatable
             }
 
             return $model;
+        });
+
+        // Role hasil override (orang-tua) tidak boleh pernah tersimpan ke DB
+        self::saving(function ($model) {
+            if ($model->overriddenFrom !== null) {
+                $model->setAttribute('role', $model->overriddenFrom);
+            }
+        });
+
+        // Pasang lagi override untuk sisa request
+        self::saved(function ($model) {
+            if ($model->overriddenFrom !== null) {
+                $model->setAttribute('role', UserRole::OrangTua);
+            }
         });
 
         self::updating(function ($model) {
@@ -397,10 +423,158 @@ class User extends Authenticatable
      */
     public function moduleIds(): array
     {
+        // Saat bertindak sebagai orang tua, semua modul pegawai tidak berlaku
+        if ($this->overriddenFrom !== null) {
+            return [];
+        }
+
         return $this->moduleIdsCache ??= ModuleRights::where('id_user', $this->id)
             ->pluck('id_module')
             ->map(fn ($id) => (int) $id)
             ->all();
+    }
+
+    /**
+     * Nilai asli role selalu role di DB, juga saat sedang di-override (syncOriginal dipanggil
+     * setelah event saved).
+     */
+    public function syncOriginal()
+    {
+        parent::syncOriginal();
+
+        if ($this->overriddenFrom !== null) {
+            $this->original['role'] = $this->overriddenFrom->value;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Baris orang tua aktif (belum dihapus) yang terhubung ke user ini.
+     */
+    public function parentRecord(): ?Parents
+    {
+        if (! $this->parentRecordLoaded) {
+            $this->parentRecordCache = Parents::withoutGlobalScope(BranchScope::class)->where('id_user', $this->id)->first();
+            $this->parentRecordLoaded = true;
+        }
+
+        return $this->parentRecordCache;
+    }
+
+    /**
+     * Ada baris orang tua aktif yang terhubung ke user ini.
+     */
+    public function isParent(): bool
+    {
+        return $this->parentRecord() !== null;
+    }
+
+    /**
+     * Orang tua yang terhubung punya santri (aturan login orang tua).
+     */
+    public function hasChildren(): bool
+    {
+        $parent = $this->parentRecord();
+
+        if (! $parent) {
+            return false;
+        }
+
+        return $this->hasChildrenCache ??= Student::withoutGlobalScope(BranchScope::class)
+            ->where('id_parent', $parent->id)
+            ->exists();
+    }
+
+    /**
+     * Role asli di DB (bukan hasil override).
+     */
+    public function storedRole(): UserRole
+    {
+        return $this->overriddenFrom ?? $this->role;
+    }
+
+    /**
+     * Akun pegawai nonaktif: ada baris employee yang nonaktif atau sudah dihapus.
+     * Akun tanpa baris employee (admin, dll.) dianggap aktif.
+     */
+    private function employeeIsInactive(): bool
+    {
+        $this->employeeStateCache ??= [
+            'inactive' => (function () {
+                $employee = Employee::withoutGlobalScopes()->withTrashed()->where('id_user', $this->id)->first();
+
+                return $employee !== null && (! $employee->status || $employee->deleted_at !== null);
+            })(),
+        ];
+
+        return $this->employeeStateCache['inactive'];
+    }
+
+    /**
+     * Akun ini dipakai sebagai staf: role di DB bukan orang-tua. Pegawai nonaktif yang juga
+     * orang tua diperlakukan sebagai orang tua saja.
+     */
+    public function isEmployee(): bool
+    {
+        if ($this->storedRole() === UserRole::OrangTua) {
+            return false;
+        }
+
+        return ! ($this->isParent() && $this->employeeIsInactive());
+    }
+
+    /**
+     * Staf aktif yang juga orang tua santri: menu pegawai dan menu orang tua tampil bersamaan.
+     */
+    public function hasMultipleRoles(): bool
+    {
+        return $this->isEmployee() && $this->isParent() && $this->hasChildren();
+    }
+
+    /**
+     * Pegawai nonaktif yang juga orang tua: hanya sebagai orang tua.
+     */
+    public function isParentOnlyAccount(): bool
+    {
+        return $this->storedRole() !== UserRole::OrangTua && $this->isParent() && ! $this->isEmployee();
+    }
+
+    public function isActingAsParent(): bool
+    {
+        return $this->overriddenFrom !== null;
+    }
+
+    /**
+     * Bertindak sebagai orang tua selama request ini. Role di memori diganti orang-tua; event
+     * saving memastikan role asli yang tersimpan ke DB.
+     */
+    public function actAs(string $role): void
+    {
+        if ($role !== 'parent' || $this->overriddenFrom !== null || $this->role === UserRole::OrangTua) {
+            return;
+        }
+
+        $this->overriddenFrom = $this->role;
+        $this->setAttribute('role', UserRole::OrangTua);
+    }
+
+    /**
+     * Lepas override dan buang cache per instance (instance yang sama bisa dipakai ulang
+     * antar request, mis. pada test).
+     */
+    public function clearActAs(): void
+    {
+        if ($this->overriddenFrom !== null) {
+            $this->setAttribute('role', $this->overriddenFrom);
+            $this->overriddenFrom = null;
+        }
+
+        $this->moduleIdsCache = null;
+        $this->parentRecordCache = null;
+        $this->parentRecordLoaded = false;
+        $this->employeeStateCache = null;
+        $this->hasChildrenCache = null;
     }
 
     public function hasRole($role)

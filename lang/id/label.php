@@ -717,4 +717,7 @@ return [
     'total_payment' => 'Jumlah Bayar',
     'saving_deposit' => 'Setoran Tabungan',
     'choose_account' => 'Pilih Akun',
+    'parent_menu' => 'Menu Orang Tua',
+    'staff_menu' => 'Menu Pegawai',
+    'my_children' => 'Anak Saya',
 ];

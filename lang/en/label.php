@@ -442,4 +442,7 @@ return [
     'dec' => 'Dec',
     'hr' => 'Hr', // Hour
     'choose_account' => 'Choose Account',
+    'parent_menu' => 'Parent Menu',
+    'staff_menu' => 'Staff Menu',
+    'my_children' => 'My Children',
 ];

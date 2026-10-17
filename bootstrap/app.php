@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\Access;
 use App\Http\Middleware\AccessRights;
+use App\Http\Middleware\ActiveRole;
 use App\Http\Middleware\InitializeBackend;
 use App\Http\Middleware\Role;
 use Illuminate\Foundation\Application;
@@ -19,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'initialize.backend' => InitializeBackend::class,
+            'active.role' => ActiveRole::class,
             'role' => Role::class,
             'access' => Access::class,
             'accessRights' => AccessRights::class,

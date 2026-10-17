@@ -5,6 +5,10 @@
     @php
         $todayDate = \Carbon\Carbon::now()->format('Y-m-d');
     @endphp
+
+    @if (Auth::user()->hasMultipleRoles())
+        @include('backend.dashboard.partials.parent-shortcut')
+    @endif
     <div class="card mt-4">
         <div class="card-body">
             @if (!$employee)

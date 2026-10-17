@@ -119,7 +119,10 @@ class AuthController extends Controller
             $auth_phone = ['phone' => str_replace('-', '', $request->username), 'password' => $request->password];
 
             if (Auth::attempt($auth_email, $remember) or Auth::attempt($auth_phone, $remember)) {
-                if (Auth::user()->is_orang_tua) {
+                // Orang tua tanpa santri tidak boleh masuk. Pegawai nonaktif yang juga orang tua dihitung
+                // sebagai orang tua saja; pegawai aktif yang juga orang tua tetap masuk sebagai pegawai
+                // (menu orang tua baru tampil bila ada santri).
+                if (Auth::user()->is_orang_tua || Auth::user()->isParentOnlyAccount()) {
                     $student = Student::whereIdParent(Auth::user()->parent->id)->count();
 
                     if ($student == 0) {

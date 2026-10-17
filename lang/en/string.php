@@ -87,4 +87,5 @@ return [
     'otp_session_invalid' => 'The verification session is invalid or has expired, please start over.',
     'otp_too_many_attempts' => 'Too many verification attempts, please request a new code.',
     'choose_account_to_reset' => 'This number is used by more than one account. Choose the account whose password you want to reset.',
+    'page_not_available' => 'This page is not available for your account.',
 ];

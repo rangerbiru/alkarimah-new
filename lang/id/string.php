@@ -88,4 +88,5 @@ return [
     'otp_session_invalid' => 'Sesi verifikasi tidak valid atau sudah berakhir, silakan ulangi dari awal.',
     'otp_too_many_attempts' => 'Terlalu banyak percobaan kode verifikasi, silakan minta kode baru.',
     'choose_account_to_reset' => 'Nomor ini dipakai oleh lebih dari satu akun. Pilih akun yang ingin direset passwordnya.',
+    'page_not_available' => 'Halaman tidak tersedia untuk akun Anda.',
 ];

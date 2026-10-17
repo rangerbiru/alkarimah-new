@@ -38,7 +38,7 @@ Route::post('authenticate', [AuthController::class, 'authenticate'])->name('auth
 Route::post('moota/notification/{bank}', [MootaController::class, 'notification'])->whereIn('bank', ['bsi'])->name('moota.notification');
 Route::get('captcha-refresh', [CaptchaController::class, 'refresh'])->name('captcha.refresh');
 
-Route::group(['middleware' => ['auth', 'initialize.backend']], function () {
+Route::group(['middleware' => ['auth', 'active.role', 'initialize.backend']], function () {
     Route::prefix('academic')->group(function () {
         require __DIR__.'/academic.php';
     });

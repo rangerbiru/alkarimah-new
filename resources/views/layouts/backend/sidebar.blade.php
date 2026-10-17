@@ -29,6 +29,10 @@ $set_dashboard = ($controller == 'dashboard') ? ' active' : '';
             </li>
 
             @include('layouts.backend.sidebar-' . Auth::user()->role->value)
+
+            @if (Auth::user()->hasMultipleRoles())
+                @include('layouts.backend.sidebar-menu-parent')
+            @endif
         </ul>
     </nav>
 </div>

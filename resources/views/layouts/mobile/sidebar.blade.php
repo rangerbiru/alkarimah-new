@@ -46,6 +46,22 @@
                 @include('layouts.backend.sidebar-pegawai-modules')
             @endif
 
+            {{-- Pegawai yang juga orang tua: menu orang tua; saat membuka halaman orang tua, tautan kembali ke menu pegawai --}}
+            @if (Auth::user()->hasMultipleRoles())
+                @if (Auth::user()->isActingAsParent())
+                    <li class="slide__category"><span class="category-name">{{ __('label.staff_menu') }}</span></li>
+                    <li class="slide">
+                        <a href="{{ route('dashboard.index') }}" class="side-menu__item">
+                            <span class=" side-menu__icon">
+                                <i class="bx bx-bar-chart-alt-2"></i>
+                            </span>
+                            <span class="side-menu__label">Dashboard</span>
+                        </a>
+                    </li>
+                @endif
+                @include('layouts.backend.sidebar-menu-parent')
+            @endif
+
             @php
                 $menu_groups = ['none', 'academic', 'finance'];
             @endphp

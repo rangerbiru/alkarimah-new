@@ -56,6 +56,15 @@ class StudentController extends Controller
         ]);
     }
 
+    /**
+     * Daftar anak untuk orang tua. Pegawai-orang-tua membuka halaman ini dari menu orang tua
+     * (index() untuk admin menampilkan seluruh santri).
+     */
+    public function children()
+    {
+        return $this->indexParent();
+    }
+
     private function indexParent()
     {
         $students = Student::select('id', 'id_class', 'nis', 'name', 'gender', 'file_photo')
@@ -74,8 +83,20 @@ class StudentController extends Controller
         ]);
     }
 
+    /**
+     * Orang tua hanya boleh membuka / mengubah santri miliknya sendiri.
+     */
+    private function authorizeOwnChild(Student $student): void
+    {
+        if (Auth::user()->role == UserRole::OrangTua && $student->id_parent != Auth::user()->parent?->id) {
+            abort(404);
+        }
+    }
+
     public function show(Student $student)
     {
+        $this->authorizeOwnChild($student);
+
         return view($this->path.'show', [
             'title' => __($this->title),
             'icon' => $this->icon,
@@ -607,6 +628,8 @@ class StudentController extends Controller
 
     private function editParent($student)
     {
+        $this->authorizeOwnChild($student);
+
         $religions = Common::option('religion');
         $genders = Common::option('gender');
 
@@ -663,6 +686,8 @@ class StudentController extends Controller
 
     public function updateParent(StudentParentRequest $request, Student $student)
     {
+        $this->authorizeOwnChild($student);
+
         $request->merge(['birthdate' => date('Y-m-d', strtotime($request->birthdate))]);
         $student->update($request->all());
 
