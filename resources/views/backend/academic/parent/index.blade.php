@@ -125,10 +125,10 @@ $(document).ready(function() {
     $($.fn.dataTable.tables(true)).css('width', '100%')
 });
 
-const string_account_notice = @json(__('message.parent_delete_account_notice'))
-const string_deactivate_option = @json(__('message.parent_delete_deactivate_option'))
-const string_alias_option = @json(__('message.parent_delete_alias_option'))
-const string_alias_hint = @json(__('message.parent_delete_alias_hint'))
+const string_account_notice = {{ Js::from(__('message.parent_delete_account_notice')) }};
+const string_deactivate_option = {{ Js::from(__('message.parent_delete_deactivate_option')) }};
+const string_alias_option = {{ Js::from(__('message.parent_delete_alias_option')) }};
+const string_alias_hint = {{ Js::from(__('message.parent_delete_alias_hint')) }};
 
 // Konfirmasi hapus orang tua: beri tahu bila akun login-nya ikut dinonaktifkan, dan bila ada pegawai
 // bernomor HP sama, tawarkan (bukan otomatis) menjadikan akun itu alias dari akun pegawai tsb

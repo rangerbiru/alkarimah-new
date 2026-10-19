@@ -238,4 +238,26 @@ class ParentDeleteAccountTest extends ModuleAccessTestCase
             ->assertSessionHasErrors(['useraccount' => 'Data Siswa Anda belum ada, harap hubungi Admin untuk mendaftarkan data siswa Anda']);
         $this->assertNull(Auth::id());
     }
+
+    public function test_parent_index_page_script_is_valid_javascript(): void
+    {
+        // Regresi: @json di akhir baris memakan baris baru dan merusak seluruh blok script (DataTable tidak tampil)
+        $node = trim((string) shell_exec('command -v node'));
+
+        if ($node === '') {
+            $this->markTestSkipped('node tidak tersedia untuk memeriksa sintaks JS');
+        }
+
+        $html = $this->actingAs($this->admin)->get(route('academic.parent.index'))->assertOk()->getContent();
+        preg_match_all('/<script>(.*?)<\/script>/s', $html, $blocks);
+        $script = collect($blocks[1])->first(fn ($block) => str_contains($block, 'table-parent'));
+        $this->assertNotNull($script);
+
+        $file = tempnam(sys_get_temp_dir(), 'parent-index').'.js';
+        file_put_contents($file, $script);
+        exec(escapeshellarg($node).' --check '.escapeshellarg($file).' 2>&1', $output, $code);
+        @unlink($file);
+
+        $this->assertSame(0, $code, implode("\n", $output));
+    }
 }
