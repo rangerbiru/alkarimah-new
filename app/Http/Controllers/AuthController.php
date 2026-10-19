@@ -129,6 +129,9 @@ class AuthController extends Controller
     // Lama daftar akun di halaman pilih akun berlaku (detik)
     private const LOGIN_CHOICE_TTL = 300;
 
+    /** Akun alias yang password-nya cocok tetapi tujuannya tidak valid (dicatat bersama kandidat yang dibuang) */
+    private array $aliasDrops = [];
+
     public function authenticate(AuthRequest $request)
     {
         if (! $request->validated()) {
@@ -158,8 +161,18 @@ class AuthController extends Controller
             return back()->withErrors(['useraccount' => $result]);
         }
 
-        // Lebih dari satu akun tujuan dengan password yang cocok: pengguna memilih sendiri. Daftar id
-        // hanya disimpan di session (tidak di URL / form), berlaku sebentar dan dipakai sekali
+        // Beberapa akun tujuan: buang akun yang pasti ditolak pemeriksaan pasca-login (sumber yang sama
+        // dengan login biasa), supaya tidak pernah ditawarkan di halaman pilih akun
+        if ($result instanceof \Illuminate\Support\Collection) {
+            $result = $this->usableTargets($result, $username, $request->ip());
+        }
+
+        if (is_string($result)) {
+            return Redirect::route('base')->withErrors(['useraccount' => $result]);
+        }
+
+        // Lebih dari satu akun tujuan yang bisa dipakai: pengguna memilih sendiri. Daftar id hanya
+        // disimpan di session (tidak di URL / form), berlaku sebentar dan dipakai sekali
         if ($result instanceof \Illuminate\Support\Collection) {
             $ids = $result->keys()->all();
 
@@ -193,7 +206,7 @@ class AuthController extends Controller
             ->map(fn (User $user) => (object) [
                 'id' => $user->encrypted_id,
                 'name' => $user->name,
-                'role' => $this->roleLabel($user->role->value),
+                'role' => $this->accountRoleLabel($user),
                 'children' => $this->childNames($user),
             ]);
 
@@ -266,24 +279,10 @@ class AuthController extends Controller
      */
     private function completeLogin(Request $request, User $user, bool $remember, string $throttleKey)
     {
-        // Only a parent account, or an employee who is EXPLICITLY inactive (status = 0) and also a parent,
-        // must have students. An active staff account is never checked, with or without a parent row.
-        // A dual-role user can still log in as an employee without active students
-        if (($user->role == UserRole::OrangTua || $user->acts_as_parent_only) && ! $user->has_dual_role) {
-            // Parent account whose parent record was deleted (an "orphan"): a different message than
-            // a parent record without students
-            if (! $user->is_parent) {
-                return Redirect::route('base')->withErrors(['useraccount' => __('string.login_parent_account_orphan')]);
-            }
+        $rejection = $this->loginRejection($user);
 
-            // The relation includes soft-deleted rows; only the active parent record counts
-            $parent = $user->parent()->withoutTrashed()->first();
-
-            if (! $parent || Student::withoutGlobalScope(BranchScope::class)->whereIdParent($parent->id)->count() == 0) {
-                return Redirect::route('base')->withErrors([
-                    'useraccount' => 'Data Siswa Anda belum ada, harap hubungi Admin untuk mendaftarkan data siswa Anda',
-                ]);
-            }
+        if ($rejection !== null) {
+            return Redirect::route('base')->withErrors(['useraccount' => $rejection['message']]);
         }
 
         RateLimiter::clear($throttleKey);
@@ -292,6 +291,93 @@ class AuthController extends Controller
         $request->session()->regenerate();
 
         return Redirect::intended(route('dashboard.index'));
+    }
+
+    /**
+     * Pemeriksaan pasca-login: satu sumber untuk login langsung, penyaringan kandidat halaman pilih akun,
+     * dan akun yang dipilih di halaman itu. null = boleh masuk; selain itu kode dan pesan penolakan.
+     *
+     * @return array{code: string, message: string}|null
+     */
+    private function loginRejection(User $user): ?array
+    {
+        // Only a parent account, or an employee who is EXPLICITLY inactive (status = 0) and also a parent,
+        // must have students. An active staff account is never checked, with or without a parent row.
+        // A dual-role user can still log in as an employee without active students
+        if (! (($user->role == UserRole::OrangTua || $user->acts_as_parent_only) && ! $user->has_dual_role)) {
+            return null;
+        }
+
+        // Parent account whose parent record was deleted (an "orphan"): a different message than
+        // a parent record without students
+        if (! $user->is_parent) {
+            return ['code' => 'parent-account-orphan', 'message' => __('string.login_parent_account_orphan')];
+        }
+
+        // The relation includes soft-deleted rows; only the active parent record counts
+        $parent = $user->parent()->withoutTrashed()->first();
+
+        if (! $parent || Student::withoutGlobalScope(BranchScope::class)->whereIdParent($parent->id)->count() == 0) {
+            return [
+                'code' => 'parent-without-students',
+                'message' => 'Data Siswa Anda belum ada, harap hubungi Admin untuk mendaftarkan data siswa Anda',
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * Saring akun tujuan (password cocok) dengan loginRejection(). Tersisa 1 -> User; 2+ -> daftar;
+     * 0 -> pesan penolakan akun pertama. Kandidat yang dibuang dicatat ke activity_log.
+     *
+     * @param  \Illuminate\Support\Collection<int, User>  $targets
+     * @return User|\Illuminate\Support\Collection<int, User>|string
+     */
+    private function usableTargets($targets, string $username, ?string $ip): User|\Illuminate\Support\Collection|string
+    {
+        $dropped = [];
+        $usable = $targets->filter(function (User $user) use (&$dropped) {
+            $rejection = $this->loginRejection($user);
+
+            if ($rejection !== null) {
+                $dropped[$user->id] = $rejection;
+            }
+
+            return $rejection === null;
+        });
+
+        if ($dropped || $this->aliasDrops) {
+            activity('login-ambiguous-accounts')
+                ->withProperties([
+                    'event' => 'filtered',
+                    'username' => $username,
+                    'candidate_user_ids' => $targets->keys()->all(),
+                    'dropped' => collect($dropped)->map(fn ($rejection, $id) => ['user_id' => $id, 'reason' => $rejection['code']])
+                        ->values()->merge($this->aliasDrops)->all(),
+                    'remaining_user_ids' => $usable->keys()->all(),
+                    'ip' => $ip,
+                ])
+                ->log('Login candidates filtered');
+        }
+
+        if ($usable->isEmpty()) {
+            return reset($dropped)['message'];
+        }
+
+        return $usable->count() === 1 ? $usable->first() : $usable;
+    }
+
+    /** Label role di halaman pilih akun; akun dua peran memakai label gabungan (mis. "Kepala Sekolah + Orang Tua"). */
+    private function accountRoleLabel(User $user): string
+    {
+        if (! $user->has_dual_role) {
+            return $this->roleLabel($user->role->value);
+        }
+
+        $staff = $user->role == UserRole::OrangTua ? UserRole::Pegawai->value : $user->role->value;
+
+        return $this->roleLabel($staff).' + '.$this->roleLabel(UserRole::OrangTua->value);
     }
 
     /** Akun dengan nomor HP ini, dibandingkan setelah normalisasi. Nomor kosong / "0" tidak pernah cocok. */
@@ -367,6 +453,7 @@ class AuthController extends Controller
             // Tujuan alias harus akun pegawai yang masih ada dan bukan alias juga
             if (! $target || $target->linked_user_id) {
                 Log::warning('login-alias-target-invalid', ['alias_user_id' => $candidate->id, 'target' => $candidate->linked_user_id]);
+                $this->aliasDrops[] = ['user_id' => $candidate->id, 'reason' => 'alias-target-invalid'];
 
                 continue;
             }

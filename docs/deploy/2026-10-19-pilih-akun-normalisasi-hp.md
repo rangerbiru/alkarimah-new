@@ -15,6 +15,19 @@ diarahkan ke `GET /choose-account` (`auth.choose-account`) alih-alih ditolak.
 - Tidak ada tombol pindah akun setelah masuk: logout lalu login lagi.
 - Satu akun tujuan dan akun alias tidak berubah: langsung masuk.
 
+### Penyaringan kandidat (perbaikan 2026-10-20)
+Sebelum halaman Pilih Akun ditampilkan, setiap akun tujuan menjalani pemeriksaan pasca-login yang sama dengan login biasa
+(`AuthController::loginRejection()`, satu sumber untuk login langsung, penyaringan, dan akun yang dipilih):
+akun orang tua yatim (tanpa data orang tua aktif) dan akun orang tua tanpa santri dibuang. Akun alias yang tujuannya tidak
+valid sudah dibuang lebih awal.
+- Tersisa 1 akun: langsung masuk tanpa halaman pilihan (kasus 087728816070: akun kepala sekolah dua peran + akun orang tua yatim).
+- Tersisa 2 atau lebih: halaman Pilih Akun hanya berisi akun yang bisa dipakai.
+- Tersisa 0: pesan penolakan akun pertama (urut id), sama seperti login biasa.
+- Kandidat yang dibuang dicatat ke `activity_log` (`log_name = login-ambiguous-accounts`, `event = filtered`) dengan
+  `dropped` = id akun dan alasan (`parent-account-orphan`, `parent-without-students`, `alias-target-invalid`).
+- Akun dua peran tampil dengan label gabungan, mis. "Kepala Sekolah + Orang Tua".
+- Pemeriksaan dijalankan lagi saat akun dipilih (data bisa berubah selama halaman terbuka).
+
 ## 2. Normalisasi nomor HP
 Nomor input dan `users.phone` / `parent.phone` dibandingkan dalam bentuk baku (`App\Helpers\Phone::normalize` dan `Phone::sql`):
 buang `-`, spasi, titik; awalan `+62` / `62` menjadi `0`. Dihitung di query, data tidak diubah.
@@ -47,6 +60,9 @@ dan saran tindakannya, plus ringkasan per kategori. Normalisasi sama dengan logi
 3. Akun yang nomornya tersimpan `0812-xxxx-xxxx` -> login dengan `0812xxxxxxxx` dan `+62812xxxxxxxx` berhasil.
 4. Lupa password dengan format nomor berbeda dari yang tersimpan -> kode OTP terkirim.
 5. Akun alias (akun orang tua yang sudah digabung) -> langsung masuk ke akun pegawai tanpa Pilih Akun.
+6. 087728816070 dengan password yang sama untuk akun kepala sekolah dan akun orang tua lama -> langsung masuk sebagai
+   kepala sekolah (menu pegawai + orang tua), tanpa halaman Pilih Akun.
+7. Dua akun valid, salah satunya dua peran -> label "<Role> + Orang Tua" di halaman Pilih Akun.
 
 ## Rollback
 Kembalikan file di atas. Session `login_choice` yang tersisa tidak berbahaya (kedaluwarsa sendiri).

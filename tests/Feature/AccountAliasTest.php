@@ -136,8 +136,15 @@ class AccountAliasTest extends ModuleAccessTestCase
         $a = $this->createUser('kasir');
         $b = $this->createUser('orang-tua');
         DB::table('users')->whereIn('id', [$a->id, $b->id])->update(['phone' => $phone]);
+        $parentId = DB::table('parent')->insertGetId([
+            'id_user' => $b->id, 'name' => 'Ortu B', 'phone' => $phone, 'gender' => 'male', 'branch_id' => self::BRANCH_ID, 'created_by' => 0,
+        ]);
+        DB::table('student')->insert([
+            'id_parent' => $parentId, 'id_class' => 1, 'nis' => 'N'.random_int(1000000, 9999999), 'name' => 'Anak B',
+            'gender' => 'male', 'religion' => 'Islam', 'branch_id' => self::BRANCH_ID, 'created_by' => 0,
+        ]);
 
-        // Tidak diputuskan otomatis: pengguna diarahkan ke halaman pilih akun (lihat LoginChooseAccountTest)
+        // Keduanya bisa dipakai, jadi tidak diputuskan otomatis: pengguna diarahkan ke halaman pilih akun (lihat LoginChooseAccountTest)
         $this->assertNull($this->loginAs($phone, 'secret'));
         $this->assertSame([$a->id, $b->id], session('login_choice.ids'));
     }

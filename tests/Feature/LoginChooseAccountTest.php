@@ -159,14 +159,91 @@ class LoginChooseAccountTest extends ModuleAccessTestCase
         $this->choose($kasir)->assertCookieMissing($recaller);
     }
 
-    public function test_chosen_parent_account_still_goes_through_the_normal_checks(): void
+    /** Aktivitas "filtered" terakhir untuk nomor ini */
+    private function filteredLog(string $phone): ?array
+    {
+        $row = DB::table('activity_log')->where('log_name', 'login-ambiguous-accounts')
+            ->where('properties', 'like', '%"filtered"%')->where('properties', 'like', '%'.$phone.'%')->latest('id')->first();
+
+        return $row ? json_decode($row->properties, true) : null;
+    }
+
+    public function test_dual_role_account_plus_orphan_parent_account_logs_straight_into_the_dual_role_account(): void
+    {
+        // Kasus 087728816070: akun kepala sekolah dua peran (anak aktif) + akun orang tua yatim, password sama
+        $phone = $this->phone();
+        $head = $this->account('kepala-sekolah', $phone, 'sama', 'RIYADI SUROYO');
+        $this->createEmployee($head);
+        $this->parentRow($head, ['ADNAN AFIFI']);
+        $orphan = $this->account('orang-tua', $phone, 'sama', 'Riyadi Suroyo');
+        $deleted = $this->parentRow($orphan, []);
+        DB::table('parent')->where('id', $deleted)->update(['deleted_at' => now()]);
+
+        $this->login($phone, 'sama')->assertRedirect(route('dashboard.index'));
+        $this->assertSame($head->id, Auth::id());
+        $this->assertNull(session('login_choice'));
+
+        $log = $this->filteredLog($phone);
+        $this->assertSame([$head->id, $orphan->id], $log['candidate_user_ids']);
+        $this->assertSame([['user_id' => $orphan->id, 'reason' => 'parent-account-orphan']], $log['dropped']);
+        $this->assertSame([$head->id], $log['remaining_user_ids']);
+    }
+
+    public function test_parent_account_without_students_is_not_offered(): void
     {
         $phone = $this->phone();
-        $this->account('kasir', $phone, 'sama', 'Kasir');
+        $kasir = $this->account('kasir', $phone, 'sama', 'Kasir');
         $ortu = $this->account('orang-tua', $phone, 'sama', 'Ortu Tanpa Santri');
         $this->parentRow($ortu, []);
 
-        $this->login($phone, 'sama');
+        $this->login($phone, 'sama')->assertRedirect(route('dashboard.index'));
+        $this->assertSame($kasir->id, Auth::id());
+        $this->assertSame([['user_id' => $ortu->id, 'reason' => 'parent-without-students']], $this->filteredLog($phone)['dropped']);
+    }
+
+    public function test_when_every_candidate_is_refused_the_first_refusal_is_shown(): void
+    {
+        $phone = $this->phone();
+        $orphan = $this->account('orang-tua', $phone, 'sama', 'Ortu Yatim');
+        $deleted = $this->parentRow($orphan, []);
+        DB::table('parent')->where('id', $deleted)->update(['deleted_at' => now()]);
+        $empty = $this->account('orang-tua', $phone, 'sama', 'Ortu Tanpa Santri');
+        $this->parentRow($empty, []);
+
+        $this->login($phone, 'sama')->assertRedirect(route('base'))
+            ->assertSessionHasErrors(['useraccount' => __('string.login_parent_account_orphan')]);
+        $this->assertFalse(Auth::check());
+        $this->assertNull(session('login_choice'));
+        $this->assertSame([], $this->filteredLog($phone)['remaining_user_ids']);
+    }
+
+    public function test_dual_role_account_shows_a_combined_label(): void
+    {
+        $phone = $this->phone();
+        $head = $this->account('kepala-sekolah', $phone, 'sama', 'Kepala Dua Peran');
+        $this->createEmployee($head);
+        $this->parentRow($head, ['Anak Kepala']);
+        $this->account('kasir', $phone, 'sama', 'Kasir Biasa');
+
+        $this->login($phone, 'sama')->assertRedirect(route('auth.choose-account'));
+
+        $this->get(route('auth.choose-account'))->assertOk()
+            ->assertSee(__('label.kepala_sekolah').' + Orang Tua')
+            ->assertSee('Anak Kepala')
+            ->assertSee(__('label.kasir'));
+    }
+
+    public function test_choice_is_checked_again_when_chosen(): void
+    {
+        $phone = $this->phone();
+        $this->account('kasir', $phone, 'sama', 'Kasir');
+        $ortu = $this->account('orang-tua', $phone, 'sama', 'Ortu');
+        $parentId = $this->parentRow($ortu, ['Anak']);
+
+        $this->login($phone, 'sama')->assertRedirect(route('auth.choose-account'));
+
+        // Data berubah setelah halaman tampil: pemeriksaan yang sama berjalan lagi saat memilih
+        DB::table('student')->where('id_parent', $parentId)->update(['deleted_at' => now()]);
         $this->choose($ortu)->assertRedirect(route('base'))
             ->assertSessionHasErrors(['useraccount' => 'Data Siswa Anda belum ada, harap hubungi Admin untuk mendaftarkan data siswa Anda']);
         $this->assertFalse(Auth::check());
