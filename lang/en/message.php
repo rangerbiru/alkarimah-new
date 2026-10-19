@@ -36,4 +36,11 @@ return [
     'children_invalid' => 'The selected children are invalid.',
     'child_has_other_parent_admin' => ':name is already linked to another parent account (:parent). Move the student from the Students menu if this is correct.',
     'parent_similar_exists' => 'A parent record with a similar name or phone already exists: :list. Use the Parents menu, Edit, Merge with Employee Account section, instead of creating a new parent record.',
+    'parent_delete_account_notice' => "This parent's login account will also be deactivated.",
+    'parent_delete_deactivate_option' => 'Deactivate this login account',
+    'parent_delete_alias_option' => 'Make this account an alias of employee account :name',
+    'parent_delete_alias_hint' => 'An employee account has the same phone number. Choose alias only if you are sure it is the same person.',
+    'parent_deleted_account_deactivated' => 'Parent data deleted and its login account deactivated.',
+    'parent_deleted_account_aliased' => 'Parent data deleted. Its login account is now an alias of employee account :name.',
+    'parent_delete_alias_invalid' => 'The selected employee cannot be the alias target for this account.',
 ];

@@ -113,4 +113,5 @@ return [
     'no_children_selected' => 'No children selected yet.',
     'child_selected' => 'Selected',
     'child_has_parent_account' => 'Parent has an account',
+    'login_parent_account_orphan' => 'This account is no longer linked to parent data. Please log in with your other account or contact the Admin.',
 ];

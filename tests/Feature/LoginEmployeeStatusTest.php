@@ -75,11 +75,11 @@ class LoginEmployeeStatusTest extends ModuleAccessTestCase
         // Password pegawai: masuk sebagai kepala sekolah, tanpa pengecekan santri
         $this->assertSame($staff->id, $this->loginAs($staff->phone, 'pw-staf'));
 
-        // Password akun orang tua lama: akun itu sendiri yang cocok, dan ia tidak punya santri
+        // Password akun orang tua lama: akun itu sendiri yang cocok, dan data orang tuanya sudah dihapus
         Auth::forgetGuards();
         $this->flushSession();
         $this->post(route('auth.authenticate'), ['username' => $staff->phone, 'password' => 'pw-ortu-lama'])
-            ->assertSessionHasErrors(['useraccount' => self::NO_STUDENTS]);
+            ->assertSessionHasErrors(['useraccount' => __('string.login_parent_account_orphan')]);
         $this->assertNull(Auth::id());
     }
 

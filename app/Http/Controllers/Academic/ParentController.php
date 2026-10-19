@@ -13,6 +13,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Region;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Auth;
+use App\Models\Scopes\BranchScope;
+use App\Services\AccountLinker;
+use App\Services\AccountLinkException;
 
 class ParentController extends Controller
 {
@@ -273,9 +277,88 @@ class ParentController extends Controller
         return Redirect::route('academic.parent.index')->with('success', __('message.update_success', ['label' => __($this->title)]));
     }
 
-    public function destroy(Parents $parent)
+    /**
+     * Isi konfirmasi hapus: akun login orang tua yang ikut dinonaktifkan, dan pegawai bernomor HP sama
+     * yang bisa dipilih admin sebagai tujuan alias.
+     */
+    public function deletePreview(Parents $parent)
     {
-        $parent->delete();
-        return response()->json(['message' => __('message.delete_success', ['label' => __($this->title)])]);
+        $linker = app(AccountLinker::class);
+        $account = $linker->deactivatableAccount($parent);
+
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'account' => $account ? ['name' => $account->name, 'phone' => $account->phone] : null,
+                'candidates' => $account
+                    ? $linker->aliasCandidates($account)
+                        ->map(fn ($employee) => ['id' => $employee->encrypted_id, 'name' => $employee->name, 'nip' => $employee->nip])
+                        ->values()
+                    : [],
+            ],
+        ]);
+    }
+
+    /**
+     * Hapus data orang tua. Akun login ber-role orang-tua yang tidak dipakai data orang tua lain ikut
+     * dinonaktifkan (soft delete) dalam transaksi yang sama, kecuali admin memilih menjadikannya alias
+     * dari akun pegawai bernomor sama (alias_employee). Akun staf tidak pernah disentuh.
+     */
+    public function destroy(Request $request, Parents $parent)
+    {
+        $linker = app(AccountLinker::class);
+        $aliasEmployeeId = null;
+
+        if (filled($request->alias_employee)) {
+            try {
+                $aliasEmployeeId = (int) Crypt::decrypt($request->alias_employee);
+            } catch (\Throwable) {
+                return response()->json(['status' => false, 'message' => __('message.parent_delete_alias_invalid')]);
+            }
+        }
+
+        try {
+            [$outcome, $employeeName] = DB::transaction(function () use ($parent, $linker, $aliasEmployeeId) {
+                $parent = Parents::withoutGlobalScope(BranchScope::class)->lockForUpdate()->findOrFail($parent->id);
+                $account = $linker->deactivatableAccount($parent);
+                $account && User::withoutGlobalScopes()->whereKey($account->id)->lockForUpdate()->first();
+
+                $parent->delete();
+
+                if (! $account) {
+                    if ($aliasEmployeeId) {
+                        throw new AccountLinkException(__('message.parent_delete_alias_invalid'));
+                    }
+
+                    return ['none', null];
+                }
+
+                if ($aliasEmployeeId) {
+                    $linker->aliasAccount($account->id, $aliasEmployeeId, $parent->id, 'parent-deleted');
+
+                    return ['alias', \App\Models\Employee::withoutGlobalScopes()->find($aliasEmployeeId)?->name];
+                }
+
+                $account->delete();
+
+                activity('parent-account')
+                    ->causedBy(Auth::user())
+                    ->performedOn($account)
+                    ->withProperties(['event' => 'deactivated-with-parent', 'user_id' => $account->id, 'parent_id' => $parent->id])
+                    ->log('Parent login account deactivated');
+
+                return ['deactivated', null];
+            });
+        } catch (AccountLinkException $e) {
+            return response()->json(['status' => false, 'message' => $e->getMessage()]);
+        }
+
+        $message = match ($outcome) {
+            'deactivated' => __('message.parent_deleted_account_deactivated'),
+            'alias' => __('message.parent_deleted_account_aliased', ['name' => $employeeName]),
+            default => __('message.delete_success', ['label' => __($this->title)]),
+        };
+
+        return response()->json(['status' => true, 'message' => $message]);
     }
 }

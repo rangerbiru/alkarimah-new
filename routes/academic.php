@@ -87,6 +87,7 @@ Route::post('halaqah/datatable', [AcademicHalaqahController::class, 'datatable']
 Route::resource('halaqah', AcademicHalaqahController::class, ['as' => 'academic'])->except(['show'])->middleware(['role:admin,pegawai', 'accessRights:'.Modules::AdminAcademic]);
 
 Route::post('parent/datatable', [AcademicParentController::class, 'datatable'])->name('academic.parent.datatable')->middleware(['role:admin,pegawai', 'accessRights:'.Modules::AdminAcademic]);
+Route::get('parent/{parent}/delete-preview', [AcademicParentController::class, 'deletePreview'])->name('academic.parent.delete-preview')->middleware(['role:admin,pegawai', 'accessRights:'.Modules::AdminAcademic]);
 Route::resource('parent', AcademicParentController::class, ['as' => 'academic'])->except(['show'])->middleware(['role:admin,pegawai', 'accessRights:'.Modules::AdminAcademic]);
 
 Route::resource('student', AcademicStudentController::class, ['as' => 'academic'])->except(['index', 'show', 'edit'])->middleware(['role:admin,pegawai', 'accessRights:'.Modules::AdminAcademic]);

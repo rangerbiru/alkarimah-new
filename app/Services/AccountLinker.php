@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\UserRole;
+use App\Helpers\Phone;
 use App\Models\Employee;
 use App\Models\Parents;
 use App\Models\Scopes\BranchScope;
@@ -22,6 +23,8 @@ use Illuminate\Support\Facades\DB;
  *            parent.phone disamakan dengan users.phone pegawai. Data rollback disimpan di account_link_log.
  * unlink():  mengosongkan linked_user_id dan mengembalikan kondisi dari entri rollback.
  * preview(): hanya baca: apa yang akan terjadi dan apa yang menghalangi.
+ * aliasAccount(): saat data orang tua dihapus, admin boleh MEMILIH menjadikan akun login orang tua itu alias
+ *            dari akun pegawai bernomor HP sama (tidak pernah otomatis).
  *
  * Password tidak pernah diubah: akun pegawai dan akun alias masing-masing tetap memakai passwordnya.
  *
@@ -296,6 +299,99 @@ class AccountLinker
             }
 
             return $released;
+        });
+    }
+
+    /**
+     * Akun login yang ikut dinonaktifkan bila data orang tua ini dihapus: hanya akun ber-role orang-tua
+     * yang tidak dipakai baris orang tua lain. Akun staf tidak pernah ikut.
+     */
+    public function deactivatableAccount(Parents $parent): ?User
+    {
+        if (! $parent->id_user) {
+            return null;
+        }
+
+        $user = User::withoutGlobalScopes()->find($parent->id_user);
+
+        if (! $user || $user->role !== UserRole::OrangTua) {
+            return null;
+        }
+
+        $usedElsewhere = Parents::withoutGlobalScope(BranchScope::class)
+            ->where('id_user', $user->id)->where('id', '!=', $parent->id)->exists();
+
+        return $usedElsewhere ? null : $user;
+    }
+
+    /**
+     * Pegawai aktif yang akun login-nya bernomor HP sama (ternormalisasi) dengan akun orang tua ini:
+     * saran tujuan alias, untuk dipilih admin. Nomor kosong / "0" tidak pernah dicocokkan.
+     *
+     * @return \Illuminate\Support\Collection<int, Employee>
+     */
+    public function aliasCandidates(User $account)
+    {
+        $phone = Phone::normalize($account->phone);
+
+        if (Phone::isBlank($phone) || $account->linked_user_id) {
+            return collect();
+        }
+
+        $userIds = User::withoutGlobalScopes()
+            ->whereRaw(Phone::sql('phone').' = ?', [$phone])
+            ->where('id', '!=', $account->id)
+            ->where('role', '!=', UserRole::OrangTua->value)
+            ->whereNull('linked_user_id')
+            ->pluck('id');
+
+        return Employee::withoutGlobalScopes()
+            ->whereIn('id_user', $userIds)
+            ->where('status', true)
+            ->orderBy('name')
+            ->get(['id', 'id_user', 'name', 'nip']);
+    }
+
+    /**
+     * Jadikan akun orang tua alias dari akun pegawai (dipilih admin saat menghapus data orang tua).
+     * Tidak memindahkan data: hanya users.linked_user_id, dicatat di account_link_log (action "alias").
+     *
+     * @throws AccountLinkException
+     */
+    public function aliasAccount(int $oldUserId, int $employeeId, int $parentId, string $reason): int
+    {
+        return DB::transaction(function () use ($oldUserId, $employeeId, $parentId, $reason) {
+            $oldUser = User::withoutGlobalScopes()->lockForUpdate()->find($oldUserId);
+            $employee = Employee::withoutGlobalScopes()->find($employeeId);
+
+            if (! $oldUser || $oldUser->role !== UserRole::OrangTua || $oldUser->linked_user_id) {
+                throw new AccountLinkException(__('message.parent_delete_alias_invalid'));
+            }
+
+            // Hanya pegawai yang memang disarankan (nomor HP sama, aktif, bukan alias)
+            if (! $employee || ! $this->aliasCandidates($oldUser)->contains('id', $employee->id)) {
+                throw new AccountLinkException(__('message.parent_delete_alias_invalid'));
+            }
+
+            $employeeUser = User::withoutGlobalScopes()->lockForUpdate()->find($employee->id_user);
+
+            User::withoutGlobalScopes()->whereKey($oldUser->id)->update(['linked_user_id' => $employeeUser->id]);
+
+            $logId = DB::table('account_link_log')->insertGetId([
+                'action' => 'alias',
+                'employee_id' => $employee->id,
+                'parent_id' => $parentId,
+                'employee_user_id' => $employeeUser->id,
+                'old_user_id' => $oldUser->id,
+                'actor_id' => Auth::id(),
+                'before' => json_encode(['old_user_alias' => true, 'linked_user_id' => null, 'reason' => $reason]),
+                'moved' => json_encode([]),
+            ]);
+
+            $parent = Parents::withoutGlobalScope(BranchScope::class)->withTrashed()->find($parentId);
+            $this->audit('alias', $parent, $employee, $employeeUser, $oldUser, 0, $reason);
+
+            return $logId;
         });
     }
 

@@ -36,4 +36,11 @@ return [
     'children_invalid' => 'Data anak yang dipilih tidak valid.',
     'child_has_other_parent_admin' => ':name sudah terhubung dengan akun orang tua lain (:parent). Pindahkan lewat menu Data Santri jika memang benar.',
     'parent_similar_exists' => 'Sudah ada data orang tua dengan nama atau No. HP serupa: :list. Gunakan menu Orang Tua, Edit, bagian Gabungkan dengan Akun Pegawai, bukan membuat data orang tua baru.',
+    'parent_delete_account_notice' => 'Akun login orang tua ini juga akan dinonaktifkan.',
+    'parent_delete_deactivate_option' => 'Nonaktifkan akun login ini',
+    'parent_delete_alias_option' => 'Jadikan akun ini alias dari akun pegawai :name',
+    'parent_delete_alias_hint' => 'Ada akun pegawai dengan nomor HP yang sama. Pilih alias hanya bila Anda yakin itu orang yang sama.',
+    'parent_deleted_account_deactivated' => 'Data orang tua dihapus dan akun login-nya dinonaktifkan.',
+    'parent_deleted_account_aliased' => 'Data orang tua dihapus. Akun login-nya sekarang alias dari akun pegawai :name.',
+    'parent_delete_alias_invalid' => 'Pegawai yang dipilih tidak bisa dijadikan tujuan alias untuk akun ini.',
 ];

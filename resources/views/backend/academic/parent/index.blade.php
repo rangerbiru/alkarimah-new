@@ -105,14 +105,16 @@ $(document).ready(function() {
                 render: function(data, type, row) {
                     let url_edit = "{{ route('academic.parent.edit', 0) }}"
                     let url_destroy = "{{ route('academic.parent.destroy', 0) }}"
+                    let url_preview = "{{ route('academic.parent.delete-preview', 0) }}"
 
                     url_edit = url_edit.replace("0", row.encrypted_id)
                     url_destroy = url_destroy.replace("0", row.encrypted_id)
+                    url_preview = url_preview.replace("0", row.encrypted_id)
 
                     return `<a href="${url_edit}" class="btn btn-dark btn-xs set-tooltip" title="${label_edit}">
                             <i class="bx bx-pencil"></i>
                         </a>
-                        <a href="javascript:void(0)" class="btn btn-danger btn-xs set-tooltip" title="${label_delete}" onclick="deleteConfirm('${url_destroy}', false, 'table-parent')">
+                        <a href="javascript:void(0)" class="btn btn-danger btn-xs set-tooltip" title="${label_delete}" onclick="deleteParent('${url_preview}', '${url_destroy}')">
                             <i class="bx bx-trash"></i>
                         </a>`
                 }
@@ -122,5 +124,68 @@ $(document).ready(function() {
 
     $($.fn.dataTable.tables(true)).css('width', '100%')
 });
+
+const string_account_notice = @json(__('message.parent_delete_account_notice'))
+const string_deactivate_option = @json(__('message.parent_delete_deactivate_option'))
+const string_alias_option = @json(__('message.parent_delete_alias_option'))
+const string_alias_hint = @json(__('message.parent_delete_alias_hint'))
+
+// Konfirmasi hapus orang tua: beri tahu bila akun login-nya ikut dinonaktifkan, dan bila ada pegawai
+// bernomor HP sama, tawarkan (bukan otomatis) menjadikan akun itu alias dari akun pegawai tsb
+function deleteParent(urlPreview, urlDestroy) {
+    $.get(urlPreview, function (response) {
+        const data = response.data || {}
+        const candidates = data.candidates || []
+        let html = htmlEntities(string_confirm_delete)
+        let inputOptions = undefined
+
+        if (data.account) {
+            html += '<br><br><b>' + htmlEntities(string_account_notice) + '</b>'
+
+            if (candidates.length > 0) {
+                html += '<br><small class="text-muted">' + htmlEntities(string_alias_hint) + '</small>'
+                inputOptions = { none: string_deactivate_option }
+
+                candidates.forEach(function (candidate) {
+                    inputOptions[candidate.id] = string_alias_option.replace(':name', candidate.name + ' (' + candidate.nip + ')')
+                })
+            }
+        }
+
+        Swal.fire({
+            icon: "warning",
+            title: label_confirmation,
+            html: html,
+            input: inputOptions ? "radio" : undefined,
+            inputOptions: inputOptions,
+            inputValue: "none",
+            showCancelButton: true,
+            confirmButtonText: label_yes,
+            cancelButtonText: label_cancel,
+            showLoaderOnConfirm: true,
+            preConfirm: (choice) => {
+                const alias = (inputOptions && choice && choice !== "none") ? choice : ""
+
+                return $.ajax({
+                    type: "DELETE",
+                    url: urlDestroy,
+                    data: { alias_employee: alias },
+                    dataType: "json"
+                }).then(function (result) {
+                    if (result.status) {
+                        window.LaravelDataTables["table-parent"].ajax.reload()
+                        setNotifSuccess(result.message, false)
+                    } else {
+                        setNotifInfo(result.message)
+                    }
+                }).catch(function (xhr) {
+                    ajaxError(xhr.status)
+                })
+            }
+        })
+    }).fail(function (xhr) {
+        ajaxError(xhr.status)
+    })
+}
 </script>
 @endpush

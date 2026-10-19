@@ -114,4 +114,5 @@ return [
     'no_children_selected' => 'Belum ada anak yang dipilih.',
     'child_selected' => 'Terpilih',
     'child_has_parent_account' => 'Ortu punya akun',
+    'login_parent_account_orphan' => 'Akun ini tidak lagi terhubung dengan data orang tua. Silakan login dengan akun Anda yang lain atau hubungi Admin.',
 ];

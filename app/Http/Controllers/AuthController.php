@@ -159,7 +159,14 @@ class AuthController extends Controller
         // must have students. An active staff account is never checked, with or without a parent row.
         // A dual-role user can still log in as an employee without active students
         if (($user->role == UserRole::OrangTua || $user->acts_as_parent_only) && ! $user->has_dual_role) {
-            $parent = $user->parent;
+            // Parent account whose parent record was deleted (an "orphan"): a different message than
+            // a parent record without students
+            if (! $user->is_parent) {
+                return back()->withErrors(['useraccount' => __('string.login_parent_account_orphan')]);
+            }
+
+            // The relation includes soft-deleted rows; only the active parent record counts
+            $parent = $user->parent()->withoutTrashed()->first();
 
             if (! $parent || Student::withoutGlobalScope(BranchScope::class)->whereIdParent($parent->id)->count() == 0) {
                 return back()->withErrors([
