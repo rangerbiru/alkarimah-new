@@ -84,7 +84,6 @@ return [
     'kepala_sekolah_reverted' => 'Principal role revoked, the account is back to Employee.',
     'kepala_sekolah_edit_info' => 'The principal\'s personal data is managed from the Employee (HR) menu. Only the education levels held can be changed here.',
     'kasir_unit_level_info' => 'Leave empty for no education level restriction. When set, this cashier only sees and processes data of the selected levels.',
-    'login_ambiguous_accounts' => 'This number belongs to more than one account with the same password. Please contact the Admin.',
     'account_link_alias_info' => 'The old parent account (:account) can still log in and enters this employee account.',
     'child_has_parent_record' => 'Parent record exists',
     'child_merge_hint' => 'Use Parents → Merge with employee account.',
@@ -114,4 +113,8 @@ return [
     'child_selected' => 'Selected',
     'child_has_parent_account' => 'Parent has an account',
     'login_parent_account_orphan' => 'This account is no longer linked to parent data. Please log in with your other account or contact the Admin.',
+    'choose_account_to_login' => 'This number is used by several accounts with the same password. Choose the account you want to use.',
+    'choose_account_back' => 'Back to the login page',
+    'login_choice_expired' => 'The time to choose an account has run out. Please log in again.',
+    'login_choice_invalid' => 'The selected account is not valid. Please log in again.',
 ];

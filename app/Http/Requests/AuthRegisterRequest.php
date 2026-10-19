@@ -67,7 +67,8 @@ class AuthRegisterRequest extends FormRequest
     protected function prepareForValidation()
     {
         $this->merge([
-            'phone' => str_replace('-', '', $this->phone)
+            // Bentuk baku yang sama dengan login: tanpa -, spasi, titik; +62 / 62 menjadi 0
+            'phone' => \App\Helpers\Phone::normalize($this->phone)
         ]);
     }
 }

@@ -137,8 +137,9 @@ class AccountAliasTest extends ModuleAccessTestCase
         $b = $this->createUser('orang-tua');
         DB::table('users')->whereIn('id', [$a->id, $b->id])->update(['phone' => $phone]);
 
+        // Tidak diputuskan otomatis: pengguna diarahkan ke halaman pilih akun (lihat LoginChooseAccountTest)
         $this->assertNull($this->loginAs($phone, 'secret'));
-        $this->assertStringContainsString(__('string.login_ambiguous_accounts'), session('errors')->first());
+        $this->assertSame([$a->id, $b->id], session('login_choice.ids'));
     }
 
     public function test_empty_and_zero_phone_are_never_used_to_find_accounts(): void

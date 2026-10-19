@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\UserRole;
+use App\Helpers\Phone;
 use App\Helpers\Whatsapp;
 use App\Http\Requests\AuthForgotPasswordRequest;
 use App\Http\Requests\AuthPasswordRequest;
@@ -97,7 +98,7 @@ class AuthController extends Controller
             return Redirect::route('auth.forgot-password')->withErrors(__('string.otp_session_invalid'));
         }
 
-        $accounts = User::wherePhone($phone)->orderBy('id')->get()->map(fn (User $u) => (object) [
+        $accounts = $this->usersWithPhone($phone)->orderBy('id')->get()->map(fn (User $u) => (object) [
             'id' => $u->encrypted_id,
             'name' => $u->name,
             'role' => $this->roleLabel($u->role->value),
@@ -125,6 +126,9 @@ class AuthController extends Controller
     // Percobaan gagal per menit untuk satu kombinasi identifier + IP
     private const LOGIN_MAX_ATTEMPTS = 10;
 
+    // Lama daftar akun di halaman pilih akun berlaku (detik)
+    private const LOGIN_CHOICE_TTL = 300;
+
     public function authenticate(AuthRequest $request)
     {
         if (! $request->validated()) {
@@ -136,8 +140,9 @@ class AuthController extends Controller
         $remember = (bool) $request->remember;
 
         // Pembatasan per kombinasi identifier + IP (pola login bawaan Laravel): satu akun yang diserang
-        // tidak mengunci staf lain di jaringan pondok yang sama
-        $throttleKey = Str::lower(str_replace('-', '', $username)).'|'.$request->ip();
+        // tidak mengunci staf lain di jaringan pondok yang sama. Nomor HP memakai bentuk ternormalisasi
+        $identifier = str_contains($username, '@') ? $username : Phone::normalize($username);
+        $throttleKey = Str::lower($identifier).'|'.$request->ip();
 
         if (RateLimiter::tooManyAttempts($throttleKey, self::LOGIN_MAX_ATTEMPTS)) {
             return back()->withErrors([
@@ -153,8 +158,114 @@ class AuthController extends Controller
             return back()->withErrors(['useraccount' => $result]);
         }
 
-        $user = $result;
+        // Lebih dari satu akun tujuan dengan password yang cocok: pengguna memilih sendiri. Daftar id
+        // hanya disimpan di session (tidak di URL / form), berlaku sebentar dan dipakai sekali
+        if ($result instanceof \Illuminate\Support\Collection) {
+            $ids = $result->keys()->all();
 
+            session()->put('login_choice', [
+                'ids' => $ids,
+                'expires_at' => now()->getTimestamp() + self::LOGIN_CHOICE_TTL,
+                'remember' => $remember,
+                'username' => $username,
+                'throttle_key' => $throttleKey,
+            ]);
+
+            activity('login-ambiguous-accounts')
+                ->withProperties(['event' => 'presented', 'username' => $username, 'candidate_user_ids' => $ids, 'ip' => $request->ip()])
+                ->log('Login account choice presented');
+
+            return Redirect::route('auth.choose-account');
+        }
+
+        return $this->completeLogin($request, $result, $remember, $throttleKey);
+    }
+
+    public function chooseAccount()
+    {
+        $context = $this->loginChoice();
+
+        if ($context === null) {
+            return Redirect::route('base')->withErrors(['useraccount' => __('string.login_choice_expired')]);
+        }
+
+        $accounts = User::withoutGlobalScopes()->whereIn('id', $context['ids'])->orderBy('id')->get()
+            ->map(fn (User $user) => (object) [
+                'id' => $user->encrypted_id,
+                'name' => $user->name,
+                'role' => $this->roleLabel($user->role->value),
+                'children' => $this->childNames($user),
+            ]);
+
+        return view($this->path.'choose-account', ['accounts' => $accounts]);
+    }
+
+    public function storeChooseAccount(Request $request)
+    {
+        $context = $this->loginChoice();
+
+        // Dipakai sekali: dihapus apa pun hasilnya
+        session()->forget('login_choice');
+
+        if ($context === null) {
+            return Redirect::route('base')->withErrors(['useraccount' => __('string.login_choice_expired')]);
+        }
+
+        try {
+            $id = (int) Crypt::decrypt((string) $request->account);
+        } catch (\Throwable) {
+            $id = 0;
+        }
+
+        // Hanya akun yang password-nya sudah terverifikasi saat login
+        $user = in_array($id, $context['ids'], true)
+            ? User::withoutGlobalScopes()->whereNull('linked_user_id')->find($id)
+            : null;
+
+        if (! $user) {
+            return Redirect::route('base')->withErrors(['useraccount' => __('string.login_choice_invalid')]);
+        }
+
+        activity('login-ambiguous-accounts')
+            ->causedBy($user)
+            ->withProperties([
+                'event' => 'chosen', 'username' => $context['username'], 'candidate_user_ids' => $context['ids'],
+                'chosen_user_id' => $user->id, 'ip' => $request->ip(),
+            ])
+            ->log('Login account chosen');
+
+        return $this->completeLogin($request, $user, (bool) $context['remember'], $context['throttle_key']);
+    }
+
+    /** Konteks pilih akun yang masih berlaku, atau null (tidak ada / kedaluwarsa). */
+    private function loginChoice(): ?array
+    {
+        $context = session('login_choice');
+
+        if (! is_array($context) || ($context['expires_at'] ?? 0) < now()->getTimestamp()) {
+            session()->forget('login_choice');
+
+            return null;
+        }
+
+        return $context;
+    }
+
+    /** Nama santri aktif dari data orang tua akun ini (untuk membedakan akun di halaman pilih akun). */
+    private function childNames(User $user): array
+    {
+        $parent = $user->parent()->withoutTrashed()->first();
+
+        return $parent
+            ? Student::withoutGlobalScope(BranchScope::class)->whereIdParent($parent->id)->orderBy('name')->pluck('name')->all()
+            : [];
+    }
+
+    /**
+     * Pengecekan setelah akun tujuan pasti (langsung, atau dipilih di halaman pilih akun), lalu masuk.
+     */
+    private function completeLogin(Request $request, User $user, bool $remember, string $throttleKey)
+    {
         // Only a parent account, or an employee who is EXPLICITLY inactive (status = 0) and also a parent,
         // must have students. An active staff account is never checked, with or without a parent row.
         // A dual-role user can still log in as an employee without active students
@@ -162,14 +273,14 @@ class AuthController extends Controller
             // Parent account whose parent record was deleted (an "orphan"): a different message than
             // a parent record without students
             if (! $user->is_parent) {
-                return back()->withErrors(['useraccount' => __('string.login_parent_account_orphan')]);
+                return Redirect::route('base')->withErrors(['useraccount' => __('string.login_parent_account_orphan')]);
             }
 
             // The relation includes soft-deleted rows; only the active parent record counts
             $parent = $user->parent()->withoutTrashed()->first();
 
             if (! $parent || Student::withoutGlobalScope(BranchScope::class)->whereIdParent($parent->id)->count() == 0) {
-                return back()->withErrors([
+                return Redirect::route('base')->withErrors([
                     'useraccount' => 'Data Siswa Anda belum ada, harap hubungi Admin untuk mendaftarkan data siswa Anda',
                 ]);
             }
@@ -183,24 +294,41 @@ class AuthController extends Controller
         return Redirect::intended(route('dashboard.index'));
     }
 
+    /** Akun dengan nomor HP ini, dibandingkan setelah normalisasi. Nomor kosong / "0" tidak pernah cocok. */
+    private function usersWithPhone(?string $phone)
+    {
+        $normalized = Phone::normalize($phone);
+
+        return User::query()->when(
+            Phone::isBlank($normalized),
+            fn ($query) => $query->whereRaw('1 = 0'),
+            fn ($query) => $query->whereRaw(Phone::sql('phone').' = ?', [$normalized])
+        );
+    }
+
     /**
      * Cari SEMUA akun dengan email / nomor HP ini, cek password ke masing-masing, lalu selesaikan ke akun
-     * tujuan (akun alias -> akun pegawainya). Tepat satu akun tujuan -> User. Selain itu -> pesan error.
+     * tujuan (akun alias -> akun pegawainya). Tepat satu akun tujuan -> User; lebih dari satu -> daftar
+     * akun tujuan (dipilih pengguna); tidak ada -> pesan error.
+     *
+     * @return User|\Illuminate\Support\Collection<int, User>|string
      */
-    private function resolveLoginAccount(string $username, string $password): User|string
+    private function resolveLoginAccount(string $username, string $password): User|\Illuminate\Support\Collection|string
     {
         $failed = 'Email / No. HP atau Password Salah';
-        $phone = str_replace('-', '', $username);
+        $phone = Phone::normalize($username);
+
+        $matching = function ($query) use ($username, $phone) {
+            $query->where('email', $username);
+
+            // Nomor dibandingkan dalam bentuk ternormalisasi; nomor kosong atau "0" tidak pernah dipakai
+            if (! Phone::isBlank($phone)) {
+                $query->orWhereRaw(Phone::sql('phone').' = ?', [$phone]);
+            }
+        };
 
         $candidates = User::query()
-            ->where(function ($query) use ($username, $phone) {
-                $query->where('email', $username);
-
-                // Nomor kosong atau "0" tidak pernah dipakai mencari akun
-                if ($phone !== '' && $phone !== '0') {
-                    $query->orWhere('phone', $phone);
-                }
-            })
+            ->where($matching)
             ->orderBy('id')
             ->limit(self::LOGIN_MAX_CANDIDATES + 1)
             ->get();
@@ -208,7 +336,7 @@ class AuthController extends Controller
         if ($candidates->count() > self::LOGIN_MAX_CANDIDATES) {
             Log::warning('login-too-many-candidates', [
                 'username' => $username,
-                'candidates' => User::where('email', $username)->orWhere('phone', $phone)->count(),
+                'candidates' => User::query()->where($matching)->count(),
                 'checked' => self::LOGIN_MAX_CANDIDATES,
             ]);
             $candidates = $candidates->take(self::LOGIN_MAX_CANDIDATES);
@@ -250,25 +378,19 @@ class AuthController extends Controller
             return $failed;
         }
 
-        if ($targets->count() > 1) {
-            Log::warning('login-ambiguous-accounts', [
-                'username' => $username,
-                'target_user_ids' => $targets->keys()->all(),
-            ]);
-
-            return __('string.login_ambiguous_accounts');
-        }
-
-        return $targets->first();
+        return $targets->count() > 1 ? $targets->sortKeys() : $targets->first();
     }
 
     public function storeRegister(AuthRegisterRequest $request)
     {
         $error = false;
-        $parent = Parents::select('id', 'phone')->wherePhone($request->phone)->first();
+        $normalized = Phone::normalize($request->phone);
+        $parent = Phone::isBlank($normalized)
+            ? null
+            : Parents::select('id', 'phone')->whereRaw(Phone::sql('phone').' = ?', [$normalized])->first();
 
         // Nomor akun alias (akun orang tua lama yang digabung ke akun pegawai) sudah punya akun
-        if (User::wherePhone($request->phone)->whereNotNull('linked_user_id')->exists()) {
+        if ($this->usersWithPhone($request->phone)->whereNotNull('linked_user_id')->exists()) {
             return Redirect::route('auth.register')->withErrors(__('string.you_has_been_registered'))->withInput();
         }
 
@@ -280,7 +402,7 @@ class AuthController extends Controller
             // Cek semua user dengan nomor ini tanpa melihat role. Nomor yang dipakai akun pegawai
             // tidak ditolak di sini: setelah OTP terverifikasi, data orang tua dihubungkan ke akun
             // pegawai tsb (bukan dibuatkan akun baru).
-            $registered = User::wherePhone($parent->phone)->where('role', UserRole::OrangTua->value)->exists()
+            $registered = $this->usersWithPhone($parent->phone)->where('role', UserRole::OrangTua->value)->exists()
                 || ($parent->id_user && User::whereKey($parent->id_user)->exists());
 
             if ($registered) {
@@ -399,11 +521,11 @@ class AuthController extends Controller
 
     public function storeForgotPassword(AuthForgotPasswordRequest $request)
     {
-        $phone = $request->phone;
-        $digits = preg_replace('/\D/', '', (string) $phone);
+        $phone = Phone::normalize($request->phone);
+        $digits = preg_replace('/\D/', '', $phone);
 
         // Nomor kosong / "0" / terlalu pendek tidak pernah dianggap akun yang valid
-        $found = strlen($digits) >= 8 && User::wherePhone($phone)->exists();
+        $found = strlen($digits) >= 8 && $this->usersWithPhone($phone)->exists();
 
         if (! $found) {
             return Redirect::route('auth.forgot-password')->withErrors(__('string.account_not_found'))->withInput();
@@ -448,7 +570,7 @@ class AuthController extends Controller
         session()->put('forgot_password_phone', $context['phone']);
         OtpFlag::grant('forgot_phone', ['phone' => $context['phone']]);
 
-        $users = User::wherePhone($context['phone'])->get();
+        $users = $this->usersWithPhone($context['phone'])->get();
 
         if ($users->count() === 1) {
             $this->grantForgotUser($context['phone'], $users->first());
@@ -476,7 +598,7 @@ class AuthController extends Controller
         }
 
         // Hanya akun yang memakai nomor yang sudah terverifikasi OTP
-        $user = User::wherePhone($phone)->whereKey($id)->first();
+        $user = $this->usersWithPhone($phone)->whereKey($id)->first();
 
         if (! $user) {
             return Redirect::route('auth.forgot-password.accounts')->withErrors(__('string.account_not_found'));
@@ -517,7 +639,7 @@ class AuthController extends Controller
             return collect();
         }
 
-        return User::wherePhone($phone)->where('role', '!=', UserRole::OrangTua->value)->get();
+        return $this->usersWithPhone($phone)->where('role', '!=', UserRole::OrangTua->value)->get();
     }
 
     private function registerOtpVerified(Parents $parent): bool
@@ -575,7 +697,7 @@ class AuthController extends Controller
         }
 
         // Nomor akun harus masih sama dengan nomor yang diverifikasi
-        return User::whereKey($userId)->wherePhone($phone)->first();
+        return $this->usersWithPhone($phone)->whereKey($userId)->first();
     }
 
     private function roleLabel(string $role): string

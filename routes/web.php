@@ -24,6 +24,7 @@ Route::get('forgot-password', [AuthController::class, 'forgotPassword'])->name('
 Route::get('forgot-password/verification', [AuthController::class, 'forgotPasswordVerification'])->name('auth.forgot-password.verification');
 Route::get('forgot-password/accounts', [AuthController::class, 'forgotPasswordAccounts'])->name('auth.forgot-password.accounts');
 Route::get('reset-password', [AuthController::class, 'resetPassword'])->name('auth.reset-password');
+Route::get('choose-account', [AuthController::class, 'chooseAccount'])->name('auth.choose-account');
 Route::get('logout', [AuthController::class, 'logout'])->name('auth.logout');
 Route::get('kebijakan-privasi-si-alka', [PageController::class, 'privacyPolicy']);
 
@@ -35,6 +36,7 @@ Route::post('forgot-password/verification', [AuthController::class, 'storeForgot
 Route::post('forgot-password/accounts', [AuthController::class, 'storeForgotPasswordAccounts'])->name('auth.store.forgot-password.accounts');
 Route::post('reset-password', [AuthController::class, 'storeResetPassword'])->name('auth.store.reset-password');
 Route::post('authenticate', [AuthController::class, 'authenticate'])->name('auth.authenticate');
+Route::post('choose-account', [AuthController::class, 'storeChooseAccount'])->name('auth.store.choose-account');
 Route::post('moota/notification/{bank}', [MootaController::class, 'notification'])->whereIn('bank', ['bsi'])->name('moota.notification');
 Route::get('captcha-refresh', [CaptchaController::class, 'refresh'])->name('captcha.refresh');
 

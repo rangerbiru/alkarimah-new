@@ -85,7 +85,6 @@ return [
     'kepala_sekolah_reverted' => 'Role Kepala Sekolah dicabut, akun dikembalikan menjadi Pegawai.',
     'kepala_sekolah_edit_info' => 'Data pribadi kepala sekolah diubah lewat menu Pegawai (HR). Di sini hanya jenjang yang dipegang yang dapat diubah.',
     'kasir_unit_level_info' => 'Kosongkan agar akun ini tidak dibatasi jenjang. Bila diisi, Kasir Unit hanya melihat dan memproses data pada jenjang yang dipilih.',
-    'login_ambiguous_accounts' => 'Nomor ini terdaftar pada lebih dari satu akun dengan password yang sama. Silakan hubungi Admin.',
     'account_link_alias_info' => 'Akun orang tua lama (:account) tetap bisa dipakai login dan masuk sebagai akun pegawai ini.',
     'child_has_parent_record' => 'Sudah ada data ortu',
     'child_merge_hint' => 'Gunakan menu Orang Tua → Gabungkan dengan akun pegawai.',
@@ -115,4 +114,8 @@ return [
     'child_selected' => 'Terpilih',
     'child_has_parent_account' => 'Ortu punya akun',
     'login_parent_account_orphan' => 'Akun ini tidak lagi terhubung dengan data orang tua. Silakan login dengan akun Anda yang lain atau hubungi Admin.',
+    'choose_account_to_login' => 'Nomor ini dipakai beberapa akun dengan password yang sama. Pilih akun yang ingin Anda gunakan.',
+    'choose_account_back' => 'Kembali ke halaman login',
+    'login_choice_expired' => 'Waktu memilih akun sudah habis. Silakan login kembali.',
+    'login_choice_invalid' => 'Akun yang dipilih tidak valid. Silakan login kembali.',
 ];
