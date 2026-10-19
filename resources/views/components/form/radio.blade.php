@@ -11,14 +11,28 @@
 <div class="form-box">
     @php
     $index = 0;
+
+    // Nilai tersimpan dibandingkan sebagai string: enum memakai ->value, boolean menjadi 1/0
+    $current = $old;
+
+    if ($current instanceof \BackedEnum) {
+        $current = $current->value;
+    } elseif ($current instanceof \UnitEnum) {
+        $current = $current->name;
+    }
+
+    $current = is_bool($current) ? ($current ? '1' : '0') : (string) $current;
+
+    // Radio pertama hanya jadi default bila belum ada nilai yang cocok dengan salah satu opsi
+    $hasMatch = in_array($current, array_map('strval', array_keys($option)), true);
     @endphp
 
     @foreach($option as $value => $label)
         @php
-        if ($value == $old)
+        if ((string) $value === $current)
             $selected = ' checked';
         else
-            $selected = ($old == '' && $index == 0) ? ' checked' : '';
+            $selected = (! $hasMatch && $current === '' && $index == 0) ? ' checked' : '';
         @endphp
 
         <div class="form-check form-check-inline">

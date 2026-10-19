@@ -156,11 +156,7 @@ class EmployeeController extends Controller
                 'gender' => $request->gender,
             ]);
 
-            $request->merge([
-                'id_user' => $user->id
-            ]);
-
-            Employee::create($request->except(['is_parent', 'children']));
+            Employee::create($request->employeeData() + ['id_user' => $user->id]);
 
             if ($request->boolean('is_parent')) {
                 $parent = $this->ensureParentRecord($user, $request);
@@ -255,7 +251,7 @@ class EmployeeController extends Controller
         }
 
         DB::transaction(function () use ($request, $employee) {
-            $employee->update($request->except(['is_parent', 'children']));
+            $employee->update($request->employeeData());
 
             $update_user = [
                 'name' => $request->name,

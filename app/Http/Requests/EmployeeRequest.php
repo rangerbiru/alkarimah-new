@@ -2,11 +2,22 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\EmployeeStatus;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 
 class EmployeeRequest extends FormRequest
 {
+    /**
+     * Satu-satunya kolom employee yang boleh diisi dari form. id_user, branch_id, status, salary, dan
+     * kolom lain TIDAK pernah diambil dari request.
+     */
+    public const FORM_FIELDS = [
+        'nip', 'nik', 'name', 'gender', 'phone', 'email', 'marital_status', 'education', 'address',
+        'id_position', 'placement', 'status_employment', 'status_teacher', 'task_main', 'task_additional',
+    ];
+
     /**
      * Indicates if the validator should stop on the first rule failure.
      *
@@ -31,18 +42,21 @@ class EmployeeRequest extends FormRequest
     {
         $rules = [
             'nip' => 'required|max:50|unique:employee',
-            'nik' => 'nullable|max:116|unique:employee',
+            'nik' => 'nullable|max:16|unique:employee',
             'name' => 'required|max:150',
             'phone' => 'required|max:20|unique:employee',
             // The email is copied to the login account too, so it must be free in users as well
             'email' => 'required|max:200|email|unique:employee|unique:users,email',
-            'gender' => 'required',
-            'marital_status' => 'required',
+            'gender' => ['required', Rule::in(['male', 'female'])],
+            'marital_status' => ['required', Rule::in(['0', '1'])],
+            'education' => 'nullable|string|max:100',
             'address' => 'required',
+            'id_position' => ['nullable', 'integer', Rule::exists('position', 'id')->whereNull('deleted_at')->where('branch_id', Auth::user()?->branch_id)],
             'placement' => 'required',
-            'status_employment' => 'required',
-            'status_teacher' => 'required',
+            'status_employment' => ['required', Rule::enum(EmployeeStatus::class)],
+            'status_teacher' => ['required', Rule::in(['0', '1'])],
             'task_main' => 'required',
+            'task_additional' => 'nullable|string',
             'password' => 'required|min:8',
             'password_confirm' => 'required|same:password',
             'is_parent' => 'required|in:0,1',
@@ -94,16 +108,25 @@ class EmployeeRequest extends FormRequest
             'email' => __('label.email'),
             'gender' => __('label.gender'),
             'marital_status' => __('label.marital_status'),
+            'education' => __('label.last_education'),
             'address' => __('label.address'),
+            'id_position' => __('label.position'),
             'placement' => __('label.placement'),
             'status_employment' => __('label.employment_status'),
             'status_teacher' => __('label.teacher_status'),
             'task_main' => __('label.main_task'),
+            'task_additional' => __('label.additional_task'),
             'password' => __('label.password'),
             'password_confirm' => __('label.confirm_password'),
             'is_parent' => __('label.is_also_parent'),
             'children' => __('label.children'),
         ];
+    }
+
+    /** Field employee dari form yang lolos validasi (tanpa kolom sensitif). */
+    public function employeeData(): array
+    {
+        return $this->safe()->only(self::FORM_FIELDS);
     }
 
     /**

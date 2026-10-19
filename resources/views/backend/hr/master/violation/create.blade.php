@@ -24,7 +24,7 @@
                     <div class="col-md-6">
                         <x-form.select name="impact_level" :label="__('label.impact_level')" :option="[
                             'rendah' => __('Rendah'),
-                            'menengah' => __('Menengah'),
+                            'sedang' => __('Menengah'),
                             'tinggi' => __('Tinggi'),
                             'sangat tinggi' => __('Sangat Tinggi'),
                             'fatal' => __('Fatal'),

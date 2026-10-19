@@ -131,10 +131,12 @@ class User extends Authenticatable
         );
     }
 
+    // Nonaktif hanya bila employee.status bernilai 0 secara eksplisit. Nilai kosong (null) atau tidak dikenal
+    // bukan "nonaktif": kesalahan input data tidak boleh mengubah pegawai menjadi orang tua saja
     protected function isInactiveEmployee(): Attribute
     {
         return Attribute::make(
-            get: fn() => $this->employee !== null && ! $this->employee->status
+            get: fn() => $this->employee !== null && $this->employee->status === false
         );
     }
 

@@ -155,8 +155,9 @@ class AuthController extends Controller
 
         $user = $result;
 
-        // A dual-role user can still log in as an employee without active students. An inactive
-        // employee who is also a parent counts as a parent only
+        // Only a parent account, or an employee who is EXPLICITLY inactive (status = 0) and also a parent,
+        // must have students. An active staff account is never checked, with or without a parent row.
+        // A dual-role user can still log in as an employee without active students
         if (($user->role == UserRole::OrangTua || $user->acts_as_parent_only) && ! $user->has_dual_role) {
             $parent = $user->parent;
 

@@ -25,7 +25,7 @@
                     <div class="col-md-6">
                         <x-form.select name="impact_level" :label="__('label.impact_level')" :option="[
                             'rendah' => __('Rendah'),
-                            'menengah' => __('Menengah'),
+                            'sedang' => __('Menengah'),
                             'tinggi' => __('Tinggi'),
                             'sangat tinggi' => __('Sangat Tinggi'),
                             'fatal' => __('Fatal'),
@@ -47,8 +47,8 @@
                 <div class="row">
                     <div class="col-md-6">
                         <x-form.select name="status" :label="__('label.status')" :option="[
-                            'Aktif' => __('Aktif'),
-                            'Nonaktif' => __('Nonaktif'),
+                            'aktif' => __('Aktif'),
+                            'non aktif' => __('Not Aktif'),
                         ]" :old="old('status', $violation->status)" required />
                     </div>
                 </div>

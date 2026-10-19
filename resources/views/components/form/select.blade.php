@@ -11,16 +11,42 @@
 @props([
     'option' => [],
     'old' => null,
-    'selected' => [],
+    'selected' => null,
 ])
 
 @php
-    if (is_null($selected)) {
-        $selectedValues = $old !== null ? (array) $old : [];
-    } else {
-        $selectedValues = is_array($selected) ? $selected : [$selected];
+    // Opsi terpilih: prop selected bila dikirim, kalau tidak nilai old (nilai tersimpan / input sebelumnya).
+    // Enum memakai ->value, array (select multiple) dinormalkan satu per satu
+    $fromOld = is_null($selected);
+    $normalize = static function ($value) use ($fromOld) {
+        if ($value instanceof \BackedEnum) {
+            $value = $value->value;
+        } elseif ($value instanceof \UnitEnum) {
+            $value = $value->name;
+        }
+
+        if (is_bool($value)) {
+            return $fromOld ? ($value ? '1' : '0') : strval($value);
+        }
+
+        return (string) $value;
+    };
+
+    $source = $fromOld ? $old : $selected;
+
+    if ($source instanceof \Illuminate\Support\Collection) {
+        $source = $source->all();
     }
 
+    $selectedValues = [];
+
+    foreach (is_array($source) ? $source : [$source] as $item) {
+        if ($item === null || $item === '') {
+            continue;
+        }
+
+        $selectedValues[] = $normalize($item);
+    }
 @endphp
 
 <select {{ $attributes->merge(['class' => 'set-select2']) }}>
@@ -30,8 +56,7 @@
 
     @foreach ($option as $value => $label)
         @php
-            $valStr = (string) $value;
-            $isSelected = in_array($valStr, array_map('strval', $selectedValues), true);
+            $isSelected = in_array((string) $value, $selectedValues, true);
         @endphp
 
         <option value="{{ $value }}" {{ $isSelected ? 'selected' : '' }}>

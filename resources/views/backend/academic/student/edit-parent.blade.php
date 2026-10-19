@@ -430,8 +430,11 @@
                                 <x-form.input-text name="card_number" :label="__('label.student_card_number')" :old="old('card_number', $student->card_number ?? null)" optional />
                             </div>
                             <div class="col-sm-6 col-md-3">
-                                <x-form.input-group-mask name="spp" :label="__('label.spp')" :old="old('spp', $student->spp ?? null)"
-                                    mask="nominal" addon="Rp" optional />
+                                {{-- Nominal SPP hanya dilihat orang tua; mengubahnya hanya lewat admin / kasir --}}
+                                <div class="form-group">
+                                    <label>{{ __('label.spp') }}</label>
+                                    <p class="form-control-plaintext">{{ $student->spp ? 'Rp ' . number_format($student->spp, 0, ',', '.') : '-' }}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
