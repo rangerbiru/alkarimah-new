@@ -20,7 +20,7 @@
                     <button type="button" id="btn-search" class="btn btn-secondary">
                         <i class="fa-solid fa-search"></i> &nbsp;{{ __('label.search') }}
                     </button>
-                    <a href="{{ route('finance.cancellation.history') }}" class="btn btn-outline-secondary">
+                    <a href="{{ route('finance.cancellation.history') }}" class="btn btn-outline-primary">
                         <i class="bx bx-history"></i> &nbsp;{{ __('label.cancellation_history') }}
                     </a>
                 </div>
@@ -38,7 +38,7 @@
                             <th>{{ __('label.transaction_number') }}</th>
                             <th>{{ __('label.transaction_type') }}</th>
                             <th>{{ __('label.student_or_parent_or_person') }}</th>
-                            <th>{{ __('label.method') }}</th>
+                            <th>{{ __('label.payment') }}</th>
                             <th>{{ __('label.total') }}</th>
                             <th>{{ __('label.status') }}</th>
                             <th style="width: 100px;">#</th>
@@ -73,7 +73,7 @@
         'student' => __('label.student'),
         'parent' => __('label.parent'),
         'cancel' => __('label.cancel_transaction'),
-        'close' => __('label.cancel'),
+        'close' => strtoupper(__('label.cancel')),
         'reason' => __('label.reason'),
     ];
 @endphp
@@ -95,7 +95,8 @@
         let end_date = "{{ $filter->end }}";
         let type = "";
 
-        const rupiah = (n) => "Rp. " + moneyFormat(n);
+        const rupiah = (n) => "Rp " + moneyFormat(n);
+        const dateTime = (d) => dateFormat(d, "{dd} {mmm} {yyyy} {hh}:{ii}");
 
         function el(tag, className, text) {
             const node = document.createElement(tag);
@@ -104,18 +105,20 @@
             return node;
         }
 
-        function line(label, value) {
-            const row = el("div", "mb-1");
-            row.appendChild(el("b", "", label + ": "));
-            row.appendChild(document.createTextNode(value));
-            return row;
+        // Satu bagian dialog: judul tebal abu-abu, isi di bawahnya (teks selalu lewat textContent)
+        function section(title, lines) {
+            const box = el("div", "mb-3");
+            const heading = el("div", "fw-semibold", title);
+            heading.style.color = "#6b7280";
+            box.appendChild(heading);
+            [].concat(lines).forEach((l) => box.appendChild(el("div", "", l)));
+            return box;
         }
 
-        function movement(label, m) {
-            return line(label, rupiah(m.before) + " → " + rupiah(m.after));
+        function movement(m) {
+            return rupiah(m.before) + " → " + rupiah(m.after);
         }
 
-        // Isi dialog disusun dengan DOM + textContent: teks dari server tidak pernah menjadi HTML
         function buildPreview(d) {
             const box = el("div", "text-start");
 
@@ -136,32 +139,28 @@
 
             const t = d.transaction;
             if (t.number) {
-                box.appendChild(line(cancel_lang.type, type_names[t.flag] ?? t.flag));
-                box.appendChild(line(cancel_lang.paid_at, dateFormat(t.paid_at, "{dd} {mmm} {yyyy}, {hh}:{ii} WIB")));
-                box.appendChild(line(cancel_lang.total, rupiah(t.total)));
+                box.appendChild(section(type_names[t.flag] ?? t.flag, [
+                    cancel_lang.paid_at + ": " + dateTime(t.paid_at),
+                    cancel_lang.total + ": " + rupiah(t.total),
+                ]));
             }
-            if (d.student) box.appendChild(line(cancel_lang.student, d.student.name + " (" + d.student.nis + ")"));
-            if (d.parent) box.appendChild(line(cancel_lang.parent, d.parent.name));
+            if (d.student) box.appendChild(section(cancel_lang.student, d.student.name + " (" + d.student.nis + ")"));
+            if (d.parent) box.appendChild(section(cancel_lang.parent, d.parent.name));
 
             const bills = (d.details && d.details.bills) || [];
             if (bills.length) {
-                box.appendChild(el("div", "fw-bold mt-3 mb-1", cancel_lang.bills_back));
-                const ul = el("ul", "mb-0");
-                bills.forEach((b) => ul.appendChild(el("li", "", b.name + (b.period ? " - " + b.period : "") + ": " + rupiah(b.total))));
-                box.appendChild(ul);
+                box.appendChild(section(cancel_lang.bills_back,
+                    bills.map((b) => b.name + (b.period ? " " + b.period : "") + " · " + rupiah(b.total))));
             }
 
-            const moves = el("div", "mt-3");
-            if (d.parent_balance) moves.appendChild(movement(cancel_lang.parent_balance, d.parent_balance));
-            if (d.student_savings) moves.appendChild(movement(cancel_lang.student_savings, d.student_savings));
-            if (d.unique_code_reversed > 0) moves.appendChild(line(cancel_lang.unique_code_back, rupiah(d.unique_code_reversed)));
-            box.appendChild(moves);
+            if (d.parent_balance) box.appendChild(section(cancel_lang.parent_balance, movement(d.parent_balance)));
+            if (d.student_savings) box.appendChild(section(cancel_lang.student_savings, movement(d.student_savings)));
+            if (d.unique_code_reversed > 0) box.appendChild(section(cancel_lang.unique_code_back, rupiah(d.unique_code_reversed)));
 
             if (d.refund) {
-                const note = el("div", "alert alert-info mt-3 mb-0",
+                box.appendChild(el("div", "alert alert-info mb-0",
                     (d.refund.mode === "balance" ? cancel_lang.refund_balance : cancel_lang.refund_transfer)
-                    .replace(":amount", moneyFormat(d.refund.amount)));
-                box.appendChild(note);
+                    .replace(":amount", moneyFormat(d.refund.amount))));
             }
 
             return box;
@@ -187,12 +186,12 @@
                     const d = response.data;
                     const options = {
                         title: cancel_lang.title.replace(":number", number),
+                        icon: "warning",
                         html: buildPreview(d),
                         width: 640,
                         showCancelButton: true,
                         cancelButtonText: cancel_lang.close,
                         confirmButtonText: cancel_lang.cancel,
-                        confirmButtonColor: "#dc3545",
                         showConfirmButton: d.can_cancel,
                     };
 
@@ -267,57 +266,51 @@
                     [10, 25, 50, 100]
                 ],
                 columns: [{
-                        class: "align-top",
+                        class: "align-middle",
                         searchable: false,
                         render: (data, type, row, meta) => meta.row + meta.settings._iDisplayStart + 1
                     },
                     {
-                        class: "align-top",
+                        class: "align-middle",
                         render: (data, type, row) => `<span class="fw-bold">${htmlEntities(row.number)}</span>
-                            <div class="mt-3">
-                                <small><b>{{ __('label.payment_date') }}</b></small><br />
-                                ${dateFormat(row.paid_at, "{dd} {mmm} {yyyy}, {hh}:{ii} WIB")}
-                            </div>`
+                            <div class="mt-3"><small>${dateTime(row.paid_at)}</small></div>`
                     },
                     {
-                        class: "align-top",
+                        class: "align-middle",
                         render: (data, type, row) => htmlEntities(row.type_name)
                     },
                     {
-                        class: "align-top",
+                        class: "align-middle",
                         render: (data, type, row) => {
                             let html = row.student ? htmlEntities(row.student.name) : (row.parent ? htmlEntities(row.parent.name) : "-");
 
                             if (row.student) {
-                                html += `<div class="mt-3"><small><b>{{ __('label.nis') }}</b></small><br />${htmlEntities(row.student.nis)}</div>`;
-                            }
-                            if (row.student && row.parent) {
-                                html += `<div class="mt-3"><small><b>{{ __('label.parent') }}</b></small><br />${htmlEntities(row.parent.name)}</div>`;
+                                html += `<div class="mt-3"><small><b>{{ __('label.nis') }} ${htmlEntities(row.student.nis)}</b></small></div>`;
                             }
 
                             return html;
                         }
                     },
                     {
-                        class: "align-top",
+                        class: "align-middle",
                         render: (data, type, row) => htmlEntities(row.method)
                     },
                     {
-                        class: "align-top",
+                        class: "align-middle",
                         render: (data, type, row) => rupiah(row.total)
                     },
                     {
-                        class: "align-top",
+                        class: "align-middle",
                         render: (data, type, row) => row.cancelled ?
                             `<span class="badge bg-danger">{{ strtoupper(__('label.cancelled')) }}</span>` :
-                            `<span class="badge bg-success">{{ strtoupper(__('label.paid')) }}</span>`
+                            `<span class="badge bg-success">{{ strtoupper(__('label.paid_off')) }}</span>`
                     },
                     {
-                        class: "align-top text-center",
+                        class: "align-middle text-center",
                         searchable: false,
                         render: (data, type, row) => row.cancelled ? "" :
-                            `<button type="button" class="btn btn-danger btn-xs btn-cancel" data-id="${htmlEntities(row.encrypted_id)}" data-number="${htmlEntities(row.number)}">
-                                <i class="bx bx-revision"></i> {{ __('label.cancel_transaction') }}
+                            `<button type="button" class="btn btn-danger btn-sm text-nowrap btn-cancel" data-id="${htmlEntities(row.encrypted_id)}" data-number="${htmlEntities(row.number)}">
+                                <i class="bx bx-revision me-1"></i>{{ strtoupper(__('label.cancel_transaction')) }}
                             </button>`
                     }
                 ]
