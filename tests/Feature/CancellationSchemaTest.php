@@ -108,4 +108,22 @@ class CancellationSchemaTest extends ModuleAccessTestCase
             ->pluck('Column_name')
             ->all();
     }
+
+    public function test_feature_lang_keys_are_defined_once_and_old_message_is_intact(): void
+    {
+        $feature = '/^(cancel_|cancellation|cancelled|transaction_cancellation$|savings_deposit_cancellation$)/';
+
+        foreach (['id', 'en'] as $lang) {
+            foreach (['label', 'message', 'string'] as $file) {
+                preg_match_all("/^    '([^']+)' =>/m", file_get_contents(lang_path("{$lang}/{$file}.php")), $m);
+                $keys = array_filter($m[1], fn ($k) => preg_match($feature, $k));
+                $dupes = array_keys(array_filter(array_count_values($keys), fn ($n) => $n > 1));
+
+                $this->assertSame([], $dupes, "Kunci ganda di lang/{$lang}/{$file}.php");
+            }
+        }
+
+        app()->setLocale('id');
+        $this->assertSame('Tagihan berhasil dibatalkan', __('message.cancel_success', ['label' => 'Tagihan']));
+    }
 }

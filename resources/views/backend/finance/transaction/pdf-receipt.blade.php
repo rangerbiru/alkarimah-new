@@ -65,6 +65,11 @@
             </tr>
         </table>
     </div>
+    @if ($transaction->is_cancelled)
+        <h2 style="margin: 8px 0; padding: 4px; border: 2px solid #dc3545; color: #dc3545; text-align: center;">
+            {{ strtoupper(__('label.cancelled')) }}
+        </h2>
+    @endif
 
     <div style="border-bottom: 1px solid #caced3;padding-bottom: 5px;">
         <table>

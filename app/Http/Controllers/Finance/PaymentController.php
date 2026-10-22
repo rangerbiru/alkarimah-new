@@ -62,6 +62,10 @@ class PaymentController extends Controller
 
     public function waiting(Transaction $transaction)
     {
+        if ($transaction->is_cancelled) {
+            return Redirect::route('finance.payment.show', $transaction->encrypted_id);
+        }
+
         if ($transaction->is_paid) {
             return Redirect::route('finance.payment.show', $transaction->encrypted_id);
         }

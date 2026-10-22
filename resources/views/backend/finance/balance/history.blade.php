@@ -56,6 +56,7 @@
 @push('scripts')
 <script>
 const status_paid = "{{ $status_paid }}"
+const status_cancelled = "{{ \App\Enums\TransactionStatus::Cancelled->value }}"
 let page = 1
 let loading = false
 
@@ -83,7 +84,7 @@ $(document).ready(function() {
         let id = "id"
         let url = "{{ route('finance.balance.waiting', 0) }}"
 
-        if ($(this).data("status") == status_paid) {
+        if ([status_paid, status_cancelled].includes(String($(this).data("status")))) {
             id = "idh"
             url = "{{ route('finance.balance.show', 0) }}"
         }

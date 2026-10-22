@@ -62,6 +62,9 @@
             </div>
         @else
             @foreach ($transaction as $t)
+                @if ($t->url)
+                    <a href="{{ $t->url }}" class="d-block text-reset text-decoration-none">
+                @endif
                 <div class="card card-history mb-2">
                     <div class="card-body p-2">
                         <div class="d-flex align-items-center">
@@ -75,13 +78,21 @@
                                     class="text-muted">{{ $t->flag . ' - ' . Common::dateFormat($t->paid_at, 'dd mmm yyyy, hh:ii WIB') }}</small>
                             </div>
                             <div class="text ms-auto text-end">
-                                <span
-                                    class="{{ $t->total_class }}">{{ number_format($t->total, 0, '', '.') }}</span><br />
-                                <small class="text-muted">{{ $t->method }}</small>
+                                @if ($t->cancelled)
+                                    <span class="text-muted text-decoration-line-through">{{ number_format($t->total, 0, '', '.') }}</span><br />
+                                    <span class="badge bg-secondary text-uppercase">{{ __('label.cancelled') }}</span>
+                                @else
+                                    <span
+                                        class="{{ $t->total_class }}">{{ number_format($t->total, 0, '', '.') }}</span><br />
+                                    <small class="text-muted">{{ $t->method }}</small>
+                                @endif
                             </div>
                         </div>
                     </div>
                 </div>
+                @if ($t->url)
+                    </a>
+                @endif
             @endforeach
         @endif
     </div>

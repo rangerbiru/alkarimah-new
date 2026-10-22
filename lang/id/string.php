@@ -130,4 +130,6 @@ return [
     'cancel_cannot' => 'Transaksi ini tidak bisa dibatalkan:',
     'cancel_search_hint' => 'Cari nomor transaksi, NIS, nama siswa, atau nama orang tua',
     'cancel_reason_visible' => 'Alasan ini akan ditampilkan kepada orang tua.',
+    'cancelled_parent_note' => 'Dibatalkan oleh admin. Hubungi bagian keuangan untuk informasi.',
+    'cancellation_entry' => 'Entri pembatalan',
 ];

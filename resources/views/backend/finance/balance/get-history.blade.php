@@ -1,21 +1,28 @@
 @foreach ($transaction as $t)
     @php
-    if ($t->transaction->is_paid) {
+    // Entri pembalik menautkan ke entri asli: halaman detail saldo membaca debit / kredit entrinya sendiri
+    $history_id = $t->reversal_of ? Crypt::encrypt($t->reversal_of) : $t->encrypted_id;
+
+    if ($t->transaction->is_paid || $t->transaction->is_cancelled) {
         $date = Common::dateFormat($t->transaction->paid_at, 'dd mmm yyyy, hh:ii WIB');
-        $url = route('finance.balance.show', $t->encrypted_id);
+        $url = route('finance.balance.show', $history_id);
     } else {
         $date = Common::dateFormat($t->transaction->created_at, 'dd mmm yyyy, hh:ii WIB');
         $url = route('finance.balance.waiting', $t->transaction->encrypted_id);
     }
     @endphp
 
-    <div class="card-history" data-id="{{ $t->transaction->encrypted_id }}" data-idh="{{ $t->encrypted_id }}" data-status="{{ $t->transaction->status }}">
+    <div class="card-history" data-id="{{ $t->transaction->encrypted_id }}" data-idh="{{ $history_id }}" data-status="{{ $t->transaction->status }}">
         <div class="d-flex align-items-center">
             <div class="icon me-2">
                 <img src="{{ ($t->debit > 0) ? $t->transaction->method->image : asset('images/icons/min.png') }}" style="width: 40px;" />
             </div>
             <div class="text">
-                {{ $t->transaction->number }}<br />
+                {{ $t->transaction->number }}
+                @if ($t->reversal_of)
+                    <small class="text-muted">({{ __('string.cancellation_entry') }})</small>
+                @endif
+                <br />
                 <small class="text-muted">
                     {{ $date }}<br />
                     @if ($t->transaction->is_pengambilan_saldo)

@@ -1,6 +1,6 @@
 @foreach ($transaction as $t)
     @php
-    if ($t->is_paid) {
+    if ($t->is_paid || $t->is_cancelled) {
         $date = Common::dateFormat($t->paid_at, 'dd mmm yyyy, hh:ii WIB');
         $url = route('finance.payment.show', $t->encrypted_id);
     } else {

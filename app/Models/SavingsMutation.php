@@ -40,7 +40,11 @@ class SavingsMutation extends Model
     protected function flagName(): Attribute
     {
         return Attribute::make(
-            get: fn() => ($this->flag->value == SavingsMutationFlag::Deposit->value) ? __('label.savings_deposit') : __('label.savings_withdrawal')
+            get: fn() => match ($this->flag->value) {
+                SavingsMutationFlag::Deposit->value => __('label.savings_deposit'),
+                SavingsMutationFlag::Cancellation->value => __('label.savings_deposit_cancellation'),
+                default => __('label.savings_withdrawal'),
+            }
         );
     }
 
@@ -48,6 +52,13 @@ class SavingsMutation extends Model
     {
         return Attribute::make(
             get: fn() => $this->flag->value == SavingsMutationFlag::Deposit->value
+        );
+    }
+
+    protected function isCancellation(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => $this->flag->value == SavingsMutationFlag::Cancellation->value
         );
     }
 

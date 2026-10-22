@@ -64,6 +64,15 @@ class BalanceController extends Controller
 
     public function waiting(Transaction $transaction)
     {
+        if ($transaction->is_cancelled) {
+            // Entri asli (bukan pembalik) milik transaksi ini; halaman detail saldo bekerja per entri topup_history
+            $origin = TopupHistory::where('id_transaction', $transaction->id)->whereNull('reversal_of')->orderBy('id')->first();
+
+            return $origin
+                ? Redirect::route('finance.balance.show', $origin->encrypted_id)
+                : Redirect::route('finance.balance.index');
+        }
+
         if ($transaction->is_paid) {
             return Redirect::route('finance.balance.index');
         }
@@ -147,7 +156,7 @@ class BalanceController extends Controller
         $limit = 5;
         $offset = ($page - 1) * $limit;
         $parent = Auth::user()->parent->id;
-        $transaction = TopupHistory::select('id', 'id_transaction', 'debit', 'credit', 'balance', 'created_at')
+        $transaction = TopupHistory::select('id', 'id_transaction', 'reversal_of', 'debit', 'credit', 'balance', 'created_at')
             ->with([
                 'transaction' => fn ($query) => $query->select('id', 'number', 'payment_method', 'paid_at', 'total', 'created_at', 'status', 'flag'),
             ])

@@ -250,6 +250,38 @@ class TransactionController extends Controller
         ]);
     }
 
+    /**
+     * Tagihan sebuah transaksi tagihan. Transaksi yang dibatalkan: tagihannya sudah direset (id_transaction kosong,
+     * diskon 0), jadi diambil dari transaction.bills dan nominal saat dibayar ditimpa dari snapshot pembatalan.
+     */
+    private function paidBills(Transaction $transaction)
+    {
+        $query = TransactionBill::select('id', 'id_bill', 'semester', 'months', 'years', 'subtotal', 'discount', 'total')
+            ->with([
+                'bill' => function ($query) {
+                    $query->select('id', 'id_year', 'id_type', 'name')
+                        ->with([
+                            'year' => fn ($qy) => $qy->select('id', 'start_year', 'end_year'),
+                            'type' => fn ($qt) => $qt->select('id', 'name', 'period'),
+                        ]);
+                },
+            ]);
+
+        if (! $transaction->is_cancelled) {
+            return $query->whereIdTransaction($transaction->id)->orderBy('due_date')->get();
+        }
+
+        $snapshot = $transaction->cancelled_bills;
+
+        return $query->whereIn('id', (array) $transaction->bills)->orderBy('due_date')->get()->each(function ($bill) use ($snapshot) {
+            if ($paid = $snapshot->get($bill->id)) {
+                $bill->subtotal = $paid['subtotal'];
+                $bill->discount = $paid['discount'];
+                $bill->total = $paid['total'];
+            }
+        });
+    }
+
     public function showBill(Transaction $transaction)
     {
         $this->authorizeTransaction($transaction);
@@ -261,19 +293,7 @@ class TransactionController extends Controller
         $withdrawals = (object) [];
 
         if ($transaction->is_tagihan) {
-            $bills = TransactionBill::select('id', 'id_bill', 'semester', 'months', 'years', 'subtotal', 'discount', 'total')
-                ->with([
-                    'bill' => function ($query) {
-                        $query->select('id', 'id_year', 'id_type', 'name')
-                            ->with([
-                                'year' => fn ($qy) => $qy->select('id', 'start_year', 'end_year'),
-                                'type' => fn ($qt) => $qt->select('id', 'name', 'period'),
-                            ]);
-                    },
-                ])
-                ->whereIdTransaction($transaction->id)
-                ->orderBy('due_date')
-                ->get();
+            $bills = $this->paidBills($transaction);
         } elseif ($transaction->is_pengambilan_tabungan) {
             // $withdrawals = SavingsWithdrawal::select('id', 'id_student', 'number', 'dates', 'total')
             //     ->with([
@@ -1513,19 +1533,7 @@ class TransactionController extends Controller
         $withdrawals = (object) [];
 
         if ($transaction->is_tagihan) {
-            $bills = TransactionBill::select('id', 'id_bill', 'semester', 'months', 'years', 'subtotal', 'discount', 'total')
-                ->with([
-                    'bill' => function ($query) {
-                        $query->select('id', 'id_year', 'id_type', 'name')
-                            ->with([
-                                'year' => fn ($qy) => $qy->select('id', 'start_year', 'end_year'),
-                                'type' => fn ($qt) => $qt->select('id', 'name', 'period'),
-                            ]);
-                    },
-                ])
-                ->whereIdTransaction($transaction->id)
-                ->orderBy('due_date')
-                ->get();
+            $bills = $this->paidBills($transaction);
         } elseif ($transaction->is_pengambilan_tabungan) {
             $table_savings = (new SavingsWithdrawal)->getTable();
             $table_student = (new Student)->getTable();

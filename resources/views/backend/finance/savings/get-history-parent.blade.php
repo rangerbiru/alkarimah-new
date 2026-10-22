@@ -1,7 +1,7 @@
 @foreach ($mutation as $m)
-    @if ($m->is_deposit)
+    @if ($m->is_deposit || $m->is_cancellation)
         @php
-        if ($m->transaction->is_paid) {
+        if ($m->transaction->is_paid || $m->transaction->is_cancelled) {
             $date = Common::dateFormat($m->transaction->paid_at, 'dd mmm yyyy, hh:ii WIB');
             $url = route('finance.savings.show', $m->transaction->encrypted_id);
         } else {
@@ -17,6 +17,9 @@
                 </div>
                 <div class="text">
                     {{ $m->transaction->number }}
+                    @if ($m->is_cancellation)
+                        <small class="text-muted d-block">{{ __('string.cancellation_entry') }}</small>
+                    @endif
 
                     <div style="line-height: 14px;">
                         <small class="text-muted">

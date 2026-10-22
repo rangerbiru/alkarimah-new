@@ -56,6 +56,7 @@
 @push('scripts')
 <script>
 const status_paid = "{{ $status_paid }}"
+const status_cancelled = "{{ \App\Enums\TransactionStatus::Cancelled->value }}"
 let page = 1
 let loading = false
 
@@ -80,10 +81,12 @@ $(document).ready(function() {
     })
 
     $("#list").on("click", ".card-history", function() {
-        if ($(this).data("flag") == 1) { // Deposit
-            let url = "{{ route('finance.savings.waiting', 0) }}"
+        let url
 
-            if ($(this).data("status") == status_paid)
+        if ($(this).data("flag") == 1) { // Deposit
+            url = "{{ route('finance.savings.waiting', 0) }}"
+
+            if ([status_paid, status_cancelled].includes(String($(this).data("status"))))
                 url = "{{ route('finance.savings.show', 0) }}"
         } else
             url = "{{ route('finance.savings.show-withdrawal', 0) }}"

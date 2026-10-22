@@ -12,6 +12,7 @@ use App\Enums\UserRole;
 use App\Helpers\Common;
 use App\Models\Scopes\BranchScope;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -168,8 +169,46 @@ class Transaction extends Model
     protected function statusBadge(): Attribute
     {
         return Attribute::make(
-            get: fn() => ($this->status->value == TransactionStatus::Paid->value) ? '<span class="badge bg-success text-uppercase"><i class="fa-solid fa-check-circle"></i>&nbsp; ' . __('label.paid_off') . '</span>' : '<span class="badge bg-danger text-uppercase"><i class="fa-solid fa-times-circle"></i>&nbsp; ' . __('label.not_paid') . '</span>'
+            get: fn() => match ($this->status->value) {
+                TransactionStatus::Paid->value => '<span class="badge bg-success text-uppercase"><i class="fa-solid fa-check-circle"></i>&nbsp; ' . __('label.paid_off') . '</span>',
+                TransactionStatus::Cancelled->value => '<span class="badge bg-secondary text-uppercase"><i class="fa-solid fa-ban"></i>&nbsp; ' . __('label.cancelled') . '</span>',
+                default => '<span class="badge bg-danger text-uppercase"><i class="fa-solid fa-times-circle"></i>&nbsp; ' . __('label.not_paid') . '</span>',
+            }
         );
+    }
+
+    protected function isCancelled(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => $this->status->value == TransactionStatus::Cancelled->value
+        );
+    }
+
+    /** Baris transaction_cancellation (reason, cancelled_at, snapshot) bila dibatalkan; selain itu null. */
+    protected function cancellation(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => $this->is_cancelled
+                ? DB::table('transaction_cancellation')->where('id_transaction', $this->id)->first(['reason', 'cancelled_at', 'snapshot'])
+                : null
+        )->shouldCache();
+    }
+
+    protected function cancellationReason(): Attribute
+    {
+        return Attribute::make(get: fn() => $this->cancellation?->reason);
+    }
+
+    /** Tagihan saat dibayar (dari snapshot), per id transaction_bill; tagihannya sendiri sudah direset. */
+    protected function cancelledBills(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                $snapshot = json_decode($this->cancellation?->snapshot ?? '', true);
+
+                return collect($snapshot['plan']['bills'] ?? [])->keyBy('id');
+            }
+        )->shouldCache();
     }
 
     protected function bankAccount(): Attribute
@@ -207,7 +246,12 @@ class Transaction extends Model
                     else if ($transaction->bill->type->period->value == $period_semester)
                         $bill_name .= ' - Semester {' . $transaction->semester;
 
-                    if ($this->is_paid) {
+                    if ($this->is_cancelled) {
+                        // Tagihan sudah direset saat pembatalan: nominal saat dibayar diambil dari snapshot
+                        $snap = $this->cancelled_bills->get($transaction->id);
+                        $discount = $snap['discount'] ?? 0;
+                        $total = $snap['subtotal'] ?? $transaction->subtotal;
+                    } elseif ($this->is_paid) {
                         $discount = $transaction->discount;
                         $total = $transaction->subtotal;
                     } else {

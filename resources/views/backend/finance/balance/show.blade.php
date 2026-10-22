@@ -33,6 +33,7 @@
                 @endif
             </div>
         </div>
+        @include('backend.finance.cancellation.parent-note', ['transaction' => $history->transaction])
         <div class="d-flex mb-2">
             <div>{{ __('label.payment_method') }}</div>
             <div class="ms-auto text-grey">{{ $history->transaction->method->name }}</div>

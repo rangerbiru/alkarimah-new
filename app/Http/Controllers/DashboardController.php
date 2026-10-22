@@ -6,6 +6,8 @@ use App\Constants\EducationLevel;
 use App\Constants\Modules;
 use App\Enums\BillPeriod;
 use App\Enums\TransactionFlag;
+use App\Enums\TransactionMethod;
+use App\Enums\TransactionStatus;
 use App\Enums\UserRole;
 use App\Helpers\Common;
 use App\Models\AllowedSubmissionEmployee;
@@ -26,7 +28,6 @@ use App\Models\ReportBillMethod;
 use App\Models\ReportBillType;
 use App\Models\SavingsWithdrawal;
 use App\Models\Student;
-use App\Enums\TransactionMethod;
 use App\Models\Transaction;
 use App\Models\TransactionBill;
 use App\Models\Year;
@@ -384,10 +385,10 @@ class DashboardController extends Controller
         $period_monthly = BillPeriod::Monthly->value;
         $period_semester = BillPeriod::Semiannual->value;
 
-        $transaction = Transaction::select('id', 'id_student', 'payment_method', 'paid_at', 'flag', 'total')
+        $transaction = Transaction::select('id', 'id_student', 'payment_method', 'paid_at', 'flag', 'total', 'bills', 'status')
             ->with(['student' => fn ($query) => $query->select('id', 'id_parent', 'name')])
             ->whereHas('student', fn ($query) => $query->whereIdParent(Auth::user()->parent->id))
-            ->paid()
+            ->whereIn('status', [TransactionStatus::Paid->value, TransactionStatus::Cancelled->value])
             ->orderBy('paid_at', 'desc')
             ->get();
 
@@ -405,7 +406,12 @@ class DashboardController extends Controller
                             $query->select('id', 'id_type')->with(['type' => fn ($qt) => $qt->select('id', 'name', 'period')]);
                         },
                     ])
-                    ->whereIdTransaction($t->id)
+                    ->when(
+                        $t->is_cancelled,
+                        // Tagihan sudah direset saat pembatalan: diambil dari transaction.bills
+                        fn ($query) => $query->whereIn('id', (array) $t->bills),
+                        fn ($query) => $query->whereIdTransaction($t->id)
+                    )
                     ->get();
 
                 foreach ($bills as $b) {
@@ -426,8 +432,10 @@ class DashboardController extends Controller
                         'flag' => $t->flag_detail->name,
                         'student_name' => $t->student->name ?? '-',
                         'name' => $name,
-                        'total' => $b->total,
+                        'total' => $t->is_cancelled ? ($t->cancelled_bills->get($b->id)['total'] ?? $b->total) : $b->total,
                         'total_class' => 'text-danger',
+                        'url' => route('finance.payment.show', $t->encrypted_id),
+                        'cancelled' => $t->is_cancelled,
                         'paid_at' => $t->paid_at,
                         'method' => $method,
                     ]);
@@ -442,6 +450,8 @@ class DashboardController extends Controller
                     'name' => $t->flag_detail->name,
                     'total' => $t->total,
                     'total_class' => ($t->flag->value == TransactionFlag::PengambilanTabungan->value) ? 'text-danger' : 'text-success',
+                    'url' => $t->flag->value == TransactionFlag::SetorTabungan->value ? route('finance.savings.show', $t->encrypted_id) : null,
+                    'cancelled' => $t->is_cancelled,
                     'paid_at' => $t->paid_at,
                     'method' => $method,
                 ]);

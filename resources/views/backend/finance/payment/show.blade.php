@@ -27,6 +27,7 @@
             <div>{{ __('label.status') }}</div>
             <div class="ms-auto">{!! $transaction->status_badge !!}</div>
         </div>
+        @include('backend.finance.cancellation.parent-note', ['transaction' => $transaction])
         <div class="d-flex mb-2">
             <div>{{ __('label.payment_method') }}</div>
             <div class="ms-auto text-grey">{{ $transaction->method->name }}</div>

@@ -129,4 +129,6 @@ return [
     'cancel_cannot' => 'This transaction cannot be cancelled:',
     'cancel_search_hint' => 'Search transaction number, NIS, student name or parent name',
     'cancel_reason_visible' => 'This reason will be shown to the parent.',
+    'cancelled_parent_note' => 'Cancelled by admin. Please contact the finance office for information.',
+    'cancellation_entry' => 'Cancellation entry',
 ];
