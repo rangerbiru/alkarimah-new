@@ -13,6 +13,7 @@ use App\Helpers\Common;
 use App\Models\Scopes\BranchScope;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -238,6 +239,24 @@ class Transaction extends Model
                         ])
                         ->whereId($b)
                         ->first();
+
+                    // Baris tagihan (atau master tagihan / jenis / tahun ajaran) sudah tidak ada, mis. dihapus langsung di
+                    // database. Jangan menggagalkan halaman: tampilkan baris pengganti yang nominalnya tetap masuk total.
+                    if (! $transaction || ! $transaction->bill?->type || ! $transaction->bill->year) {
+                        Log::warning('Transaction::billsDetail: data tagihan tidak lengkap', ['transaction_id' => $this->id, 'transaction_bill_id' => $b]);
+
+                        array_push($details, (object) [
+                            'id' => $transaction->id ?? (int) $b,
+                            'name' => __('string.bill_missing', ['id' => $b]),
+                            'discount' => $transaction->discount ?? 0,
+                            // Satu tagihan: nominal transaksinya. Beberapa tagihan: nominal per tagihan tidak diketahui.
+                            'total' => $transaction ? $transaction->subtotal : (count((array) $this->bills) === 1 ? $this->subtotal : 0),
+                            'type' => (object) ['id' => 0, 'name' => __('string.bill_missing_type')],
+                            'year' => (object) ['id' => 0, 'start' => '-', 'end' => '-'],
+                        ]);
+
+                        continue;
+                    }
 
                     $bill_name = $transaction->bill->name;
 

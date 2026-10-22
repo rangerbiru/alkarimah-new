@@ -132,4 +132,6 @@ return [
     'cancel_reason_visible' => 'Alasan ini akan ditampilkan kepada orang tua.',
     'cancelled_parent_note' => 'Dibatalkan oleh admin. Hubungi bagian keuangan untuk informasi.',
     'cancellation_entry' => 'Entri pembatalan',
+    'bill_missing' => 'Tagihan #:id (data tagihan sudah tidak ada)',
+    'bill_missing_type' => 'Tidak diketahui',
 ];
