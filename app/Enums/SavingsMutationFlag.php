@@ -6,4 +6,5 @@ enum SavingsMutationFlag: string
 {
     case Deposit = '1';
     case Withdrawal = '2';
+    case Cancellation = '3';
 }

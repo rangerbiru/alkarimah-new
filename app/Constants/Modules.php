@@ -17,13 +17,14 @@ abstract class Modules
     const KasirUnit = 8;
     const Bendahara = 9;
     const PenanggungJawabTabungan = 10;
+    const CancelTransaction = 11;
 
     /**
      * Kelompok modul di halaman Hak Akses pegawai (label => ID modul).
      */
     const Groups = [
         'general' => [self::CreateAbsence, self::AdminAcademic, self::AdminHumanResource, self::AdminInventory],
-        'tu' => [self::KepalaSekolah, self::WaliKelas, self::Kasir, self::KasirUnit, self::Bendahara, self::PenanggungJawabTabungan],
+        'tu' => [self::KepalaSekolah, self::WaliKelas, self::Kasir, self::KasirUnit, self::Bendahara, self::PenanggungJawabTabungan, self::CancelTransaction],
     ];
 
     /**

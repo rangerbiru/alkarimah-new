@@ -7,4 +7,5 @@ enum TransactionStatus: string
     case NotPaid = '0';
     case Paid = '1';
     case Expired = '2';
+    case Cancelled = '3';
 }

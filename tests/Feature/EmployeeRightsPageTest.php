@@ -98,7 +98,7 @@ class EmployeeRightsPageTest extends ModuleAccessTestCase
             ->assertSee('level_education['.Modules::KasirUnit.'][]', false);
     }
 
-    public function test_rights_page_lists_ten_modules_in_two_groups(): void
+    public function test_rights_page_lists_all_modules_in_two_groups(): void
     {
         foreach ([Modules::CreateAbsence => 'Buat Absensi', Modules::AdminAcademic => 'Kelola Akademik', Modules::AdminHumanResource => 'Kelola Kepegawaian', Modules::AdminInventory => 'Kelola Pengadaan Barang', Modules::WaliKelas => 'Wali Kelas', Modules::Bendahara => 'Bendahara', Modules::PenanggungJawabTabungan => 'Penanggung Jawab Tabungan'] as $id => $name) {
             DB::table('module')->updateOrInsert(['id' => $id], ['name' => $name, 'description' => $name]);
@@ -110,7 +110,7 @@ class EmployeeRightsPageTest extends ModuleAccessTestCase
 
         $html = $this->actingAs($admin)->get(route('hr.employee.rights', $employee->encrypted_id))->assertOk()->getContent();
 
-        $this->assertSame(10, substr_count($html, 'name="module[]"'));
+        $this->assertSame(11, substr_count($html, 'name="module[]"'));
         $this->assertLessThan(strpos($html, '>Tata Usaha</th>'), strpos($html, '>Umum</th>'));
         $this->assertLessThan(strpos($html, '<td>Kepala Sekolah</td>'), strpos($html, '<td>Kelola Pengadaan Barang</td>'));
         $this->assertLessThan(strpos($html, '<td>Kelola Akademik</td>'), strpos($html, '<td>Buat Absensi</td>'));
