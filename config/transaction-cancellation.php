@@ -10,6 +10,11 @@ return [
         TransactionFlag::SetorTabungan->value => [TransactionMethod::BNI->value, TransactionMethod::BSI->value],
         TransactionFlag::TopupSaldo->value => [TransactionMethod::BNI->value, TransactionMethod::BSI->value],
     ],
+    'reversers' => [
+        TransactionFlag::Tagihan->value => App\Services\Cancellation\BillPaymentReverser::class,
+        TransactionFlag::SetorTabungan->value => App\Services\Cancellation\SavingsDepositReverser::class,
+        TransactionFlag::TopupSaldo->value => App\Services\Cancellation\BalanceTopupReverser::class,
+    ],
     'rules' => [
         'cash_deposit' => true, // selalu aktif (keputusan klien)
         'month_open' => false, // mati: transaksi bulan lalu hanya mendapat warnings[]

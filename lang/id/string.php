@@ -118,4 +118,5 @@ return [
     'choose_account_back' => 'Kembali ke halaman login',
     'login_choice_expired' => 'Waktu memilih akun sudah habis. Silakan login kembali.',
     'login_choice_invalid' => 'Akun yang dipilih tidak valid. Silakan login kembali.',
+    'cancellation_ledger' => 'Pembatalan Transaksi #:number',
 ];

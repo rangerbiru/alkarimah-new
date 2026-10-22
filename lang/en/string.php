@@ -117,4 +117,5 @@ return [
     'choose_account_back' => 'Back to the login page',
     'login_choice_expired' => 'The time to choose an account has run out. Please log in again.',
     'login_choice_invalid' => 'The selected account is not valid. Please log in again.',
+    'cancellation_ledger' => 'Cancellation of Transaction #:number',
 ];
