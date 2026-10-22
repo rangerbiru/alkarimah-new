@@ -465,4 +465,11 @@ return [
     'children' => 'Children',
     'select_children' => 'Select Children',
     'parent_menu' => 'Parent Menu',
+    'transaction_cancellation' => 'Transaction Cancellation',
+    'cancellation_history' => 'Cancellation History',
+    'cancel_transaction' => 'Cancel',
+    'cancelled' => 'Cancelled',
+    'cancelled_by' => 'Cancelled By',
+    'cancelled_at' => 'Cancelled At',
+    'cancellation_reason' => 'Cancellation Reason',
 ];

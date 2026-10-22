@@ -2,12 +2,14 @@
 
 use App\Http\Controllers\Finance\BalanceController as FinanceBalanceController;
 use App\Http\Controllers\Finance\BillController as FinanceBillController;
+use App\Http\Controllers\Finance\CancellationController as FinanceCancellationController;
 use App\Http\Controllers\Finance\DonationController as FinanceDonationController;
 use App\Http\Controllers\Finance\PaymentController as FinancePaymentController;
 use App\Http\Controllers\Finance\PayrollController as FinancePayrollController;
 use App\Http\Controllers\Finance\ReportController as FinanceReportController;
 use App\Http\Controllers\Finance\SavingsController as FinanceSavingsController;
 use App\Http\Controllers\Finance\TransactionController as FinanceTransactionController;
+use App\Http\Middleware\CancellationAccess;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('balance')->group(function () {
@@ -215,4 +217,14 @@ Route::prefix('transaction')->group(function () {
 
     Route::delete('cash/{deposit}', [FinanceTransactionController::class, 'destroyCash'])->name('finance.transaction.destroy.cash')->middleware('access:kasir,kasir-unit');
     Route::delete('unique-code/{deposit}', [FinanceTransactionController::class, 'destroyUniqueCode'])->name('finance.transaction.destroy.unique-code')->middleware('access:kasir,kasir-unit');
+});
+
+// Pembatalan transaksi: admin, atau pegawai pemegang modul 11 (App\Constants\Modules::CancelTransaction) yang bukan kasir
+Route::prefix('cancellation')->middleware(['role:admin,pegawai', 'accessRights:11', CancellationAccess::class])->group(function () {
+    Route::get('/', [FinanceCancellationController::class, 'index'])->name('finance.cancellation.index');
+    Route::get('history', [FinanceCancellationController::class, 'history'])->name('finance.cancellation.history');
+    Route::post('datatable', [FinanceCancellationController::class, 'datatable'])->name('finance.cancellation.datatable');
+    Route::post('datatable/history', [FinanceCancellationController::class, 'datatableHistory'])->name('finance.cancellation.datatable.history');
+    Route::post('preview/{transaction}', [FinanceCancellationController::class, 'preview'])->name('finance.cancellation.preview');
+    Route::post('{transaction}', [FinanceCancellationController::class, 'store'])->name('finance.cancellation.store');
 });

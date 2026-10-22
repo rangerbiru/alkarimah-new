@@ -62,4 +62,5 @@ return [
     'cancel_report_rows' => 'Report row :table (:key) :problem. Cancellation refused.',
     'cancel_changed' => 'The transaction changed while processing. Reload the page and try again.',
     'cancel_transaction_success' => 'Transaction #:number cancelled.',
+    'server_error_reference' => 'Sorry, something went wrong. Report this code to the developer: :reference',
 ];

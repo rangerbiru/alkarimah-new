@@ -42,4 +42,9 @@
     @if ($general_sections)
         @include('layouts.backend.sidebar-general', ['sections' => $general_sections, 'headings' => true])
     @endif
+
+    {{-- Pembatalan Transaksi: modul 11, kecuali pemegang modul Kasir / Kasir Unit (pemisahan tugas). --}}
+    @if (app(\App\Services\TransactionCancellation::class)->allowed($tu_user))
+        @include('layouts.backend.sidebar-menu-cancellation')
+    @endif
 @endif

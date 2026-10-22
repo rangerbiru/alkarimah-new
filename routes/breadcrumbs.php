@@ -866,3 +866,13 @@ Breadcrumbs::for('employee/permit/create', function (BreadcrumbTrail $trail) {
     $trail->parent('employee/permit');
     $trail->push(__('label.create'), route('employee.permit.create'));
 });
+
+Breadcrumbs::for('finance/cancellation', function (BreadcrumbTrail $trail) {
+    $trail->parent('dashboard');
+    $trail->push(__('label.transaction_cancellation'), route('finance.cancellation.index'));
+});
+
+Breadcrumbs::for('finance/cancellation/history', function (BreadcrumbTrail $trail) {
+    $trail->parent('finance/cancellation');
+    $trail->push(__('label.cancellation_history'), route('finance.cancellation.history'));
+});

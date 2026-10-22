@@ -740,4 +740,11 @@ return [
     'children' => 'Anak',
     'select_children' => 'Pilih Anak',
     'parent_menu' => 'Menu Orang Tua',
+    'transaction_cancellation' => 'Pembatalan Transaksi',
+    'cancellation_history' => 'Riwayat Pembatalan',
+    'cancel_transaction' => 'Batalkan',
+    'cancelled' => 'Dibatalkan',
+    'cancelled_by' => 'Dibatalkan Oleh',
+    'cancelled_at' => 'Waktu Pembatalan',
+    'cancellation_reason' => 'Alasan Pembatalan',
 ];

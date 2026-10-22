@@ -62,4 +62,5 @@ return [
     'cancel_report_rows' => 'Baris laporan :table (:key) :problem. Pembatalan ditolak.',
     'cancel_changed' => 'Data transaksi berubah saat diproses. Muat ulang halaman lalu coba lagi.',
     'cancel_transaction_success' => 'Transaksi #:number berhasil dibatalkan.',
+    'server_error_reference' => 'Maaf telah terjadi kesalahan. Laporkan kode ini ke pengembang: :reference',
 ];

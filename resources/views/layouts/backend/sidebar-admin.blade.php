@@ -53,3 +53,5 @@
 </li>
 
 @include('layouts.backend.sidebar-general', ['sections' => ['academic', 'hr', 'inventory']])
+
+@include('layouts.backend.sidebar-menu-cancellation')
