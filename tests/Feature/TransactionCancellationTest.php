@@ -381,6 +381,35 @@ class TransactionCancellationTest extends ModuleAccessTestCase
         $this->assertSame([], $this->blockedCodes($id));
     }
 
+    private function logStudentUpdate(array $attributes, array $old): void
+    {
+        DB::table('activity_log')->insert([
+            'log_name' => 'default', 'description' => 'updated', 'event' => 'updated',
+            'subject_type' => \App\Models\Student::class, 'subject_id' => $this->studentId,
+            'properties' => json_encode(['attributes' => $attributes, 'old' => $old]),
+            'created_at' => now()->addMinute(), 'updated_at' => now()->addMinute(),
+        ]);
+    }
+
+    public function test_partial_student_update_log_is_not_a_class_change(): void
+    {
+        // Update saldo tabungan mencatat model yang dipilih sebagian: old.id_class = null
+        $id = $this->payBillsByTransfer();
+        $this->logStudentUpdate(['id_class' => $this->classId, 'balance_savings' => 150000], ['id_class' => null, 'balance_savings' => 0]);
+
+        $this->assertSame([], $this->blockedCodes($id));
+    }
+
+    public function test_activity_log_class_change_is_refused(): void
+    {
+        $id = $this->payBillsByTransfer();
+        $this->logStudentUpdate(['id_class' => $this->classId + 999], ['id_class' => $this->classId]);
+        $paid = $this->state();
+
+        $this->assertSame(['class_changed'], $this->blockedCodes($id));
+        $this->assertNothingWritten($id, $paid);
+    }
+
     private function moveStudentToAnotherClass(): void
     {
         DB::table('student_displacement_history')->insert([

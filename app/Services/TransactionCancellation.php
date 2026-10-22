@@ -298,8 +298,10 @@ class TransactionCancellation
             ->where('subject_id', $ctx->student->id)
             ->where('event', 'updated')
             ->where('created_at', '>', $paid_at)
-            ->whereRaw("JSON_EXTRACT(properties, '$.attributes.id_class') IS NOT NULL")
-            ->whereRaw("JSON_EXTRACT(properties, '$.attributes.id_class') <> JSON_EXTRACT(properties, '$.old.id_class')")
+            // Log update model yang dipilih sebagian (mis. saldo tabungan) berisi old.id_class = JSON null: itu bukan pindah kelas
+            ->whereRaw("JSON_TYPE(JSON_EXTRACT(properties, '$.attributes.id_class')) NOT IN ('NULL')")
+            ->whereRaw("JSON_TYPE(JSON_EXTRACT(properties, '$.old.id_class')) NOT IN ('NULL')")
+            ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(properties, '$.attributes.id_class')) <> JSON_UNQUOTE(JSON_EXTRACT(properties, '$.old.id_class'))")
             ->min('created_at');
 
         $moved = DB::table('student_displacement_history')
