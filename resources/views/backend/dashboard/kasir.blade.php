@@ -6,8 +6,13 @@
         <i class="{{ $icon }}"></i> Ahlan Wa Sahlan
     </h4>
 
-    <div class="ms-sm-1 ms-0" style="min-width: 200px;">
-        <x-form.select id="year" :option="$years" :old="$year->id" />
+    <div class="d-flex align-items-center gap-2 mt-2 mt-sm-0">
+        <div style="min-width: 200px;">
+            <x-form.select id="year" :option="$years" :selected="$year->id" />
+        </div>
+        <button type="button" id="btn-refresh" class="btn btn-primary text-nowrap">
+            <i class="fa-solid fa-rotate"></i> {{ __('label.reload') }}
+        </button>
     </div>
 @endsection
 
@@ -281,6 +286,8 @@
         const type_withdrawal = "{{ $type_withdrawal }}"
         const type_balance_withdrawal = "{{ $type_balance_withdrawal }}"
 
+        const can_recalculate = @json($can_recalculate)
+
         let id_year = "{{ $year->id }}"
         let chart_progress
         let progress = 0
@@ -429,14 +436,46 @@
                 getReceipt()
             })
 
+            $("#btn-refresh").click(refresh)
+
             count()
             setChartPaymentProgress()
             getPaymentProgress()
             getReceipt()
         })
 
+        // Recalculate the reports from the real bills, then reload every card and table without reloading the page.
+        // Only a full cashier writes the reports; a kasir unit just reloads the view
+        function refresh() {
+            const btn = $("#btn-refresh")
+            const label = btn.html()
+
+            btn.attr("disabled", true).html("<span class='spinner-border spinner-border-sm'></span> {{ __('label.reload') }}")
+
+            $(".card-background h3").html('<img src="{{ asset('images/loader.gif') }}" style="height: 25px;" />')
+
+            const recalculate = can_recalculate ? $.ajax({
+                type: "POST",
+                url: "{{ route('dashboard.recalculate') }}",
+                data: {
+                    year: id_year
+                },
+                dataType: "json",
+            }).fail(function(xhr) {
+                ajaxError(xhr.status)
+            }) : $.Deferred().resolve()
+
+            recalculate.always(function() {
+                $.when(count(), getPaymentProgress(), getReceipt()).always(function() {
+                    btn.removeAttr("disabled").html(label)
+                })
+
+                window.LaravelDataTables["table-transaction-today"].ajax.reload(null, false)
+            })
+        }
+
         function count() {
-            $.ajax({
+            return $.ajax({
                 type: "POST",
                 url: "{{ route('dashboard.get.count') }}",
                 success: function(response) {
@@ -489,7 +528,7 @@
         <td colspan="6" class="text-center py-5"><img src="{{ asset('images/loader.gif') }}" style="height: 50px;" /></td>
     </tr>`)
 
-            $.ajax({
+            return $.ajax({
                 type: "POST",
                 url: "{{ route('dashboard.get.payment-progress') }}",
                 data: formData,
@@ -528,7 +567,7 @@
         <td colspan="3" class="text-center"><img src="{{ asset('images/loader.gif') }}" style="height: 50px;" /></td>
     </tr>`)
 
-            $.ajax({
+            return $.ajax({
                 type: "POST",
                 url: "{{ route('dashboard.get.receipt') }}",
                 data: formData,

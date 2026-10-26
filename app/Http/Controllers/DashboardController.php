@@ -31,9 +31,11 @@ use App\Models\Student;
 use App\Models\Transaction;
 use App\Models\TransactionBill;
 use App\Models\Year;
+use App\Services\DashboardReportRebuilder;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -375,6 +377,7 @@ class DashboardController extends Controller
             'type_balance_withdrawal' => $type_balance_withdrawal,
             'years' => $years,
             'year' => $year,
+            'can_recalculate' => Auth::user()->hasAccess('kasir'),
         ]);
     }
 
@@ -776,6 +779,25 @@ class DashboardController extends Controller
         ];
 
         return response()->json($response);
+    }
+
+    // Recompute the payment progress and today's receipts from the real bills before the dashboard reloads.
+    // Only the active school year: the level comes from the student's current class, wrong for past years
+    public function recalculate(Request $request, DashboardReportRebuilder $rebuilder)
+    {
+        $year = DB::table('year')->whereId($request->year)->first(['id', 'status']);
+        $recalculated = false;
+
+        if ($year && $year->status) {
+            $rebuilder->rebuild($year->id, Auth::user()->branch_id, date('Y-m-d'));
+            $recalculated = true;
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Ok',
+            'data' => ['recalculated' => $recalculated],
+        ]);
     }
 
     public function getPaymentProgress(Request $request)

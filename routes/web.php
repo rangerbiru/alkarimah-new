@@ -74,6 +74,7 @@ Route::group(['middleware' => ['auth', 'resolve.alias', 'parent.allowlist', 'ini
         Route::post('get/count', [DashboardController::class, 'getCount'])->name('dashboard.get.count')->middleware('access:kasir,kasir-unit');
         Route::post('get/payment-progress', [DashboardController::class, 'getPaymentProgress'])->name('dashboard.get.payment-progress')->middleware('access:kasir,kasir-unit');
         Route::post('get/receipt', [DashboardController::class, 'getReceipt'])->name('dashboard.get.receipt')->middleware('access:kasir,kasir-unit');
+        Route::post('recalculate', [DashboardController::class, 'recalculate'])->name('dashboard.recalculate')->middleware('access:kasir');
 
         Route::post('datatable/employee', [DashboardController::class, 'datatableAttendance'])->name('dashboard.datatable.attendance');
         Route::get('/attendance-summary/data', [DashboardController::class, 'getData'])->name('attendance.summary.data');

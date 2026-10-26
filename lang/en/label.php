@@ -473,4 +473,5 @@ return [
     'cancelled_at' => 'Cancelled At',
     'cancellation_reason' => 'Cancellation Reason',
     'savings_deposit_cancellation' => 'Savings Deposit Cancellation',
+    'reload' => 'Reload',
 ];

@@ -748,4 +748,5 @@ return [
     'cancelled_at' => 'Waktu Pembatalan',
     'cancellation_reason' => 'Alasan Pembatalan',
     'savings_deposit_cancellation' => 'Pembatalan Setoran Tabungan',
+    'reload' => 'Muat Ulang',
 ];
