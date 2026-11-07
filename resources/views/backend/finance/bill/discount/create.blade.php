@@ -85,6 +85,8 @@
 const error = "@isset($errors->all()[0]) {{ $errors->all()[0] }} @endisset"
 let year = ""
 
+let lastKey = ""
+
 $(document).ready(function() {
     if (error != "")
         setNotifInfo(error)
@@ -95,9 +97,14 @@ $(document).ready(function() {
     $("#student").autocomplete({
         source: `{{ route('academic.student.get.autocomplete') }}`,
         minLength: 2,
-        select: (event, ui) => $("#student").blur()
+        select: (event, ui) => {
+            $("#student").val(ui.item.value).blur()
+            optionBill()
+        }
     }).focus(function() {
         $(this).select()
+    }).on("change", function() {
+        optionBill()
     })
 
     $("#year").change(function() {
@@ -129,27 +136,42 @@ $(document).ready(function() {
     })
 })
 
-function optionBill()
+function optionBill(keep = "")
 {
-    if(year != ""){
-        $("#loading-bill").show()
+    const student = $("#student").val()
+    const year = year
 
-        const formData = {year}
+    const key = year + "|" + student.trim()
+    if (key === lastKey)
+        return
+    lastKey = key
 
-        $.ajax({
-            type: "POST",
-            url: "{{ route('finance.report.get.option.bill') }}",
-            data: formData,
-            dataType: "json",
-            success: function(response) {
-                $("#loading-bill").hide()
-                $("#bill").html(response.option).trigger("change.select2")
-            },
-            error: function (xhr, ajaxOptions, thrownError) {
-                ajaxError(xhr.status)
-            }
-        })
-    }
+    $("#bill").html('<option value=""></option>').trigger("change.select2")
+    $("#applies").val("").trigger("change.select2")
+    $("#form-period").hide()
+
+    if (year == "" || student.trim() == "")
+        return
+
+    $("#loading-bill").show()
+
+    $.ajax({
+        type: "POST",
+        url: "{{ route('finance.bill.get.option.student') }}",
+        data: { year, student, keep },
+        dataType: "json",
+        success: function(response) {
+            $("#loading-bill").hide()
+            $("#bill").html(response.option).trigger("change.select2")
+
+            if (response.count == 0)
+                setNotifInfo("{{ __('string.student_has_no_bill') }}")
+        },
+        error: function (xhr, ajaxOptions, thrownError) {
+            $("#loading-bill").hide()
+            ajaxError(xhr.status)
+        }
+    })
 }
 </script>
 @endpush

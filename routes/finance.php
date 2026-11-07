@@ -39,6 +39,7 @@ Route::prefix('bill')->group(function () {
     Route::post('datatable/student', [FinanceBillController::class, 'datatableStudent'])->name('finance.bill.datatable.student')->middleware('access:kasir');
     Route::post('datatable/list', [FinanceBillController::class, 'datatableList'])->name('finance.bill.datatable.list')->middleware('access:kasir');
     Route::post('get/option', [FinanceBillController::class, 'getOption'])->name('finance.bill.get.option')->middleware('access:kasir');
+    Route::post('get/option/student', [FinanceBillController::class, 'getOptionStudent'])->name('finance.bill.get.option.student')->middleware('access:kasir');
     Route::post('get/class', [FinanceBillController::class, 'getClass'])->name('finance.bill.get.class')->middleware('access:kasir');
     Route::post('get', [FinanceBillController::class, 'get'])->name('finance.bill.get')->middleware('access:kasir');
     Route::post('generate', [FinanceBillController::class, 'generate'])->name('finance.bill.generate')->middleware('access:kasir');

@@ -957,6 +957,43 @@ class BillController extends Controller
         return response()->json($response);
     }
 
+    /**
+     * Opsi tagihan untuk form diskon: hanya tagihan yang sudah digenerate atas nama siswa terpilih.
+     */
+    public function getOptionStudent(Request $request)
+    {
+        $options = '<option value=""></option>';
+        $count = 0;
+
+        $nis = trim(explode(' - ', (string) $request->student)[0]);
+        $student = $nis === '' ? null : Student::select('id')->whereNis($nis)->first();
+
+        if ($student) {
+            $billIds = TransactionBill::whereIdStudent($student->id)->distinct()->pluck('id_bill');
+            $bills = Bill::select('id', 'name')
+                ->whereIdYear($request->year)
+                ->whereIn('id', $billIds)
+                ->orderBy('name')
+                ->get();
+
+            // Saat edit, tagihan diskon yang sedang tersimpan tetap ditampilkan.
+            if (! empty($request->keep) && ! $bills->contains('id', (int) $request->keep)) {
+                $keep = Bill::select('id', 'name')->whereId($request->keep)->whereIdYear($request->year)->first();
+                if ($keep) {
+                    $bills->push($keep);
+                }
+            }
+
+            foreach ($bills as $b) {
+                $options .= '<option value="'.$b->id.'">'.e($b->name).'</option>';
+            }
+
+            $count = $bills->count();
+        }
+
+        return response()->json(['option' => $options, 'count' => $count]);
+    }
+
     public function getOption(Request $request)
     {
         $options = '<option value=""></option>';

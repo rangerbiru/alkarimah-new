@@ -12,6 +12,8 @@ return [
     'confirm_deposit_with_balance' => 'Are you sure you want to make a savings deposit using TopUp Balance?',
     'confirm_already_paid' => 'Are you sure this transaction has been paid?',
     'data_not_found' => 'Data not found',
+    'bill_not_generated_for_student' => 'This bill has not been generated for this student',
+    'student_has_no_bill' => 'This student has no bills in the selected school year',
     'student_data_not_found' => 'Student data not found',
     'date_filter_max_31_days' => 'The date filter can only be filled to a maximum of 31 days',
     'hi_welcome' => 'Hi, Welcome!',

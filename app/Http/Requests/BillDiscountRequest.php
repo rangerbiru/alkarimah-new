@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\BillDiscount;
 use App\Models\Student;
+use App\Models\TransactionBill;
 use Illuminate\Foundation\Http\FormRequest;
 
 class BillDiscountRequest extends FormRequest
@@ -41,7 +43,28 @@ class BillDiscountRequest extends FormRequest
                 }
             ],
             'id_year' => 'required',
-            'id_bill' => 'required',
+            'id_bill' => [
+                'required',
+                function ($attribute, $value, $fail) {
+                    $student = Student::select('id')->whereNis(explode(' - ', (string) $this->student)[0])->first();
+
+                    if (! $student) {
+                        return; // sudah ditangani aturan 'student'
+                    }
+
+                    // Saat edit, tagihan lama yang tidak berubah tetap diizinkan.
+                    $current = $this->route('discount');
+                    if ($current instanceof BillDiscount && (int) $current->id_bill === (int) $value && (int) $current->id_student === (int) $student->id) {
+                        return;
+                    }
+
+                    $exists = TransactionBill::whereIdStudent($student->id)->whereIdBill($value)->exists();
+
+                    if (! $exists) {
+                        $fail(__('string.bill_not_generated_for_student'));
+                    }
+                },
+            ],
             'nominal' => 'required|integer',
         ];
     }

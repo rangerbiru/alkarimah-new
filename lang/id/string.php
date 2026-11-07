@@ -13,6 +13,8 @@ return [
     'confirm_deposit_with_balance' => 'Apakah Anda yakin ingin melakukan setor tabungan menggunakan Saldo Tabungan?',
     'confirm_already_paid' => 'Apakah Anda yakin transaksi ini sudah dibayar?',
     'data_not_found' => 'Data tidak ditemukan',
+    'bill_not_generated_for_student' => 'Tagihan belum digenerate atas nama siswa ini',
+    'student_has_no_bill' => 'Siswa ini belum memiliki tagihan pada tahun ajaran tersebut',
     'student_data_not_found' => 'Data Siswa tidak ditemukan',
     'date_filter_max_31_days' => 'Filter tanggal hanya boleh diisi maksimal 31 hari',
     'hi_welcome' => 'Halo, Selamat Datang!',

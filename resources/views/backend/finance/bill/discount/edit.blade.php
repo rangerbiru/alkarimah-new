@@ -90,6 +90,8 @@ let id_year = "{{ $discount->id_year }}"
 let id_bill = "{{ $discount->id_bill }}"
 let applies_to = "{{ (empty($discount->applies_to)) ? 'false' : 'true' }}"
 
+let lastKey = ""
+
 $(document).ready(function() {
     if (error != "")
         setNotifInfo(error)
@@ -97,14 +99,19 @@ $(document).ready(function() {
     $("#form-period").hide()
     $(".nominal-mask").inputmask({ alias: "nominal" })
 
-    optionBill()
+    optionBill(true)
 
     $("#student").autocomplete({
         source: `{{ route('academic.student.get.autocomplete') }}`,
         minLength: 2,
-        select: (event, ui) => $("#student").blur()
+        select: (event, ui) => {
+            $("#student").val(ui.item.value).blur()
+            optionBill()
+        }
     }).focus(function() {
         $(this).select()
+    }).on("change", function() {
+        optionBill()
     })
 
     $("#year").change(function() {
@@ -136,36 +143,51 @@ $(document).ready(function() {
     })
 })
 
-function optionBill()
+function optionBill(initial = false)
 {
-    if (id_year != "") {
-        $("#loading-bill").show()
+    const student = $("#student").val()
+    const year = id_year
 
-        const formData = {year: id_year}
+    const key = year + "|" + student.trim()
+    if (key === lastKey && !initial)
+        return
+    lastKey = key
 
-        $.ajax({
-            type: "POST",
-            url: "{{ route('finance.report.get.option.bill') }}",
-            data: formData,
-            dataType: "json",
-            success: function(response) {
-                $("#loading-bill").hide()
-                $("#bill").html(response.option).trigger("change.select2")
+    $("#bill").html('<option value=""></option>').trigger("change.select2")
+    $("#applies").val("").trigger("change.select2")
+    $("#form-period").hide()
 
-                if(id_bill != "") {
-                    $("#bill").val(id_bill).trigger("change.select2").trigger("change")
+    if (year == "" || student.trim() == "")
+        return
 
-                    if (applies_to == "true") {
-                        const applies = JSON.parse('{!! json_encode($discount->applies_to) !!}')
-                        setTimeout(() => $("#applies").val(applies).trigger("change.select2"), 500)
-                    }
+    $("#loading-bill").show()
+
+    $.ajax({
+        type: "POST",
+        url: "{{ route('finance.bill.get.option.student') }}",
+        data: { year, student, keep: initial ? id_bill : "" },
+        dataType: "json",
+        success: function(response) {
+            $("#loading-bill").hide()
+            $("#bill").html(response.option).trigger("change.select2")
+
+            if (response.count == 0)
+                setNotifInfo("{{ __('string.student_has_no_bill') }}")
+
+            if (initial && id_bill != "") {
+                $("#bill").val(id_bill).trigger("change.select2").trigger("change")
+
+                if (applies_to == "true") {
+                    const applies = JSON.parse('{!! json_encode($discount->applies_to) !!}')
+                    setTimeout(() => $("#applies").val(applies).trigger("change.select2"), 500)
                 }
-            },
-            error: function (xhr, ajaxOptions, thrownError) {
-                ajaxError(xhr.status)
             }
-        })
-    }
+        },
+        error: function (xhr, ajaxOptions, thrownError) {
+            $("#loading-bill").hide()
+            ajaxError(xhr.status)
+        }
+    })
 }
 </script>
 @endpush
