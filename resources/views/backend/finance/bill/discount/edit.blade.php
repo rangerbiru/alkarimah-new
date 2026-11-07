@@ -146,7 +146,7 @@ $(document).ready(function() {
 function optionBill(initial = false)
 {
     const student = $("#student").val()
-    const year = id_year
+    const year = $("#year").val() || ""
 
     const key = year + "|" + student.trim()
     if (key === lastKey && !initial)

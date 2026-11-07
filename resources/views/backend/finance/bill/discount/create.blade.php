@@ -139,7 +139,7 @@ $(document).ready(function() {
 function optionBill(keep = "")
 {
     const student = $("#student").val()
-    const year = year
+    const year = $("#year").val() || ""
 
     const key = year + "|" + student.trim()
     if (key === lastKey)

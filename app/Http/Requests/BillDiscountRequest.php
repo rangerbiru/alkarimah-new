@@ -88,7 +88,7 @@ class BillDiscountRequest extends FormRequest
     {
         $applies = [];
 
-        foreach ($this->applies_to as $a)
+        foreach ((array) $this->applies_to as $a)
             $applies[$a] = 0;
 
         $this->merge([
